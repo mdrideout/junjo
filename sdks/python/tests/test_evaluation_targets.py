@@ -197,13 +197,17 @@ async def test_node_failure_retains_truthful_generated_workflow_identity() -> No
 
 
 @pytest.mark.asyncio
-async def test_workflow_target_invokes_public_workflow_lifecycle() -> None:
+@pytest.mark.parametrize("borrowed", [False, True])
+async def test_workflow_target_invokes_public_workflow_lifecycle(borrowed: bool) -> None:
+    store = ExampleStore(ExampleState(value="borrowed")) if borrowed else None
     target = WorkflowTarget(
         key="uppercase-workflow",
         name="Uppercase Workflow",
         input_version=1,
         input_type=CaseInput,
-        factory=lambda input_value, _context, _resources: WorkflowInvocation(workflow=_workflow(input_value.value)),
+        factory=lambda input_value, _context, _resources: WorkflowInvocation(
+            workflow=_workflow(input_value.value), store=store
+        ),
         projector=lambda result, _input, _context, _resources: result.state.output,
     )
 
@@ -214,7 +218,9 @@ async def test_workflow_target_invokes_public_workflow_lifecycle() -> None:
         resources=None,
     )
 
-    assert result.subject == "WORKFLOW"
+    assert result.subject == ("BORROWED" if borrowed else "WORKFLOW")
+    if store is not None:
+        assert (await store.get_state()).output == "BORROWED"
     assert result.evidence.executable_type is ExecutableType.WORKFLOW
 
 
@@ -260,8 +266,15 @@ async def test_workflow_projection_failure_closes_per_case_resources() -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_target_invokes_public_agent_lifecycle() -> None:
+@pytest.mark.parametrize("borrowed", [False, True])
+async def test_agent_target_invokes_public_agent_lifecycle(borrowed: bool) -> None:
     cleanups: list[str] = []
+    store = ExampleStore(ExampleState(value="borrowed")) if borrowed else None
+    projected = []
+
+    def project(result, _input, _context, _resources):
+        projected.append(result)
+        return result.output.value
 
     async def cleanup() -> None:
         cleanups.append("agent")
@@ -293,9 +306,10 @@ async def test_agent_target_invokes_public_agent_lifecycle() -> None:
             agent=agent,
             input=AgentInput(value=input_value.value),
             dependencies=None,
+            store=store,
             cleanup=cleanup,
         ),
-        projector=lambda result, _input, _context, _resources: result.output.value,
+        projector=project,
     )
 
     result = await target.execute(
@@ -309,3 +323,5 @@ async def test_agent_target_invokes_public_agent_lifecycle() -> None:
     assert result.evidence.executable_type is ExecutableType.AGENT
     assert len(driver.requests) == 1
     assert cleanups == ["agent"]
+    assert projected[0].application_store_id == (store.id if store else None)
+    assert projected[0].application_state == (await store.get_state() if store else None)

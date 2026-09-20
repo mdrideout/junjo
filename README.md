@@ -1,5 +1,8 @@
 # Junjo Platform
 
+[Examples and integrations](https://junjo.ai/docs/examples-and-integrations/) — including a native Junjo Agent with the OpenAI SDK, OpenInference, and composable application state.
+
+
 Junjo is a platform for building observable AI applications whose deterministic
 workflows, autonomous behavior, and diagnostic tooling evolve through explicit
 contracts.

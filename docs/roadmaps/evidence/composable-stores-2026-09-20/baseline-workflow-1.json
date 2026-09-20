@@ -1,0 +1,20 @@
+{
+  "completed": 600,
+  "wall_seconds": 8.097099514998263,
+  "operations_per_second": 74.10060835841522,
+  "cpu_seconds": 4.049086574,
+  "cpu_us_per_operation": 6748.477623333334,
+  "p95_ms": 59.648528000252554,
+  "p99_ms": 62.87822499871254,
+  "peak_rss_mib": 39.875,
+  "before_rss_mib": 39.5,
+  "after_work_rss_mib": 39.9375,
+  "after_release_rss_mib": 39.9375,
+  "label": "baseline-workflow-1",
+  "case": "workflow",
+  "iterations": 600,
+  "warmup_iterations": 30,
+  "size": 128,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "2289b7da5da7d2d30308bcab19aa1bf0ba05292b2178aea63f641c87bf0920d8"
+}

@@ -12,7 +12,8 @@ import {
   EvidenceDiagnosticSchema,
   EvidenceIntegritySchema,
   PayloadEvidenceSchema,
-  StoreDetailSchema,
+  StoreBoundaryDetailSchema,
+  StoreTransitionSchema,
 } from '../../store-diagnostics/schemas/store-diagnostics'
 import { OtelSpanSchema } from './schemas'
 
@@ -21,8 +22,7 @@ export const AgentExecutableAnnotationSchema = z
     executable_type: z.literal('agent'),
     owner_span_id: z.string(),
     runtime_id: z.string(),
-    store_id: z.string().nullable(),
-    unavailable_store: StoreDetailSchema.nullable(),
+    stores: z.record(z.enum(['application', 'runtime']), StoreBoundaryDetailSchema),
     summary: AgentExecutionSummarySchema,
     definition: PayloadEvidenceSchema,
     input: PayloadEvidenceSchema.nullable(),
@@ -44,8 +44,7 @@ export const WorkflowExecutableAnnotationSchema = z
     definition_id: z.string().nullable(),
     runtime_id: z.string().nullable(),
     structural_id: z.string().nullable(),
-    store_id: z.string().nullable(),
-    unavailable_store: StoreDetailSchema.nullable(),
+    stores: z.record(z.enum(['application', 'runtime']), StoreBoundaryDetailSchema),
     integrity: EvidenceIntegritySchema,
   })
   .strict()
@@ -59,11 +58,7 @@ export type ExecutableAnnotation = z.infer<typeof ExecutableAnnotationSchema>
 export const StoreAnnotationSchema = z
   .object({
     store_id: z.string(),
-    owner_span_id: z.string(),
-    owner_runtime_id: z.string().nullable(),
-    owner_executable_type: z.enum(['workflow', 'subflow', 'agent']),
-    detail: StoreDetailSchema,
-    integrity: EvidenceIntegritySchema,
+    transitions: z.array(StoreTransitionSchema),
   })
   .strict()
 export type StoreAnnotation = z.infer<typeof StoreAnnotationSchema>

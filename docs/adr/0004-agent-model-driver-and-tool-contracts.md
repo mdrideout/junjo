@@ -1,5 +1,10 @@
 # ADR 0004: Agent ModelDriver and Tool contracts
 
+Application Store composition and telemetry contract 3 are governed by
+[ADR 0016](0016-composable-application-stores.md). Its shared application Store and execution-interval
+semantics supersede the original isolation-only restrictions below; private
+Agent runtime state remains isolated.
+
 - Status: Accepted
 - Date: 2026-07-13
 - Last clarified: 2026-07-14
@@ -302,10 +307,12 @@ signature inference.
 The Tool service is asynchronous and receives only:
 
 - validated `ToolInputT`;
-- a read-only `AgentRunContext[DependenciesT]`.
+- an immutable `AgentRunContext[DependenciesT, StoreT]` container.
 
 The run context exposes opaque dependencies plus immutable Agent key,
-definition ID, run ID, Tool-call ID, and call ordinal. It does not expose the
+definition ID, run ID, Tool-call ID, and call ordinal. Its `.store` is the
+optional live application Store selected for this run under ADR 0016; Tool
+services may invoke its typed actions. It does not expose the
 private Agent Store, transcript, counters, lifecycle dispatcher, or telemetry
 objects.
 

@@ -1,0 +1,122 @@
+[
+  {
+    "case": "ord-1001-owned",
+    "attempt_id": "ie5vZfinnxuhZQy3UIMKT4",
+    "trace_id": "4b24f5b074cb10a820841b672b7242f3",
+    "agent_span_id": "7d971351c840674f",
+    "workflow_span_id": "c75fcc2a08952d54",
+    "application_store": "2L8FchvCjoJTA9UhgNtpy",
+    "runtime_store": "B1gp5vHj8I0gd8G0jwT4k",
+    "span_count": 16,
+    "application_writers": [
+      "LookupOrderNode",
+      "EvaluateReturnPolicyNode",
+      "EligibleReturnNode"
+    ],
+    "cli_full_equals_ui_api": true,
+    "cli_manifest_equals_ui_api": true,
+    "selected_cli_evidence": true,
+    "resolution": {
+      "detail_path": "/agents/4b24f5b074cb10a820841b672b7242f3/7d971351c840674f",
+      "executable_type": "agent",
+      "failure_path": "/agents/4b24f5b074cb10a820841b672b7242f3/7d971351c840674f",
+      "runtime_id": "8PNTiwMHgnjdcqohaaDIm",
+      "service_name": "junjo_openai_sdk",
+      "service_namespace": "junjo.examples",
+      "span_id": "7d971351c840674f",
+      "trace_id": "4b24f5b074cb10a820841b672b7242f3",
+      "trace_path": "/traces/junjo_openai_sdk/4b24f5b074cb10a820841b672b7242f3/7d971351c840674f"
+    },
+    "cli_selected_equals_ui_api": true
+  },
+  {
+    "case": "ord-1001-borrowed",
+    "attempt_id": "o8w5eN7TpG2A7cxBI2tnPn",
+    "trace_id": "1ec0eb2bb75dabb441e10ff4a17c63fb",
+    "agent_span_id": "389f97621ed1039f",
+    "workflow_span_id": "34bfe911bccc2f74",
+    "application_store": "gfJelHz8nzxDI3NJlyKtD",
+    "runtime_store": "IreQZg9gdjkl64htJh8Xy",
+    "span_count": 16,
+    "application_writers": [
+      "LookupOrderNode",
+      "EvaluateReturnPolicyNode",
+      "EligibleReturnNode"
+    ],
+    "cli_full_equals_ui_api": true,
+    "cli_manifest_equals_ui_api": true,
+    "selected_cli_evidence": true,
+    "resolution": {
+      "detail_path": "/agents/1ec0eb2bb75dabb441e10ff4a17c63fb/389f97621ed1039f",
+      "executable_type": "agent",
+      "failure_path": "/agents/1ec0eb2bb75dabb441e10ff4a17c63fb/389f97621ed1039f",
+      "runtime_id": "Z8Itbx6YOqolBDfLjpBw7",
+      "service_name": "junjo_openai_sdk",
+      "service_namespace": "junjo.examples",
+      "span_id": "389f97621ed1039f",
+      "trace_id": "1ec0eb2bb75dabb441e10ff4a17c63fb",
+      "trace_path": "/traces/junjo_openai_sdk/1ec0eb2bb75dabb441e10ff4a17c63fb/389f97621ed1039f"
+    },
+    "cli_selected_equals_ui_api": true
+  },
+  {
+    "case": "ord-1002-owned",
+    "attempt_id": "bTu6b78a1ovfQYM6PuKu8V",
+    "trace_id": "0db648e420cb3fca22c20739fbbefb96",
+    "agent_span_id": "30f35c07e89d3566",
+    "workflow_span_id": "b3a9391dbad1c902",
+    "application_store": "cDUnFLx2AEXtwqjLiqPjI",
+    "runtime_store": "Np0itl9LJj1Apkr63F1Kz",
+    "span_count": 16,
+    "application_writers": [
+      "LookupOrderNode",
+      "EvaluateReturnPolicyNode",
+      "IneligibleReturnNode"
+    ],
+    "cli_full_equals_ui_api": true,
+    "cli_manifest_equals_ui_api": true,
+    "selected_cli_evidence": true,
+    "resolution": {
+      "detail_path": "/agents/0db648e420cb3fca22c20739fbbefb96/30f35c07e89d3566",
+      "executable_type": "agent",
+      "failure_path": "/agents/0db648e420cb3fca22c20739fbbefb96/30f35c07e89d3566",
+      "runtime_id": "DKLhcttf7Z11UorlX4f2V",
+      "service_name": "junjo_openai_sdk",
+      "service_namespace": "junjo.examples",
+      "span_id": "30f35c07e89d3566",
+      "trace_id": "0db648e420cb3fca22c20739fbbefb96",
+      "trace_path": "/traces/junjo_openai_sdk/0db648e420cb3fca22c20739fbbefb96/30f35c07e89d3566"
+    },
+    "cli_selected_equals_ui_api": true
+  },
+  {
+    "case": "ord-1002-borrowed",
+    "attempt_id": "mvMY2orO5zQuyyCk9M6Yn5",
+    "trace_id": "9614e2838451a16944e1b9a2ed681106",
+    "agent_span_id": "c48a65d5b322e3ea",
+    "workflow_span_id": "b1446b6f1900553d",
+    "application_store": "lxcHkxJDrGatAlcHfAR1R",
+    "runtime_store": "m4VrnL4zaz6CnZE74Q2gs",
+    "span_count": 16,
+    "application_writers": [
+      "LookupOrderNode",
+      "EvaluateReturnPolicyNode",
+      "IneligibleReturnNode"
+    ],
+    "cli_full_equals_ui_api": true,
+    "cli_manifest_equals_ui_api": true,
+    "selected_cli_evidence": true,
+    "resolution": {
+      "detail_path": "/agents/9614e2838451a16944e1b9a2ed681106/c48a65d5b322e3ea",
+      "executable_type": "agent",
+      "failure_path": "/agents/9614e2838451a16944e1b9a2ed681106/c48a65d5b322e3ea",
+      "runtime_id": "QLqAxlq3xA55RPTPffxoB",
+      "service_name": "junjo_openai_sdk",
+      "service_namespace": "junjo.examples",
+      "span_id": "c48a65d5b322e3ea",
+      "trace_id": "9614e2838451a16944e1b9a2ed681106",
+      "trace_path": "/traces/junjo_openai_sdk/9614e2838451a16944e1b9a2ed681106/c48a65d5b322e3ea"
+    },
+    "cli_selected_equals_ui_api": true
+  }
+]

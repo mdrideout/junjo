@@ -721,10 +721,15 @@ def assert_verified_store(
     require(isinstance(revision_start, int), "Store start revision is missing")
     require(isinstance(revision_end, int), "Store end revision is missing")
 
+    sequence_start = detail.get("sequence_start")
+    sequence_end = detail.get("sequence_end")
+    require(isinstance(sequence_start, int), "Store start sequence is missing")
+    require(isinstance(sequence_end, int), "Store end sequence is missing")
+    require(sequence_end - sequence_start == transition_count, "Store interval count is incorrect")
     current = copy.deepcopy(start)
     previous_revision = revision_start
     observed_actions: list[str] = []
-    for sequence, raw_transition in enumerate(transitions, start=1):
+    for sequence, raw_transition in enumerate(transitions, start=sequence_start + 1):
         transition = _require_object(raw_transition, f"Store transition {sequence}")
         require(
             transition.get("sequence") == sequence,
@@ -1356,26 +1361,29 @@ def _indexed_store_detail(
     evidence: Mapping[str, object],
     executable: Mapping[str, object],
     *,
-    owner_span_id: str,
+    role: str,
 ) -> dict[str, Any]:
-    """Resolve one executable's Store through the trace-evidence index."""
+    """Hydrate one execution/role interval from physical Store transitions."""
 
-    store_id = executable.get("store_id")
+    views = _require_object(executable.get("stores"), "executable Store views")
+    view = _require_object(views.get(role), f"executable {role} Store boundary")
+    store_id = view.get("store_id")
     if store_id is None:
-        return _require_object(
-            executable.get("unavailable_store"),
-            "unavailable executable Store",
-        )
-    require(
-        isinstance(store_id, str) and bool(store_id), "executable Store ID is invalid"
-    )
+        return {**view, "transitions": []}
     stores = _require_object(evidence.get("stores_by_id"), "trace Store index")
-    store = _require_object(stores.get(store_id), "indexed executable Store")
-    require(
-        store.get("owner_span_id") == owner_span_id,
-        "indexed Store owner span is incorrect",
-    )
-    return _require_object(store.get("detail"), "indexed executable Store detail")
+    store = _require_object(stores.get(store_id), "indexed physical Store")
+    transitions = _require_list(store.get("transitions"), "physical Store transitions")
+    start = view.get("sequence_start")
+    end = view.get("sequence_end")
+    selected = []
+    if isinstance(start, int) and isinstance(end, int):
+        for raw in transitions:
+            transition = _require_object(raw, "physical Store transition")
+            if start < transition["sequence"] <= end:
+                selected.append(transition if view.get("reconstructable") else {
+                    **transition, "before": None, "after": None,
+                })
+    return {**view, "transitions": selected}
 
 
 def project_agent_detail(
@@ -1454,8 +1462,9 @@ def project_agent_detail(
         "history_candidate": executable.get("history_candidate"),
         "operations": operations,
         "state": _indexed_store_detail(
-            evidence, executable, owner_span_id=agent_span_id
+            evidence, executable, role="runtime"
         ),
+        "application_state": _indexed_store_detail(evidence, executable, role="application"),
         "parent_executable": relationships.get("parent"),
         "nested_executables": nested,
         "error": executable.get("error"),
@@ -1493,7 +1502,7 @@ def project_workflow_diagnostic(
         "state": _indexed_store_detail(
             evidence,
             executable,
-            owner_span_id=workflow_span_id,
+            role="application",
         ),
         "integrity": executable.get("integrity"),
     }

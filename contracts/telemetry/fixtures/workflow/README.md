@@ -1,4 +1,4 @@
-These fixtures lock the active telemetry contract version 2 Workflow behavior
+These fixtures lock the active telemetry contract version 3 Workflow behavior
 shared by Junjo SDKs and AI Studio. They are the Workflow half of the same
 strict contract used by the Agent fixtures in the sibling directory.
 

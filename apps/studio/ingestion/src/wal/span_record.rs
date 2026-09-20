@@ -206,6 +206,71 @@ mod tests {
     }
 
     #[test]
+    fn shared_store_contract_survives_otlp_wal_and_parquet() {
+        use arrow::array::StringArray;
+        use crate::wal::ArrowWal;
+        use parquet::arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder};
+        use std::fs::File;
+        use tempfile::tempdir;
+
+        fn attributes(value: &JsonValue) -> Vec<KeyValue> {
+            value.as_object().unwrap().iter().map(|(key, value)| {
+                let value = match value {
+                    JsonValue::String(text) => any_value::Value::StringValue(text.clone()),
+                    JsonValue::Bool(flag) => any_value::Value::BoolValue(*flag),
+                    JsonValue::Number(number) => any_value::Value::IntValue(number.as_i64().unwrap()),
+                    _ => panic!("Unexpected canonical attribute type"),
+                };
+                key_value(key, AnyValue { value: Some(value) })
+            }).collect()
+        }
+
+        let fixture: JsonValue = serde_json::from_str(include_str!(
+            "../../../../../contracts/telemetry/fixtures/agent/producer/shared_application_store.json"
+        )).unwrap();
+        let source = fixture["spans"].as_array().unwrap();
+        let dir = tempdir().unwrap();
+        let mut wal = ArrowWal::new(&dir.path().join("wal"), source.len()).unwrap();
+        for raw in source {
+            let span = Span {
+                trace_id: hex::decode(raw["trace_id"].as_str().unwrap()).unwrap(),
+                span_id: hex::decode(raw["span_id"].as_str().unwrap()).unwrap(),
+                parent_span_id: raw["parent_span_id"].as_str().map(|value| hex::decode(value).unwrap()).unwrap_or_default(),
+                attributes: attributes(&raw["attributes_json"]),
+                events: raw["events_json"].as_array().unwrap().iter().map(|event| Event {
+                    name: event["name"].as_str().unwrap().to_string(),
+                    time_unix_nano: event["timeUnixNano"].as_str().unwrap().parse().unwrap(),
+                    attributes: attributes(&event["attributes"]),
+                    dropped_attributes_count: event["droppedAttributesCount"].as_u64().unwrap() as u32,
+                }).collect(),
+                ..Default::default()
+            };
+            wal.write_span(SpanRecord::from_otlp(&span, None)).unwrap();
+        }
+        wal.flush_pending().unwrap();
+        let batches = wal.read_batches().unwrap();
+        let parquet_path = dir.path().join("shared.parquet");
+        let mut writer = ArrowWriter::try_new(File::create(&parquet_path).unwrap(), batches[0].schema(), None).unwrap();
+        for batch in &batches { writer.write(batch).unwrap(); }
+        writer.close().unwrap();
+        let reader = ParquetRecordBatchReaderBuilder::try_new(File::open(parquet_path).unwrap()).unwrap().build().unwrap();
+        let mut observed = 0;
+        for batch in reader {
+            let batch = batch.unwrap();
+            let ids = batch.column_by_name("span_id").unwrap().as_any().downcast_ref::<StringArray>().unwrap();
+            let attrs = batch.column_by_name("attributes").unwrap().as_any().downcast_ref::<StringArray>().unwrap();
+            let events = batch.column_by_name("events").unwrap().as_any().downcast_ref::<StringArray>().unwrap();
+            for row in 0..batch.num_rows() {
+                let expected = source.iter().find(|item| item["span_id"] == ids.value(row)).unwrap();
+                assert_eq!(serde_json::from_str::<JsonValue>(attrs.value(row)).unwrap(), expected["attributes_json"]);
+                assert_eq!(serde_json::from_str::<JsonValue>(events.value(row)).unwrap(), expected["events_json"]);
+                observed += 1;
+            }
+        }
+        assert_eq!(observed, source.len());
+    }
+
+    #[test]
     fn test_serialize_events_uses_time_unix_nano_camel_case() {
         let event = Event {
             time_unix_nano: u64::MAX,

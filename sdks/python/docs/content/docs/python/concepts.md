@@ -229,7 +229,7 @@ A `Workflow` is the main executable component that takes a `graph_factory` and a
 
 - **Executable:** The `Workflow` class has an `execute` method that starts the workflow.
 - **Manages Execution:** It traverses the graph, executing nodes and evaluating conditions, until one of the declared `sinks` is reached.
-- **Isolated Execution:** Each call to `execute` uses the provided factories to create a fresh `Graph` and `Store`, ensuring that each execution is isolated and concurrency-safe.
+- **Independent Execution:** Each call to `execute` creates a fresh `Graph` and execution identity. By default, `store_factory` creates a fresh Store; `execute(store=application_store)` instead uses that live Store. See [composition](../agents/composition/) for sharing state with Agents or other Workflows.
 - **Returns a Snapshot:** `execute` returns an `ExecutionResult` containing the final state and workflow-local execution counts for that run.
 - **Retains Failed Run Identity:** An admitted failure raises
   `WorkflowExecutionError` with the run ID and detached terminal state. The

@@ -14,6 +14,8 @@ from typing_extensions import TypeForm
 from ..agent import Agent, AgentError, AgentExecutionError
 from ..agent.messages import AgentMessage
 from ..agent.result import AgentExecutionResult
+from ..agent.result import StateT as AgentStateT
+from ..agent.tool import StoreT
 from ..correlation import ExecutionCorrelation
 from ..eval import NodeEvaluationResult, evaluate_node
 from ..node import Node
@@ -132,7 +134,9 @@ class WorkflowInvocation:
     """Fresh Workflow definition constructed for one case."""
 
     workflow: Workflow
-    """Workflow definition whose execute method creates isolated graph and state for the case."""
+    """Workflow definition used for the case."""
+    store: BaseStore[Any] | None = None
+    """Optional borrowed application Store; omitted uses the Workflow factory."""
     correlation: ExecutionCorrelation | None = None
     """Optional trusted application correlation identity propagated through this execution."""
     cleanup: Cleanup | None = None
@@ -146,15 +150,17 @@ class WorkflowInvocation:
 
 
 @dataclass(frozen=True, slots=True)
-class AgentInvocation(Generic[AgentInputT, AgentOutputT, DependenciesT]):
+class AgentInvocation(Generic[AgentInputT, AgentOutputT, DependenciesT, AgentStateT, StoreT]):
     """Agent definition and application-owned invocation values for one case."""
 
-    agent: Agent[AgentInputT, AgentOutputT, DependenciesT]
+    agent: Agent[AgentInputT, AgentOutputT, DependenciesT, AgentStateT, StoreT]
     """Agent definition used to execute this case with its chosen model and tools."""
     input: AgentInputT
     """Typed application input supplied to the Agent."""
     dependencies: DependenciesT
     """Application services available to this Agent execution and its tools."""
+    store: StoreT | None = None
+    """Optional borrowed application Store; omitted uses the Agent factory."""
     history: tuple[AgentMessage, ...] = ()
     """Conversation history supplied by the application for this case."""
     correlation: ExecutionCorrelation | None = None
@@ -424,6 +430,7 @@ class WorkflowTarget(_TypedTarget[InputT], Generic[InputT, ResourcesT]):
             nonlocal execution
             try:
                 result = await invocation.workflow.execute(
+                    store=invocation.store,
                     correlation=invocation.correlation,
                 )
             except WorkflowExecutionError as error:
@@ -484,7 +491,7 @@ class WorkflowTarget(_TypedTarget[InputT], Generic[InputT, ResourcesT]):
 
 class AgentTarget(
     _TypedTarget[InputT],
-    Generic[InputT, AgentInputT, AgentOutputT, DependenciesT, ResourcesT],
+    Generic[InputT, AgentInputT, AgentOutputT, DependenciesT, ResourcesT, AgentStateT, StoreT],
 ):
     """Execute a real application Agent through ``Agent.execute()``.
 
@@ -502,12 +509,12 @@ class AgentTarget(
         input_type: TypeForm[InputT],  # ty: ignore[invalid-type-form]
         factory: Callable[
             [InputT, EvaluationContext, ResourcesT],
-            AgentInvocation[AgentInputT, AgentOutputT, DependenciesT]
-            | Awaitable[AgentInvocation[AgentInputT, AgentOutputT, DependenciesT]],
+            AgentInvocation[AgentInputT, AgentOutputT, DependenciesT, AgentStateT, StoreT]
+            | Awaitable[AgentInvocation[AgentInputT, AgentOutputT, DependenciesT, AgentStateT, StoreT]],
         ],
         projector: Callable[
             [
-                AgentExecutionResult[AgentOutputT],
+                AgentExecutionResult[AgentOutputT, AgentStateT],
                 InputT,
                 EvaluationContext,
                 ResourcesT,
@@ -551,6 +558,7 @@ class AgentTarget(
                 result = await invocation.agent.execute(
                     invocation.input,
                     dependencies=invocation.dependencies,
+                    store=invocation.store,
                     history=invocation.history,
                     correlation=invocation.correlation,
                 )

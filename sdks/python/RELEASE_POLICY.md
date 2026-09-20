@@ -121,8 +121,14 @@ cutover; there is no dual-version compatibility mode:
    documentation last so public guidance describes the released pair. The
    Griffe public-surface contract is the Python API publication gate.
 
-For telemetry contract version 2, the producer release is `junjo` `0.65.0` and
+For the historical telemetry contract version 2 cutover, the producer release was `junjo` `0.65.0` and
 the first matching Studio release must be `0.82.0` or newer. Release preparation
 updates the VM/Caddy example pin and both deployment compatibility statements
 from their currently released pair to those versions. The Agent implementation
 branch does not pre-pin an SDK version that PyPI cannot yet install.
+
+Contract version **3** (ADR 0016, composable application Stores) requires the
+same coordinated producer/consumer cutover. The source change does not assign
+release versions or update deployment pins before publication. Version 3 SDK
+emitters require a version 3 Studio consumer for semantic state diagnostics;
+there is no dual-version parser.

@@ -5451,11 +5451,6 @@
     },
     {
       "kind": "attribute",
-      "public_name": "junjo.studio.AttemptEvidenceExecutableSummary.store_id",
-      "anchor": "junjo.studio.AttemptEvidenceExecutableSummary.store_id"
-    },
-    {
-      "kind": "attribute",
       "public_name": "junjo.studio.AttemptEvidenceFailureSummary.end_time",
       "anchor": "junjo.studio.AttemptEvidenceFailureSummary.end_time"
     },
@@ -7353,6 +7348,196 @@
       "kind": "function",
       "public_name": "junjo.evaluation.evaluation_span",
       "anchor": "junjo.evaluation.evaluation_span"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.definition.Agent.store_factory",
+      "anchor": "junjo.agent.definition.Agent.store_factory"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.result.AgentExecutionResult.application_state",
+      "anchor": "junjo.agent.result.AgentExecutionResult.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.result.AgentExecutionResult.application_store_id",
+      "anchor": "junjo.agent.result.AgentExecutionResult.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.tool.AgentRunContext.store",
+      "anchor": "junjo.agent.tool.AgentRunContext.store"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.hooks.AgentCancelledEvent.application_store_id",
+      "anchor": "junjo.hooks.AgentCancelledEvent.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.hooks.AgentCancelledEvent.application_state",
+      "anchor": "junjo.hooks.AgentCancelledEvent.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.hooks.AgentCompletedEvent.application_store_id",
+      "anchor": "junjo.hooks.AgentCompletedEvent.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.hooks.AgentFailedEvent.application_store_id",
+      "anchor": "junjo.hooks.AgentFailedEvent.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.hooks.AgentFailedEvent.application_state",
+      "anchor": "junjo.hooks.AgentFailedEvent.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.hooks.AgentStartedEvent.application_store_id",
+      "anchor": "junjo.hooks.AgentStartedEvent.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentExecutionError.application_state",
+      "anchor": "junjo.agent.errors.AgentExecutionError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentExecutionError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentExecutionError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentInternalError.application_state",
+      "anchor": "junjo.agent.errors.AgentInternalError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentInternalError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentInternalError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentLimitExceededError.application_state",
+      "anchor": "junjo.agent.errors.AgentLimitExceededError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentLimitExceededError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentLimitExceededError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentModelError.application_state",
+      "anchor": "junjo.agent.errors.AgentModelError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentModelError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentModelError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentModelResponseError.application_state",
+      "anchor": "junjo.agent.errors.AgentModelResponseError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentModelResponseError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentModelResponseError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentOutputValidationError.application_state",
+      "anchor": "junjo.agent.errors.AgentOutputValidationError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentOutputValidationError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentOutputValidationError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentToolError.application_state",
+      "anchor": "junjo.agent.errors.AgentToolError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentToolError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentToolError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentToolInputValidationError.application_state",
+      "anchor": "junjo.agent.errors.AgentToolInputValidationError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentToolInputValidationError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentToolInputValidationError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentToolOutputValidationError.application_state",
+      "anchor": "junjo.agent.errors.AgentToolOutputValidationError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentToolOutputValidationError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentToolOutputValidationError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentUnknownToolError.application_state",
+      "anchor": "junjo.agent.errors.AgentUnknownToolError.application_state"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.agent.errors.AgentUnknownToolError.application_store_id",
+      "anchor": "junjo.agent.errors.AgentUnknownToolError.application_store_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.plugins.openai_agents.AgentToolInvocation.store",
+      "anchor": "junjo.plugins.openai_agents.AgentToolInvocation.store"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.plugins.openai_agents.WorkflowToolInvocation.store",
+      "anchor": "junjo.plugins.openai_agents.WorkflowToolInvocation.store"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.evaluation.AgentInvocation.store",
+      "anchor": "junjo.evaluation.AgentInvocation.store"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.evaluation.WorkflowInvocation.store",
+      "anchor": "junjo.evaluation.WorkflowInvocation.store"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.AttemptEvidenceExecutableSummary.store_ids",
+      "anchor": "junjo.studio.AttemptEvidenceExecutableSummary.store_ids"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.AttemptEvidenceStoreSummary.role",
+      "anchor": "junjo.studio.AttemptEvidenceStoreSummary.role"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.AttemptEvidenceStoreSummary.sequence_start",
+      "anchor": "junjo.studio.AttemptEvidenceStoreSummary.sequence_start"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.AttemptEvidenceStoreSummary.sequence_end",
+      "anchor": "junjo.studio.AttemptEvidenceStoreSummary.sequence_end"
     }
   ]
 }

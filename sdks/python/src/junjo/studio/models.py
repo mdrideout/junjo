@@ -908,8 +908,8 @@ class AttemptEvidenceExecutableSummary(StudioDto):
     """Human-readable name retained with this record."""
     runtime_id: str | None
     """Per-invocation native execution identity; combine it with service identity and executable type."""
-    store_id: str | None
-    """Identity of the application state store associated with the execution."""
+    store_ids: dict[Literal["application", "runtime"], str | None]
+    """Store identities associated with this execution, indexed by role."""
     outcome: EvidenceOutcome | None
     """Recorded terminal lifecycle outcome; it does not replace an evaluator judgment."""
     status_code: str
@@ -953,7 +953,13 @@ class AttemptEvidenceStoreSummary(StudioDto):
     owner_runtime_id: str | None
     """Runtime identity of the native executable owner, when recorded."""
     owner_executable_type: Literal["workflow", "subflow", "agent"]
-    """Native executable kind that owns the store: workflow, subflow, or agent."""
+    """Native executable kind observing this Store interval."""
+    role: Literal["application", "runtime"]
+    """Whether this is application state or private Agent runtime state."""
+    sequence_start: int | None = Field(ge=0)
+    """Exclusive start of this execution's observed transition interval."""
+    sequence_end: int | None = Field(ge=0)
+    """Inclusive end of this execution's observed transition interval."""
     available: bool
     """Whether store evidence was available in the recorded telemetry."""
     transition_count: int = Field(ge=0)

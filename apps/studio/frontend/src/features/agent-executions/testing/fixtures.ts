@@ -1,3 +1,4 @@
+import { StoreBoundaryDetailSchema } from '../../store-diagnostics/schemas/store-diagnostics'
 import type {
   AgentExecutionDetail,
   CandidateEvidence,
@@ -149,7 +150,16 @@ export function makeAgentExecutionDetailFixture(): AgentExecutionDetail {
         result: fullEvidence({ remembered: true }),
       },
     ],
+    application_state: {
+      available: false, store_id: null, sequence_start: null, sequence_end: null,
+      revision_start: null, revision_end: null, transition_count: 0,
+      reconstructable_claimed: false, reconstructable: false,
+      reconstruction_status: 'not_applicable', reconstruction_reason: 'state_unavailable',
+      start: null, end: null, transitions: [],
+    },
     state: {
+      sequence_start: 0,
+      sequence_end: 1,
       available: true,
       store_id: 'store_01JFIXTURE',
       revision_start: 0,
@@ -236,8 +246,10 @@ export function makeAgentTraceEvidenceFixture(): TraceEvidence {
         executable_type: 'agent',
         owner_span_id: detail.summary.agent_span_id,
         runtime_id: detail.summary.runtime_id,
-        store_id: storeId,
-        unavailable_store: null,
+        stores: {
+          runtime: StoreBoundaryDetailSchema.parse(Object.fromEntries(Object.entries(detail.state).filter(([key]) => key !== 'transitions'))),
+          application: StoreBoundaryDetailSchema.parse(Object.fromEntries(Object.entries(detail.application_state).filter(([key]) => key !== 'transitions'))),
+        },
         summary: detail.summary,
         definition: detail.definition,
         input: detail.input,
@@ -257,11 +269,7 @@ export function makeAgentTraceEvidenceFixture(): TraceEvidence {
     stores_by_id: {
       [storeId]: {
         store_id: storeId,
-        owner_span_id: detail.summary.agent_span_id,
-        owner_runtime_id: detail.summary.runtime_id,
-        owner_executable_type: 'agent',
-        detail: detail.state,
-        integrity: detail.integrity,
+        transitions: detail.state.transitions,
       },
     },
     relationships_by_owner_span_id: {

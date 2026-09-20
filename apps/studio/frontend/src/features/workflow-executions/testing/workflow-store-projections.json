@@ -33,6 +33,8 @@
         "reconstruction_status": "verified",
         "revision_end": 1,
         "revision_start": 0,
+        "sequence_end": 2,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -137,6 +139,8 @@
         "reconstruction_status": "verified",
         "revision_end": 0,
         "revision_start": 0,
+        "sequence_end": 0,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -187,6 +191,8 @@
         "reconstruction_status": "verified",
         "revision_end": 0,
         "revision_start": 0,
+        "sequence_end": 0,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -237,6 +243,8 @@
         "reconstruction_status": "verified",
         "revision_end": 0,
         "revision_start": 0,
+        "sequence_end": 0,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -287,6 +295,8 @@
         "reconstruction_status": "verified",
         "revision_end": 1,
         "revision_start": 0,
+        "sequence_end": 1,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -365,6 +375,8 @@
         "reconstruction_status": "verified",
         "revision_end": 0,
         "revision_start": 0,
+        "sequence_end": 0,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -415,6 +427,8 @@
         "reconstruction_status": "verified",
         "revision_end": 1,
         "revision_start": 0,
+        "sequence_end": 1,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",

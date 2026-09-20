@@ -101,7 +101,7 @@ async def test_agent_owner_and_operations_emit_complete_v2_reconstructable_evide
     owner = next(span for span in spans if span.attributes.get("junjo.span_type") == "agent")
     model = next(span for span in spans if span.attributes.get("junjo.agent.operation_type") == "model_request")
 
-    assert owner.attributes["junjo.telemetry.contract_version"] == 2
+    assert owner.attributes["junjo.telemetry.contract_version"] == 3
     assert owner.attributes["junjo.executable_definition_id"] == agent.definition_id
     assert owner.attributes["junjo.executable_runtime_id"] == result.run_id
     assert owner.attributes["junjo.agent.runtime_id"] == result.run_id

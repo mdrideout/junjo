@@ -1,7 +1,7 @@
 {
   "expected_diagnostic": "unexpected_boundary_candidate_evidence",
   "fixture": {
-    "contract_version": 2,
+    "contract_version": 3,
     "scenario": "non_boundary_with_candidate",
     "trace_id": "ea4cc30a6f64cdf4f4f1aca2af1a3ad3",
     "service_name": "svc-agent-direct-typed-completion",
@@ -24,7 +24,7 @@
         "status_code": "0",
         "status_message": "",
         "attributes_json": {
-          "junjo.telemetry.contract_version": 2,
+          "junjo.telemetry.contract_version": 3,
           "junjo.span_type": "agent",
           "junjo.executable_definition_id": "definition-84b91bd2c2e69bf4",
           "junjo.executable_runtime_id": "run-84b91bd2c2e69bf49c5a",
@@ -64,6 +64,9 @@
           "junjo.agent.output.mode": "full",
           "junjo.agent.output.policy": "junjo.full.v1",
           "junjo.agent.output": "{\"answer\":\"done\"}",
+          "junjo.agent.application_state.available": false,
+          "junjo.store.transition.start": 0,
+          "junjo.store.transition.end": 3,
           "junjo.agent.input_candidate.available": true,
           "junjo.agent.input_candidate.mode": "full",
           "junjo.agent.input_candidate.policy": "junjo.full.v1",
@@ -113,7 +116,7 @@
         "status_code": "0",
         "status_message": "",
         "attributes_json": {
-          "junjo.telemetry.contract_version": 2,
+          "junjo.telemetry.contract_version": 3,
           "junjo.agent.operation_type": "model_request",
           "junjo.agent.key": "fixture_agent",
           "junjo.agent.runtime_id": "run-84b91bd2c2e69bf49c5a",

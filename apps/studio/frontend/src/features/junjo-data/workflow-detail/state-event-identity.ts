@@ -10,6 +10,8 @@ export interface StateEventIdentity {
 
 export interface StateEventSelection extends StateEventIdentity {
   event: JunjoSetStateEvent
+  /** Keep the observed interval selected when navigating shared Store writers. */
+  viewOwnerSpanId?: string
 }
 
 export function stateEventIdentityKey(identity: StateEventIdentity): string {

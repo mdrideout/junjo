@@ -11,6 +11,7 @@ from app.features.execution_resolution.schemas import (
     ExecutableType,
     ExecutionResolution,
 )
+from app.features.telemetry_contract.scalars import is_active_contract_version
 
 
 async def resolve_execution(
@@ -32,7 +33,7 @@ async def resolve_execution(
         resource = candidate.get("resource_attributes_json")
         if not isinstance(attributes, dict) or not isinstance(resource, dict):
             continue
-        if attributes.get("junjo.telemetry.contract_version") != 2:
+        if not is_active_contract_version(attributes.get("junjo.telemetry.contract_version")):
             continue
         if attributes.get("junjo.span_type") != executable_type:
             continue
@@ -114,7 +115,7 @@ async def _single_graph_node_span_id(owner: dict) -> str | None:
             span.get("trace_id") == trace_id
             and span.get("parent_span_id") == owner_span_id
             and isinstance(span_attributes, dict)
-            and span_attributes.get("junjo.telemetry.contract_version") == 2
+            and is_active_contract_version(span_attributes.get("junjo.telemetry.contract_version"))
             and span_attributes.get("junjo.span_type") == "node"
             and span_attributes.get("junjo.executable_runtime_id") == node_runtime_id
         ):
@@ -144,7 +145,7 @@ async def _single_failed_graph_node_span_id(owner: dict) -> str | None:
         attributes = span.get("attributes_json")
         if (
             isinstance(attributes, dict)
-            and attributes.get("junjo.telemetry.contract_version") == 2
+            and is_active_contract_version(attributes.get("junjo.telemetry.contract_version"))
             and attributes.get("junjo.span_type") == "node"
             and _has_failure_signal(span)
             and _is_descendant_of(span, owner_span_id, spans_by_id)

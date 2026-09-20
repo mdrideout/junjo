@@ -1,0 +1,9 @@
+services:
+  backend:
+    image: junjo-composable-candidate:local
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  ingestion:
+    image: junjo-adk-fc0e-ingestion:latest
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata

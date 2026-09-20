@@ -1,0 +1,1561 @@
+==============================================
+Running All Junjo AI Studio Tests
+==============================================
+
+Checking proto tool versions...
+⚠️  Warning: protoc version mismatch
+    Expected: 30.2
+    Found:    35.1
+    See PROTO_VERSIONS.md for installation instructions
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1/6: Python Linting and Formatting (ruff)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Python linting and formatting passed
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2/6: Backend Tests (Python)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==========================================
+Running All Backend Tests
+==========================================
+Using temp databases:
+  SQLite: /tmp/junjo-test-1789884846.db
+
+============================= test session starts ==============================
+platform darwin -- Python 3.13.12, pytest-8.4.2, pluggy-1.6.0 -- /Users/matt/repos/junjo/apps/studio/backend/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/matt/repos/junjo/apps/studio/backend
+configfile: pyproject.toml
+testpaths: tests, app
+plugins: asyncio-1.2.0, anyio-4.11.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 966 items
+
+tests/concurrency/test_api_key_races.py::test_concurrent_api_key_creation PASSED [  0%]
+tests/concurrency/test_api_key_races.py::test_concurrent_key_read_and_delete PASSED [  0%]
+tests/concurrency/test_api_key_races.py::test_concurrent_duplicate_key_prevention PASSED [  0%]
+tests/concurrency/test_api_key_races.py::test_concurrent_list_while_creating PASSED [  0%]
+tests/concurrency/test_api_key_races.py::test_concurrent_delete_same_key PASSED [  0%]
+tests/concurrency/test_api_key_races.py::test_concurrent_create_and_count PASSED [  0%]
+tests/concurrency/test_api_key_races.py::test_high_concurrency_stress_test PASSED [  0%]
+tests/concurrency/test_evaluation_races.py::test_add_case_and_lock_share_one_immediate_write_boundary PASSED [  0%]
+tests/concurrency/test_evaluation_races.py::test_concurrent_final_attempt_updates_complete_run_once PASSED [  0%]
+tests/concurrency/test_evaluation_races.py::test_subject_evidence_can_bind_to_only_one_attempt PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_api_key_creation_database_error PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_list_api_keys_database_error PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_delete_api_key_database_error PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_concurrent_operations_with_intermittent_failures PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_database_query_timeout_handling PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_malformed_database_response PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_database_constraint_violation_handling PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_partial_transaction_rollback PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_database_recovery_after_temporary_failure PASSED [  1%]
+tests/error_recovery/test_database_failures.py::test_http_endpoint_error_handling PASSED [  2%]
+tests/error_recovery/test_database_failures.py::test_database_connection_pool_stress PASSED [  2%]
+tests/security/test_auth_bypass.py::test_session_cookie_tampering PASSED [  2%]
+tests/security/test_auth_bypass.py::test_missing_session_cookie PASSED   [  2%]
+tests/security/test_auth_bypass.py::test_empty_session_cookie PASSED     [  2%]
+tests/security/test_auth_bypass.py::test_malformed_session_cookie PASSED [  2%]
+tests/security/test_auth_bypass.py::test_sign_out_clears_session PASSED  [  2%]
+tests/security/test_auth_bypass.py::test_create_first_user_race_condition PASSED [  2%]
+tests/security/test_auth_bypass.py::test_invalid_credentials_multiple_attempts PASSED [  2%]
+tests/security/test_auth_bypass.py::test_sql_injection_in_email PASSED   [  3%]
+tests/security/test_auth_bypass.py::test_protected_endpoints_require_auth PASSED [  3%]
+tests/security/test_auth_bypass.py::test_session_cookie_httponly_and_secure_flags PASSED [  3%]
+tests/security/test_auth_bypass.py::test_session_cookie_is_encrypted_at_rest_in_the_browser PASSED [  3%]
+tests/security/test_auth_bypass.py::test_observability_route_decodes_an_encoded_service_path PASSED [  3%]
+tests/security/test_auth_bypass.py::test_sign_out_revokes_all_concurrent_sessions_for_the_user PASSED [  3%]
+tests/security/test_auth_bypass.py::test_session_is_rejected_after_its_user_is_deleted PASSED [  3%]
+tests/security/test_auth_bypass.py::test_password_not_returned_in_responses PASSED [  3%]
+tests/test_agent_diagnostics_router.py::test_agent_list_openapi_separates_transport_and_semantic_errors PASSED [  3%]
+tests/test_agent_diagnostics_router.py::test_agent_list_requires_authentication PASSED [  3%]
+tests/test_agent_diagnostics_router.py::test_list_agent_executions_route_returns_typed_summary PASSED [  4%]
+tests/test_agent_diagnostics_router.py::test_list_agent_executions_requires_explicit_service_scope PASSED [  4%]
+tests/test_agent_diagnostics_router.py::test_list_agent_executions_rejects_invalid_time_boundaries[naive-time] PASSED [  4%]
+tests/test_agent_diagnostics_router.py::test_list_agent_executions_rejects_invalid_time_boundaries[inverted-range] PASSED [  4%]
+tests/test_agent_diagnostics_service.py::test_list_filters_use_inclusive_aware_execution_bounds_without_prefetch_cap PASSED [  4%]
+tests/test_agent_semantic_projections.py::test_generated_agent_semantic_projections_are_current PASSED [  4%]
+tests/test_agent_semantic_projections.py::test_owner_from_separate_query_is_matched_by_transport_identity PASSED [  4%]
+tests/test_agent_semantic_projections.py::test_state_unavailable_agent_ignores_unrelated_workflow_store_event PASSED [  4%]
+tests/test_agent_semantic_projections.py::test_state_unavailable_agent_rejects_store_event_on_its_owner_span PASSED [  4%]
+tests/test_agent_semantic_projections.py::test_agent_store_excludes_transition_on_noncanonical_operation_span PASSED [  4%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.telemetry.contract_version-dict] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.telemetry.contract_version-list] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.span_type-dict] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.span_type-list] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.executable_definition_id-dict] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.executable_definition_id-list] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.executable_runtime_id-dict] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.executable_runtime_id-list] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.executable_structural_id-dict] PASSED [  5%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.executable_structural_id-list] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.key-dict] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.key-list] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.name-dict] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.name-list] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.runtime_id-dict] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.runtime_id-list] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.available-dict] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.available-list] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.store.id-dict] PASSED [  6%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.store.id-list] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.limit.model_requests-dict] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.limit.model_requests-list] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.limit.tool_calls-dict] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.limit.tool_calls-list] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.operation.count-dict] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.operation.count-list] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model_request.count-dict] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model_request.count-list] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.tool_call.requested_count-dict] PASSED [  7%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.tool_call.requested_count-list] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.tool_call.admitted_count-dict] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.tool_call.admitted_count-list] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.tool_call.started_count-dict] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.tool_call.started_count-list] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.tool_call.completed_count-dict] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.tool_call.completed_count-list] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.usage-dict] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.usage-list] PASSED [  8%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.outcome-dict] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.outcome-list] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.termination_reason-dict] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.termination_reason-list] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.revision.start-dict] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.revision.start-list] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.revision.end-dict] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.revision.end-list] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.transition.count-dict] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.transition.count-list] PASSED [  9%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.reconstructable-dict] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.reconstructable-list] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.definition_snapshot.mode-dict] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.definition_snapshot.mode-list] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.definition_snapshot.policy-dict] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.definition_snapshot.policy-list] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.definition_snapshot-dict] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.definition_snapshot-list] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.input.mode-dict] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.input.mode-list] PASSED [ 10%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.input.policy-dict] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.input.policy-list] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.input-dict] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.input-list] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.start.mode-dict] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.start.mode-list] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.start.policy-dict] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.start.policy-list] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.start-dict] PASSED [ 11%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.start-list] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.end.mode-dict] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.end.mode-list] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.end.policy-dict] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.end.policy-list] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.end-dict] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.state.end-list] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.output.mode-dict] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.output.mode-list] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.output.policy-dict] PASSED [ 12%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.output.policy-list] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.output-dict] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.output-list] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.application_state.available-dict] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.application_state.available-list] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.transition.start-dict] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.transition.start-list] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.transition.end-dict] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.store.transition.end-list] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.operation_type-dict] PASSED [ 13%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.operation_type-list] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.operation.sequence-dict] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.operation.sequence-list] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model_request.ordinal-dict] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model_request.ordinal-list] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model_request.state_revision-dict] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model_request.state_revision-list] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.driver_key-dict] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.driver_key-list] PASSED [ 14%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.provider-dict] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.provider-list] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.name-dict] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.name-list] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_candidate.available-dict] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_candidate.available-list] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_type-dict] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_type-list] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.usage-dict] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.usage-list] PASSED [ 15%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.request.mode-dict] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.request.mode-list] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.request.policy-dict] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.request.policy-list] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.request-dict] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.request-list] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_candidate.mode-dict] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_candidate.mode-list] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_candidate.policy-dict] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_candidate.policy-list] PASSED [ 16%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_candidate-dict] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response_candidate-list] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response.mode-dict] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response.mode-list] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response.policy-dict] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response.policy-list] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response-dict] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[direct_typed_completion-junjo.agent.model.response-list] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.telemetry.contract_version-dict] PASSED [ 17%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.telemetry.contract_version-list] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.span_type-dict] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.span_type-list] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.executable_definition_id-dict] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.executable_definition_id-list] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.executable_runtime_id-dict] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.executable_runtime_id-list] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.executable_structural_id-dict] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.executable_structural_id-list] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.key-dict] PASSED [ 18%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.key-list] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.name-dict] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.name-list] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.runtime_id-dict] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.runtime_id-list] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.available-dict] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.available-list] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.store.id-dict] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.store.id-list] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.limit.model_requests-dict] PASSED [ 19%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.limit.model_requests-list] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.limit.tool_calls-dict] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.limit.tool_calls-list] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.operation.count-dict] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.operation.count-list] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model_request.count-dict] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model_request.count-list] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.requested_count-dict] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.requested_count-list] PASSED [ 20%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.admitted_count-dict] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.admitted_count-list] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.started_count-dict] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.started_count-list] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.completed_count-dict] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.completed_count-list] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.usage-dict] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.usage-list] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.outcome-dict] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.outcome-list] PASSED [ 21%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.termination_reason-dict] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.termination_reason-list] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.revision.start-dict] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.revision.start-list] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.revision.end-dict] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.revision.end-list] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.transition.count-dict] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.transition.count-list] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.reconstructable-dict] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.reconstructable-list] PASSED [ 22%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.definition_snapshot.mode-dict] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.definition_snapshot.mode-list] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.definition_snapshot.policy-dict] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.definition_snapshot.policy-list] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.definition_snapshot-dict] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.definition_snapshot-list] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.input.mode-dict] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.input.mode-list] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.input.policy-dict] PASSED [ 23%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.input.policy-list] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.input-dict] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.input-list] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.start.mode-dict] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.start.mode-list] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.start.policy-dict] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.start.policy-list] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.start-dict] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.start-list] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.end.mode-dict] PASSED [ 24%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.end.mode-list] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.end.policy-dict] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.end.policy-list] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.end-dict] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.state.end-list] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-error.type-dict] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-error.type-list] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.application_state.available-dict] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.application_state.available-list] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.transition.start-dict] PASSED [ 25%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.transition.start-list] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.transition.end-dict] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.store.transition.end-list] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.operation_type-dict] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.operation_type-list] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.operation.sequence-dict] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.operation.sequence-list] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model_request.ordinal-dict] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model_request.ordinal-list] PASSED [ 26%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model_request.state_revision-dict] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model_request.state_revision-list] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.driver_key-dict] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.driver_key-list] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.provider-dict] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.provider-list] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.name-dict] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.name-list] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_candidate.available-dict] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_candidate.available-list] PASSED [ 27%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_type-dict] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_type-list] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.usage-dict] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.usage-list] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.request.mode-dict] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.request.mode-list] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.request.policy-dict] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.request.policy-list] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.request-dict] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.request-list] PASSED [ 28%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_candidate.mode-dict] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_candidate.mode-list] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_candidate.policy-dict] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_candidate.policy-list] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_candidate-dict] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response_candidate-list] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response.mode-dict] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response.mode-list] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response.policy-dict] PASSED [ 29%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response.policy-list] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response-dict] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.model.response-list] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.id-dict] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.id-list] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.ordinal-dict] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool_call.ordinal-list] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.name-dict] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.name-list] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.structural_id-dict] PASSED [ 30%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.structural_id-list] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.state_revision.before-dict] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.state_revision.before-list] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.requested_arguments.mode-dict] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.requested_arguments.mode-list] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.requested_arguments.policy-dict] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.requested_arguments.policy-list] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.requested_arguments-dict] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.requested_arguments-list] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.result_candidate.available-dict] PASSED [ 31%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.result_candidate.available-list] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.result_candidate.unavailable_reason-dict] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[malformed_tool_arguments-junjo.agent.tool.result_candidate.unavailable_reason-list] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.telemetry.contract_version-dict] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.telemetry.contract_version-list] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.span_type-dict] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.span_type-list] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.executable_definition_id-dict] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.executable_definition_id-list] PASSED [ 32%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.executable_runtime_id-dict] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.executable_runtime_id-list] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.executable_structural_id-dict] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.executable_structural_id-list] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.key-dict] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.key-list] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.name-dict] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.name-list] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.runtime_id-dict] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.runtime_id-list] PASSED [ 33%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.limit.model_requests-dict] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.limit.model_requests-list] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.limit.tool_calls-dict] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.limit.tool_calls-list] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.operation.count-dict] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.operation.count-list] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.model_request.count-dict] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.model_request.count-list] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.tool_call.requested_count-dict] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.tool_call.requested_count-list] PASSED [ 34%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.tool_call.admitted_count-dict] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.tool_call.admitted_count-list] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.tool_call.started_count-dict] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.tool_call.started_count-list] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.tool_call.completed_count-dict] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.tool_call.completed_count-list] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.usage-dict] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.usage-list] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.outcome-dict] PASSED [ 35%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.outcome-list] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.termination_reason-dict] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.termination_reason-list] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.definition_snapshot.mode-dict] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.definition_snapshot.mode-list] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.definition_snapshot.policy-dict] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.definition_snapshot.policy-list] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.definition_snapshot-dict] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.definition_snapshot-list] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.state.available-dict] PASSED [ 36%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.state.available-list] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.input_candidate.available-dict] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.input_candidate.available-list] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.input_candidate.mode-dict] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.input_candidate.mode-list] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.input_candidate.policy-dict] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.input_candidate.policy-list] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.input_candidate-dict] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.input_candidate-list] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-error.type-dict] PASSED [ 37%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-error.type-list] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.application_state.available-dict] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[boundary_input_history_rejection-junjo.agent.application_state.available-list] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.telemetry.contract_version-dict] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.telemetry.contract_version-list] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.span_type-dict] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.span_type-list] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.executable_definition_id-dict] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.executable_definition_id-list] PASSED [ 38%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.executable_runtime_id-dict] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.executable_runtime_id-list] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.executable_structural_id-dict] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.executable_structural_id-list] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.key-dict] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.key-list] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.name-dict] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.name-list] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.runtime_id-dict] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.runtime_id-list] PASSED [ 39%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.available-dict] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.available-list] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.store.id-dict] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.store.id-list] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.limit.model_requests-dict] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.limit.model_requests-list] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.limit.tool_calls-dict] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.limit.tool_calls-list] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.operation.count-dict] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.operation.count-list] PASSED [ 40%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model_request.count-dict] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model_request.count-list] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.requested_count-dict] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.requested_count-list] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.admitted_count-dict] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.admitted_count-list] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.started_count-dict] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.started_count-list] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.completed_count-dict] PASSED [ 41%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.completed_count-list] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.usage-dict] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.usage-list] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.outcome-dict] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.outcome-list] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.termination_reason-dict] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.termination_reason-list] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.revision.start-dict] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.revision.start-list] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.revision.end-dict] PASSED [ 42%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.revision.end-list] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.transition.count-dict] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.transition.count-list] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.reconstructable-dict] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.reconstructable-list] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.definition_snapshot.mode-dict] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.definition_snapshot.mode-list] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.definition_snapshot.policy-dict] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.definition_snapshot.policy-list] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.definition_snapshot-dict] PASSED [ 43%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.definition_snapshot-list] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.input.mode-dict] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.input.mode-list] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.input.policy-dict] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.input.policy-list] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.input-dict] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.input-list] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.start.mode-dict] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.start.mode-list] PASSED [ 44%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.start.policy-dict] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.start.policy-list] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.start-dict] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.start-list] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.end.mode-dict] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.end.mode-list] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.end.policy-dict] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.end.policy-list] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.end-dict] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.state.end-list] PASSED [ 45%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.output.mode-dict] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.output.mode-list] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.output.policy-dict] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.output.policy-list] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.output-dict] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.output-list] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.application_state.available-dict] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.application_state.available-list] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.transition.start-dict] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.transition.start-list] PASSED [ 46%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.transition.end-dict] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.store.transition.end-list] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.operation_type-dict] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.operation_type-list] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.operation.sequence-dict] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.operation.sequence-list] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model_request.ordinal-dict] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model_request.ordinal-list] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model_request.state_revision-dict] PASSED [ 47%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model_request.state_revision-list] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.driver_key-dict] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.driver_key-list] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.provider-dict] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.provider-list] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.name-dict] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.name-list] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_candidate.available-dict] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_candidate.available-list] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_type-dict] PASSED [ 48%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_type-list] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.usage-dict] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.usage-list] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.request.mode-dict] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.request.mode-list] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.request.policy-dict] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.request.policy-list] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.request-dict] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.request-list] PASSED [ 49%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_candidate.mode-dict] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_candidate.mode-list] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_candidate.policy-dict] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_candidate.policy-list] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_candidate-dict] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response_candidate-list] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response.mode-dict] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response.mode-list] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response.policy-dict] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response.policy-list] PASSED [ 50%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response-dict] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.model.response-list] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.id-dict] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.id-list] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.ordinal-dict] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool_call.ordinal-list] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.name-dict] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.name-list] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.structural_id-dict] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.structural_id-list] PASSED [ 51%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.state_revision.before-dict] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.state_revision.before-list] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.state_revision.after-dict] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.state_revision.after-list] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result_candidate.available-dict] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result_candidate.available-list] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.requested_arguments.mode-dict] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.requested_arguments.mode-list] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.requested_arguments.policy-dict] PASSED [ 52%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.requested_arguments.policy-list] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.requested_arguments-dict] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.requested_arguments-list] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.arguments.mode-dict] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.arguments.mode-list] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.arguments.policy-dict] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.arguments.policy-list] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.arguments-dict] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.arguments-list] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result_candidate.mode-dict] PASSED [ 53%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result_candidate.mode-list] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result_candidate.policy-dict] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result_candidate.policy-list] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result_candidate-dict] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result_candidate-list] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result.mode-dict] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result.mode-list] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result.policy-dict] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result.policy-list] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result-dict] PASSED [ 54%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.agent.tool.result-list] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.parent_executable_definition_id-dict] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.parent_executable_definition_id-list] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.parent_executable_runtime_id-dict] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.parent_executable_runtime_id-list] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.parent_executable_structural_id-dict] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.parent_executable_structural_id-list] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.parent_executable_type-dict] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_bounded_semantic_scalar_mutations_never_escape_typed_evidence_handling[tool_invokes_nested_workflow-junjo.parent_executable_type-list] PASSED [ 55%]
+tests/test_agent_semantic_projections.py::test_generated_agent_semantic_projections_cover_every_valid_owner PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_unknown_tool_reason_identifies_only_the_undeclared_call_in_a_rejected_batch PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_redacted_operation_payloads_do_not_create_false_integrity_failures PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_schema_shaped_redacted_definition_is_not_treated_as_original_content PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_noncanonical_full_definition_is_partial_not_an_assembler_crash[unsafe_integer] PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_noncanonical_full_definition_is_partial_not_an_assembler_crash[invalid_unicode_surrogate] PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_malformed_operation_event_evidence_is_partial_not_an_assembler_crash[missing] PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_malformed_operation_event_evidence_is_partial_not_an_assembler_crash[invalid_container] PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_malformed_operation_event_evidence_is_partial_not_an_assembler_crash[invalid_entry] PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_observed_tool_operation_survives_unknown_admission_when_store_replay_is_partial PASSED [ 56%]
+tests/test_agent_semantic_projections.py::test_agent_store_event_on_unowned_span_is_diagnostic_not_replayed PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_ineligible_operation_evidence_cannot_verify_agent_store_replay[unsupported_contract-unsupported_contract] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_ineligible_operation_evidence_cannot_verify_agent_store_replay[missing_contract-unsupported_contract] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_ineligible_operation_evidence_cannot_verify_agent_store_replay[owner_key-operation_owner_mismatch] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_ineligible_operation_evidence_cannot_verify_agent_store_replay[physical_parent-operation_owner_mismatch] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[object-owner_type-direct_typed_completion.json-invalid_agent_owner_type] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[object-owner_outcome-direct_typed_completion.json-invalid_terminal_fact] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[object-operation_type-direct_typed_completion.json-invalid_operation_type] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[object-payload_mode-direct_typed_completion.json-invalid_payload_slot] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[object-response_type-direct_typed_completion.json-invalid_model_response] PASSED [ 57%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[object-limit_kind-model_request_limit_exhaustion.json-invalid_limit_evidence] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[object-parent_type-nested_agent_owner_isolation.json-parent_executable_correspondence_mismatch] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[object-nested_executable_type-tool_invokes_nested_workflow.json-invalid_nested_executable] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[array-owner_type-direct_typed_completion.json-invalid_agent_owner_type] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[array-owner_outcome-direct_typed_completion.json-invalid_terminal_fact] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[array-operation_type-direct_typed_completion.json-invalid_operation_type] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[array-payload_mode-direct_typed_completion.json-invalid_payload_slot] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[array-response_type-direct_typed_completion.json-invalid_model_response] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[array-limit_kind-model_request_limit_exhaustion.json-invalid_limit_evidence] PASSED [ 58%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[array-parent_type-nested_agent_owner_isolation.json-parent_executable_correspondence_mismatch] PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_unhashable_semantic_scalar_evidence_never_crashes_agent_assembly[array-nested_executable_type-tool_invokes_nested_workflow.json-invalid_nested_executable] PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_non_completed_agent_omits_unexpected_output_as_partial_evidence PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_nonscalar_store_action_is_partial_not_an_assembler_crash[object] PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_nonscalar_store_action_is_partial_not_an_assembler_crash[array] PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_duplicate_payload_object_name_is_rejected_before_last_key_wins PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_malformed_ambient_parent_span_id_is_partial[bad] PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_malformed_ambient_parent_span_id_is_partial[ABCDEF0123456789] PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_malformed_ambient_parent_span_id_is_partial[bad\ud800text] PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_operation_from_wrong_trace_is_not_admitted_to_owner_projection PASSED [ 59%]
+tests/test_agent_semantic_projections.py::test_inverted_operation_interval_is_omitted_with_typed_partial_evidence PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_malformed_nested_executable_identity_is_not_coerced[null_definition] PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_malformed_nested_executable_identity_is_not_coerced[wrong_runtime_type] PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_malformed_nested_executable_identity_is_not_coerced[empty_structural_id] PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_malformed_nested_executable_identity_is_not_coerced[missing_name] PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_malformed_nested_executable_identity_is_not_coerced[null_span_id] PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_malformed_nested_executable_identity_is_not_coerced[wrong_trace_type] PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_unsupported_nested_executable_is_not_exposed_as_complete_evidence PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_physical_parent_must_belong_to_declared_semantic_parent PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_owned_tool_may_physically_interpose_declared_agent_parent PASSED [ 60%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[available_candidate_with_reason] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[boundary_reason_with_available_state] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[boundary_rejection_with_validated_input] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[boundary_rejection_with_wrong_candidate] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[cancelled_tool_with_non_cancelled_candidate_reason] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[completed_model_without_response] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[count_inequality] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[duplicate_operation_sequence] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[duplicate_payload_object_name] PASSED [ 61%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[duplicate_transition_sequence] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[failed_agent_with_output] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[failed_tool_with_validated_result] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[gapped_operation_sequence] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[gapped_transition_sequence] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[inconsistent_store_name] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[invalid_payload_slot] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[invalid_payload_unicode] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[inverted_span_interval] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[limit_mismatch] PASSED [ 62%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[malformed_tool_with_validated_arguments] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[missing_store_name] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[missing_trailing_transition] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[missing_transition_event_id] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[model_ordinal_noncontiguous] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[model_response_without_type] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[model_usage_without_response] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[non_boundary_with_candidate] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[out_of_range_operation_sequence] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[out_of_scope_agent_store_event] PASSED [ 63%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[owner_outcome_reason_mismatch] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[patch_replay_mismatch] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[payload_nesting_too_deep] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[requested_above_limit_without_limit_termination] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[required_slot_omission] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[revision_discontinuity] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[started_tool_without_arguments] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[terminal_revision_mismatch] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[tool_call_identity_mismatch] PASSED [ 64%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[tool_result_without_revision] PASSED [ 65%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[unavailable_candidate_with_payload] PASSED [ 65%]
+tests/test_agent_semantic_projections.py::test_invalid_agent_derivative_reports_declared_diagnostic[unsafe_payload_integer] PASSED [ 65%]
+tests/test_api_keys_repository.py::test_create_api_key PASSED            [ 65%]
+tests/test_api_keys_repository.py::test_list_all_api_keys PASSED         [ 65%]
+tests/test_api_keys_repository.py::test_get_by_id_found PASSED           [ 65%]
+tests/test_api_keys_repository.py::test_get_by_key_found PASSED          [ 65%]
+tests/test_api_keys_repository.py::test_delete_by_id_success PASSED      [ 65%]
+tests/test_api_keys_repository.py::test_key_uniqueness PASSED            [ 65%]
+tests/test_api_keys_router.py::test_create_api_key PASSED                [ 65%]
+tests/test_api_keys_router.py::test_list_api_keys_empty PASSED           [ 66%]
+tests/test_api_keys_router.py::test_list_api_keys PASSED                 [ 66%]
+tests/test_api_keys_router.py::test_delete_api_key PASSED                [ 66%]
+tests/test_api_keys_router.py::test_delete_nonexistent_api_key PASSED    [ 66%]
+tests/test_api_keys_router.py::test_api_key_fields_snake_case PASSED     [ 66%]
+tests/test_api_keys_router.py::test_create_multiple_keys_unique PASSED   [ 66%]
+tests/test_api_keys_service.py::test_generate_key_uniqueness PASSED      [ 66%]
+tests/test_api_keys_service.py::test_generate_id_uniqueness PASSED       [ 66%]
+tests/test_api_keys_service.py::test_create_api_key PASSED               [ 66%]
+tests/test_api_keys_service.py::test_list_api_keys PASSED                [ 66%]
+tests/test_api_keys_service.py::test_delete_api_key PASSED               [ 67%]
+tests/test_api_keys_service.py::test_delete_nonexistent_api_key PASSED   [ 67%]
+tests/test_common_utils.py::test_generate_id_uses_cli_safe_alphanumeric_alphabet PASSED [ 67%]
+tests/test_composable_store_evidence.py::test_shared_store_views_are_independent_and_events_are_not_duplicated PASSED [ 67%]
+tests/test_composable_store_evidence.py::test_missing_shared_writer_only_invalidates_views_that_need_its_event PASSED [ 67%]
+tests/test_composable_store_evidence.py::test_overlapping_views_on_same_store_keep_their_own_checkpoints PASSED [ 67%]
+tests/test_composable_store_evidence.py::test_composable_store_projection_is_current PASSED [ 67%]
+tests/test_datafusion_query.py::test_api_span_kind_uses_canonical_otlp_enum_values[0-UNSPECIFIED] PASSED [ 67%]
+tests/test_datafusion_query.py::test_api_span_kind_uses_canonical_otlp_enum_values[1-INTERNAL] PASSED [ 67%]
+tests/test_datafusion_query.py::test_api_span_kind_uses_canonical_otlp_enum_values[2-SERVER] PASSED [ 68%]
+tests/test_datafusion_query.py::test_api_span_kind_uses_canonical_otlp_enum_values[3-CLIENT] PASSED [ 68%]
+tests/test_datafusion_query.py::test_api_span_kind_uses_canonical_otlp_enum_values[4-PRODUCER] PASSED [ 68%]
+tests/test_datafusion_query.py::test_api_span_kind_uses_canonical_otlp_enum_values[5-CONSUMER] PASSED [ 68%]
+tests/test_datafusion_query.py::test_api_span_kind_uses_canonical_otlp_enum_values[99-UNSPECIFIED] PASSED [ 68%]
+tests/test_datafusion_query.py::test_query_spans_by_trace_id PASSED      [ 68%]
+tests/test_datafusion_query.py::test_query_root_only PASSED              [ 68%]
+tests/test_datafusion_query.py::test_query_distinct_service_names_from_parquet PASSED [ 68%]
+tests/test_datafusion_query.py::test_dedup_prefers_cold_over_hot PASSED  [ 68%]
+tests/test_datafusion_query.py::test_dedup_does_not_collapse_across_traces PASSED [ 68%]
+tests/test_datafusion_query.py::test_register_cold_multiple_files PASSED [ 69%]
+tests/test_datafusion_query.py::test_parses_attributes_and_events_json PASSED [ 69%]
+tests/test_datafusion_query.py::test_query_exact_executable_identity_filters_before_and_after_datafusion PASSED [ 69%]
+tests/test_datafusion_query.py::test_register_cold_skips_empty_parquet_files PASSED [ 69%]
+tests/test_datafusion_query.py::test_register_cold_with_only_empty_files_returns_no_results PASSED [ 69%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_cold_parquet[basic_workflow_success] PASSED [ 69%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_cold_parquet[cancelled_executable] PASSED [ 69%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_cold_parquet[failed_executable_with_error_type] PASSED [ 69%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_cold_parquet[hook_failure_on_surrounding_span] PASSED [ 69%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_cold_parquet[run_concurrent_success] PASSED [ 69%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_cold_parquet[subflow_with_parent_store] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_hot_parquet[basic_workflow_success] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_hot_parquet[cancelled_executable] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_hot_parquet[failed_executable_with_error_type] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_hot_parquet[hook_failure_on_surrounding_span] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_hot_parquet[run_concurrent_success] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_hot_parquet[subflow_with_parent_store] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_fused_hot_and_cold[basic_workflow_success] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_fused_hot_and_cold[cancelled_executable] PASSED [ 70%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_fused_hot_and_cold[failed_executable_with_error_type] PASSED [ 71%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_fused_hot_and_cold[hook_failure_on_surrounding_span] PASSED [ 71%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_fused_hot_and_cold[run_concurrent_success] PASSED [ 71%]
+tests/test_datafusion_query.py::test_current_junjo_fixture_round_trips_from_fused_hot_and_cold[subflow_with_parent_store] PASSED [ 71%]
+tests/test_datafusion_query.py::test_workflow_only_query_finds_current_junjo_workflow_spans[basic_workflow_success] PASSED [ 71%]
+tests/test_datafusion_query.py::test_workflow_only_query_finds_current_junjo_workflow_spans[cancelled_executable] PASSED [ 71%]
+tests/test_datafusion_query.py::test_workflow_only_query_finds_current_junjo_workflow_spans[failed_executable_with_error_type] PASSED [ 71%]
+tests/test_datafusion_query.py::test_workflow_only_query_finds_current_junjo_workflow_spans[hook_failure_on_surrounding_span] PASSED [ 71%]
+tests/test_datafusion_query.py::test_workflow_only_query_finds_current_junjo_workflow_spans[run_concurrent_success] PASSED [ 71%]
+tests/test_datafusion_query.py::test_workflow_only_query_finds_current_junjo_workflow_spans[subflow_with_parent_store] PASSED [ 71%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/consumer/dropped_evidence_partial] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/consumer/nonfull_payload_modes] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/consumer/policy_unavailable_store] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/consumer/redacted_operation_payloads] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/admission_internal_error] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/agent_cancellation_inside_workflow_node] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/agent_failure_inside_workflow_node] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/agent_inside_workflow_node] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/boundary_input_history_rejection] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/cancelled_model_request] PASSED [ 72%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/cancelled_tool_service] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/cancelled_workflow_tool] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/concurrent_run_isolation] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/direct_typed_completion] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/final_output_validation_failure] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/hook_failure_then_success] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/malformed_model_response] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/malformed_tool_arguments] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/model_driver_failure] PASSED [ 73%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/model_request_limit_exhaustion] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/multi_tool_first_cancellation] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/multi_tool_first_failure] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/nested_agent_owner_isolation] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/nested_workflow_failure] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/nonserializable_model_response_candidate] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/nonserializable_tool_result_candidate] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/ordered_multiple_tools] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/over_budget_tool_batch] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/shared_application_store] PASSED [ 74%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/standalone_agent_under_non_junjo_span] PASSED [ 75%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/terminal_commit_internal_error_partial] PASSED [ 75%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/terminal_observer_cancellation] PASSED [ 75%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/tool_invokes_nested_workflow] PASSED [ 75%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/tool_output_validation_failure] PASSED [ 75%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/tool_service_failure] PASSED [ 75%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/unexpected_internal_error] PASSED [ 75%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/unknown_tool] PASSED [ 75%]
+tests/test_datafusion_query.py::test_agent_fixture_round_trips_and_assembles_from_parquet[agent/producer/usage_absent_vs_zero] PASSED [ 75%]
+tests/test_evaluation_migration.py::test_generated_initial_migration_round_trips_without_schema_drift PASSED [ 75%]
+tests/test_evaluation_repository.py::test_agent_target_case_persists_in_control_database PASSED [ 76%]
+tests/test_evaluation_repository.py::test_complete_control_loop_is_idempotent_and_exact PASSED [ 76%]
+tests/test_evaluation_repository.py::test_external_span_evidence_is_bound_and_reverse_queryable PASSED [ 76%]
+tests/test_evaluation_repository.py::test_external_span_evidence_can_identify_a_generated_case_source PASSED [ 76%]
+tests/test_evaluation_repository.py::test_conflicting_natural_keys_and_terminal_writes_are_rejected PASSED [ 76%]
+tests/test_evaluation_repository.py::test_draft_cannot_run_and_locked_dataset_cannot_gain_new_case PASSED [ 76%]
+tests/test_evaluation_repository.py::test_case_count_is_bounded_inside_serialized_write PASSED [ 76%]
+tests/test_evaluation_repository.py::test_error_without_execution_is_terminal_and_preserves_history_after_user_delete PASSED [ 76%]
+tests/test_evaluation_repository.py::test_dataset_run_and_membership_keyset_pages_do_not_repeat_rows PASSED [ 76%]
+tests/test_evaluation_repository.py::test_run_scope_filters_must_match_the_same_case PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[POST-/api/v1/evaluation/datasets-kwargs0] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[GET-/api/v1/evaluation/datasets-kwargs1] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[GET-/api/v1/evaluation/datasets/dataset-id-kwargs2] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[POST-/api/v1/evaluation/datasets/dataset-id/cases-kwargs3] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[PUT-/api/v1/evaluation/datasets/dataset-id/lock-kwargs4] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[POST-/api/v1/evaluation/runs-kwargs5] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[GET-/api/v1/evaluation/runs-kwargs6] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[GET-/api/v1/evaluation/runs/run-id-kwargs7] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[GET-/api/v1/evaluation/attempts/attempt-id-kwargs8] PASSED [ 77%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[PUT-/api/v1/evaluation/attempts/attempt-id/evidence-kwargs9] PASSED [ 78%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[PUT-/api/v1/evaluation/attempts/attempt-id/result-kwargs10] PASSED [ 78%]
+tests/test_evaluation_router.py::test_every_evaluation_route_requires_session_or_scoped_token[GET-/api/v1/evaluation/evidence-membership-kwargs11] PASSED [ 78%]
+tests/test_evaluation_router.py::test_headless_api_loop_and_response_envelopes PASSED [ 78%]
+tests/test_evaluation_router.py::test_lists_are_bounded_and_reject_malformed_cursors PASSED [ 78%]
+tests/test_evaluation_router.py::test_openapi_operation_ids_and_fixed_run_envelopes PASSED [ 78%]
+tests/test_evaluation_schemas.py::test_case_provenance_is_all_or_none_and_origin_specific PASSED [ 78%]
+tests/test_evaluation_schemas.py::test_agent_is_a_supported_evaluation_target_kind PASSED [ 78%]
+tests/test_evaluation_schemas.py::test_target_name_is_required_human_display_metadata PASSED [ 78%]
+tests/test_evaluation_schemas.py::test_json_fields_have_strict_serialized_byte_limits PASSED [ 78%]
+tests/test_evaluation_schemas.py::test_completed_judgment_is_binary_and_may_omit_duration PASSED [ 79%]
+tests/test_evaluation_schemas.py::test_semantic_execution_namespace_is_exact_but_normalized PASSED [ 79%]
+tests/test_evaluation_schemas.py::test_malformed_cursor_is_a_typed_domain_failure PASSED [ 79%]
+tests/test_evaluation_tokens.py::test_token_is_recoverable_from_authenticated_management_routes PASSED [ 79%]
+tests/test_evaluation_tokens.py::test_token_listing_is_keyset_paginated_and_deletion_is_explicit PASSED [ 79%]
+tests/test_evaluation_tokens.py::test_token_management_requires_browser_session_not_bearer_token PASSED [ 79%]
+tests/test_evaluation_tokens.py::test_evaluation_read_write_and_evidence_scopes_are_distinct PASSED [ 79%]
+tests/test_evaluation_tokens.py::test_deletion_applies_to_the_next_request_without_auth_cache_or_write PASSED [ 79%]
+tests/test_evaluation_tokens.py::test_expired_unknown_and_wrong_scheme_credentials_are_rejected PASSED [ 79%]
+tests/test_evaluation_tokens.py::test_browser_session_remains_accepted_for_evaluation_routes PASSED [ 80%]
+tests/test_evaluation_tokens.py::test_evaluation_token_openapi_contract_is_explicit PASSED [ 80%]
+tests/test_execution_resolution.py::test_service_resolves_exact_owner_and_builds_existing_destinations[workflow-/workflows/ai-chat/11111111111111111111111111111111/aaaaaaaaaaaaaaaa] PASSED [ 80%]
+tests/test_execution_resolution.py::test_service_resolves_exact_owner_and_builds_existing_destinations[subflow-/workflows/ai-chat/11111111111111111111111111111111/aaaaaaaaaaaaaaaa] PASSED [ 80%]
+tests/test_execution_resolution.py::test_service_resolves_exact_owner_and_builds_existing_destinations[agent-/agents/11111111111111111111111111111111/aaaaaaaaaaaaaaaa] PASSED [ 80%]
+tests/test_execution_resolution.py::test_service_selects_the_real_node_in_a_one_node_workflow PASSED [ 80%]
+tests/test_execution_resolution.py::test_service_selects_the_single_failed_node_inside_a_workflow PASSED [ 80%]
+tests/test_execution_resolution.py::test_service_filters_physical_candidates_by_complete_semantic_scope PASSED [ 80%]
+tests/test_execution_resolution.py::test_service_rejects_ambiguous_exact_identity PASSED [ 80%]
+tests/test_execution_resolution.py::test_route_requires_session_or_evidence_token PASSED [ 80%]
+tests/test_execution_resolution.py::test_route_returns_typed_resolution PASSED [ 81%]
+tests/test_execution_resolution.py::test_route_exposes_conflict_without_selecting_a_match PASSED [ 81%]
+tests/test_flush_index_bridge_integration.py::test_trace_query_bridge_uses_recent_cold_paths PASSED [ 81%]
+tests/test_flush_wal_integration.py::TestFlushWALBasic::test_flush_wal_returns_bool PASSED [ 81%]
+tests/test_flush_wal_integration.py::TestFlushWALBasic::test_flush_wal_empty_success PASSED [ 81%]
+tests/test_flush_wal_integration.py::TestFlushWALBasic::test_flush_wal_idempotent PASSED [ 81%]
+tests/test_flush_wal_integration.py::TestFlushWALWithHotSnapshot::test_flush_then_hot_snapshot PASSED [ 81%]
+tests/test_flush_wal_integration.py::TestFlushWALWithHotSnapshot::test_hot_snapshot_then_flush PASSED [ 81%]
+tests/test_flush_wal_integration.py::TestFlushWALErrors::test_handles_invalid_connection PASSED [ 81%]
+tests/test_flush_wal_integration.py::TestFlushWALStress::test_concurrent_flush_safe PASSED [ 81%]
+tests/test_grpc_server_lifecycle.py::test_create_grpc_server_fails_when_port_cannot_bind PASSED [ 82%]
+tests/test_grpc_server_lifecycle.py::test_start_grpc_server_waits_for_positive_start PASSED [ 82%]
+tests/test_grpc_server_lifecycle.py::test_unexpected_grpc_termination_signals_process_shutdown PASSED [ 82%]
+tests/test_grpc_server_lifecycle.py::test_grpc_supervision_failure_signals_process_shutdown PASSED [ 82%]
+tests/test_grpc_server_lifecycle.py::test_normal_shutdown_stops_real_grpc_server_before_awaiting_supervision PASSED [ 82%]
+tests/test_has_llm_genai_xai_integration.py::test_has_llm_filter_includes_genai_xai_traces PASSED [ 82%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/consumer/dropped_evidence_partial] PASSED [ 82%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/consumer/nonfull_payload_modes] PASSED [ 82%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/consumer/policy_unavailable_store] PASSED [ 82%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/consumer/redacted_operation_payloads] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/admission_internal_error] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/agent_cancellation_inside_workflow_node] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/agent_failure_inside_workflow_node] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/agent_inside_workflow_node] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/boundary_input_history_rejection] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/cancelled_model_request] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/cancelled_tool_service] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/cancelled_workflow_tool] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/concurrent_run_isolation] PASSED [ 83%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/direct_typed_completion] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/final_output_validation_failure] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/hook_failure_then_success] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/malformed_model_response] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/malformed_tool_arguments] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/model_driver_failure] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/model_request_limit_exhaustion] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/multi_tool_first_cancellation] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/multi_tool_first_failure] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/nested_agent_owner_isolation] PASSED [ 84%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/nested_workflow_failure] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/nonserializable_model_response_candidate] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/nonserializable_tool_result_candidate] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/ordered_multiple_tools] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/over_budget_tool_batch] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/shared_application_store] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/standalone_agent_under_non_junjo_span] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/terminal_commit_internal_error_partial] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/terminal_observer_cancellation] PASSED [ 85%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/tool_invokes_nested_workflow] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/tool_output_validation_failure] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/tool_service_failure] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/unexpected_internal_error] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/unknown_tool] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[agent/producer/usage_absent_vs_zero] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[workflow/basic_workflow_success] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[workflow/cancelled_executable] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[workflow/failed_executable_with_error_type] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[workflow/hook_failure_on_surrounding_span] PASSED [ 86%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[workflow/run_concurrent_success] PASSED [ 87%]
+tests/test_junjo_transport_contract_integration.py::test_current_junjo_payload_survives_hot_bridge_and_indexed_cold[workflow/subflow_with_parent_store] PASSED [ 87%]
+tests/test_parquet_metadata_extraction.py::test_index_preserves_all_selection_metadata PASSED [ 87%]
+tests/test_parquet_metadata_extraction.py::test_metadata_transaction_rolls_back_on_failure PASSED [ 87%]
+tests/test_parquet_metadata_extraction.py::test_empty_file_is_rejected PASSED [ 87%]
+tests/test_prepare_hot_snapshot_flush_race_integration.py::test_prepare_hot_snapshot_races_with_flush_no_empty_trace_results PASSED [ 87%]
+tests/test_prepare_hot_snapshot_integration.py::TestPrepareHotSnapshotBasic::test_prepare_hot_snapshot_returns_result PASSED [ 87%]
+tests/test_prepare_hot_snapshot_integration.py::TestPrepareHotSnapshotBasic::test_prepare_hot_snapshot_empty_wal_success PASSED [ 87%]
+tests/test_prepare_hot_snapshot_integration.py::TestPrepareHotSnapshotBasic::test_prepare_hot_snapshot_valid_path PASSED [ 87%]
+tests/test_prepare_hot_snapshot_integration.py::TestPrepareHotSnapshotWithData::test_snapshot_file_is_valid_parquet SKIPPED [ 87%]
+tests/test_prepare_hot_snapshot_integration.py::TestPrepareHotSnapshotWithData::test_snapshot_metadata_matches_file SKIPPED [ 88%]
+tests/test_prepare_hot_snapshot_integration.py::TestPrepareHotSnapshotIdempotency::test_multiple_calls_return_consistent_path PASSED [ 88%]
+tests/test_prepare_hot_snapshot_integration.py::TestPrepareHotSnapshotErrors::test_handles_invalid_connection PASSED [ 88%]
+tests/test_production_settings.py::test_internal_grpc_token_is_required_and_high_entropy PASSED [ 88%]
+tests/test_production_settings.py::test_environment_rejects_unsupported_values PASSED [ 88%]
+tests/test_production_settings.py::TestProductionURLValidation::test_production_requires_frontend_url PASSED [ 88%]
+tests/test_production_settings.py::TestProductionURLValidation::test_production_requires_backend_url PASSED [ 88%]
+tests/test_production_settings.py::TestProductionURLValidation::test_url_must_have_protocol PASSED [ 88%]
+tests/test_production_settings.py::TestProductionURLValidation::test_development_mode_without_urls PASSED [ 88%]
+tests/test_production_settings.py::TestIngestionURLConfiguration::test_production_requires_ingestion_url PASSED [ 89%]
+tests/test_production_settings.py::TestIngestionURLConfiguration::test_ingestion_url_must_have_protocol PASSED [ 89%]
+tests/test_production_settings.py::TestIngestionURLConfiguration::test_production_uses_ingestion_url PASSED [ 89%]
+tests/test_production_settings.py::TestIngestionURLConfiguration::test_production_derives_cors_from_frontend_url PASSED [ 89%]
+tests/test_production_settings.py::TestIngestionURLConfiguration::test_development_uses_localhost_default PASSED [ 89%]
+tests/test_production_settings.py::TestSameDomainValidation::test_same_domain_subdomain_subdomain PASSED [ 89%]
+tests/test_production_settings.py::TestSameDomainValidation::test_same_domain_apex_subdomain PASSED [ 89%]
+tests/test_production_settings.py::TestSameDomainValidation::test_same_domain_subdomain_apex PASSED [ 89%]
+tests/test_production_settings.py::TestSameDomainValidation::test_cross_domain_fails PASSED [ 89%]
+tests/test_production_settings.py::TestSameDomainValidation::test_tldextract_handles_co_uk PASSED [ 89%]
+tests/test_production_settings.py::TestSameDomainValidation::test_tldextract_handles_gov_au PASSED [ 90%]
+tests/test_production_settings.py::TestSameDomainValidation::test_cross_domain_co_uk_fails PASSED [ 90%]
+tests/test_production_settings.py::TestSameDomainValidation::test_different_subdomains_same_domain PASSED [ 90%]
+tests/test_store_reconstruction.py::test_reconstructs_full_rfc6902_vectors[empty_patch_noop] PASSED [ 90%]
+tests/test_store_reconstruction.py::test_reconstructs_full_rfc6902_vectors[escaped_pointer] PASSED [ 90%]
+tests/test_store_reconstruction.py::test_reconstructs_full_rfc6902_vectors[array_move] PASSED [ 90%]
+tests/test_store_reconstruction.py::test_reconstructs_full_rfc6902_vectors[copy_and_test] PASSED [ 90%]
+tests/test_store_reconstruction.py::test_reconstructs_full_rfc6902_vectors[root_replace] PASSED [ 90%]
+tests/test_store_reconstruction.py::test_invalid_rfc6902_vectors_are_not_reconstructable[failed_test] PASSED [ 90%]
+tests/test_store_reconstruction.py::test_invalid_rfc6902_vectors_are_not_reconstructable[move_into_child] PASSED [ 90%]
+tests/test_store_reconstruction.py::test_bool_owner_integer_is_rejected_without_crashing PASSED [ 91%]
+tests/test_store_reconstruction.py::test_mixed_transition_sequences_have_total_order_and_partial_diagnostics PASSED [ 91%]
+tests/test_store_reconstruction.py::test_missing_event_identity_is_diagnosed_not_coerced[id] PASSED [ 91%]
+tests/test_store_reconstruction.py::test_missing_event_identity_is_diagnosed_not_coerced[action] PASSED [ 91%]
+tests/test_store_reconstruction.py::test_invalid_store_name_is_diagnosed_not_coerced[missing] PASSED [ 91%]
+tests/test_store_reconstruction.py::test_invalid_store_name_is_diagnosed_not_coerced[object] PASSED [ 91%]
+tests/test_store_reconstruction.py::test_invalid_store_name_is_diagnosed_not_coerced[array] PASSED [ 91%]
+tests/test_store_reconstruction.py::test_invalid_store_name_is_diagnosed_not_coerced[lone-surrogate] PASSED [ 91%]
+tests/test_store_reconstruction.py::test_one_store_id_cannot_change_names_between_transitions PASSED [ 91%]
+tests/test_store_reconstruction.py::test_one_store_name_across_distinct_actions_replays_successfully PASSED [ 92%]
+tests/test_store_reconstruction.py::test_intentional_payload_policy_unavailability_is_not_corruption[excluded] PASSED [ 92%]
+tests/test_store_reconstruction.py::test_intentional_payload_policy_unavailability_is_not_corruption[reference] PASSED [ 92%]
+tests/test_store_reconstruction.py::test_conservative_producer_claim_does_not_override_verified_replay PASSED [ 92%]
+tests/test_store_reconstruction.py::test_producer_reconstructable_claim_requires_independent_verification PASSED [ 92%]
+tests/test_store_reconstruction.py::test_state_unavailable_rejects_fabricated_store_evidence PASSED [ 92%]
+tests/test_store_reconstruction.py::test_state_unavailable_ignores_unrelated_workflow_store_events PASSED [ 92%]
+tests/test_store_reconstruction.py::test_state_unavailable_rejects_owner_attributable_store_event_without_owner_facts PASSED [ 92%]
+tests/test_store_reconstruction.py::test_store_reconstruction_rejects_noncanonical_transition_carrier_identity[agent] PASSED [ 92%]
+tests/test_store_reconstruction.py::test_store_reconstruction_rejects_noncanonical_transition_carrier_identity[workflow] PASSED [ 92%]
+tests/test_store_reconstruction.py::test_agent_and_workflow_boundaries_share_exact_replay_semantics PASSED [ 93%]
+tests/test_trace_evidence.py::test_trace_evidence_is_lossless_and_indexes_independent_owners PASSED [ 93%]
+tests/test_trace_evidence.py::test_trace_evidence_preserves_raw_span_when_annotation_is_unsupported PASSED [ 93%]
+tests/test_trace_evidence.py::test_attempt_manifest_is_payload_light_and_projects_every_failure PASSED [ 93%]
+tests/test_trace_evidence.py::test_attempt_manifest_summarizes_openinference_and_gen_ai_operations PASSED [ 93%]
+tests/test_trace_evidence.py::test_attempt_manifest_preserves_hook_and_status_failure_messages PASSED [ 93%]
+tests/test_trace_evidence.py::test_selected_spans_preserve_order_and_direct_semantic_evidence PASSED [ 93%]
+tests/test_trace_evidence.py::test_attempt_manifest_reports_unavailable_store_integrity PASSED [ 93%]
+tests/test_trace_evidence.py::test_attempt_manifest_does_not_misattribute_duplicate_store_identity PASSED [ 93%]
+tests/test_trace_evidence.py::test_trace_evidence_route_requires_authentication PASSED [ 93%]
+tests/test_trace_evidence.py::test_attempt_evidence_routes_require_authentication[GET-/api/v1/trace-evidence/attempts/attempt-id/manifest-None] PASSED [ 94%]
+tests/test_trace_evidence.py::test_attempt_evidence_routes_require_authentication[POST-/api/v1/trace-evidence/attempts/attempt-id/spans-json_body1] PASSED [ 94%]
+tests/test_trace_evidence.py::test_trace_evidence_route_returns_one_cohesive_document PASSED [ 94%]
+tests/test_trace_evidence.py::test_trace_evidence_route_returns_not_found PASSED [ 94%]
+tests/test_trace_evidence.py::test_attempt_evidence_routes_return_manifest_and_selected_spans PASSED [ 94%]
+tests/test_trace_evidence.py::test_attempt_evidence_routes_return_typed_resolution_conflicts[GET-/api/v1/trace-evidence/attempts/attempt-id/manifest-None-get_attempt_evidence_manifest] PASSED [ 94%]
+tests/test_trace_evidence.py::test_attempt_evidence_routes_return_typed_resolution_conflicts[POST-/api/v1/trace-evidence/attempts/attempt-id/spans-json_body1-get_attempt_span_evidence] PASSED [ 94%]
+tests/test_trace_evidence.py::test_selected_span_route_rejects_empty_duplicate_and_invalid_ids PASSED [ 94%]
+tests/test_trace_evidence.py::test_attempt_manifest_resolves_otel_subject_and_fails_closed_on_service_mismatch PASSED [ 94%]
+tests/test_trace_evidence.py::test_attempt_manifest_resolves_semantic_subject PASSED [ 95%]
+tests/test_trace_evidence.py::test_trace_evidence_openapi_keeps_transport_validation_explicit PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_every_canonical_workflow_store_is_backend_verified[basic_workflow_success:1111111111111111-owner0-spans0] PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_every_canonical_workflow_store_is_backend_verified[cancelled_executable:5555555555555551-owner1-spans1] PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_every_canonical_workflow_store_is_backend_verified[failed_executable_with_error_type:4444444444444441-owner2-spans2] PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_every_canonical_workflow_store_is_backend_verified[hook_failure_on_surrounding_span:6666666666666661-owner3-spans3] PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_every_canonical_workflow_store_is_backend_verified[run_concurrent_success:3333333333333331-owner4-spans4] PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_every_canonical_workflow_store_is_backend_verified[subflow_with_parent_store:2222222222222221-owner5-spans5] PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_every_canonical_workflow_store_is_backend_verified[subflow_with_parent_store:2222222222222223-owner6-spans6] PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_generated_workflow_store_projections_are_current PASSED [ 95%]
+tests/test_workflow_store_diagnostics.py::test_generated_workflow_store_projections_cover_every_owner PASSED [ 96%]
+tests/test_workflow_store_diagnostics.py::test_workflow_store_unsafe_scalar_becomes_partial_not_unsafe_json PASSED [ 96%]
+tests/test_workflow_store_diagnostics.py::test_workflow_store_excessive_payload_nesting_is_typed_partial_evidence PASSED [ 96%]
+tests/test_workflow_store_diagnostics.py::test_workflow_store_excludes_child_evidence_without_active_contract[unsupported] PASSED [ 96%]
+tests/test_workflow_store_diagnostics.py::test_workflow_store_excludes_child_evidence_without_active_contract[missing] PASSED [ 96%]
+tests/test_workflow_store_diagnostics.py::test_workflow_store_excludes_transition_on_noncanonical_carrier_span PASSED [ 96%]
+app/features/auth/test_router.py::test_db_has_users_empty PASSED         [ 96%]
+app/features/auth/test_router.py::test_create_first_user PASSED          [ 96%]
+app/features/auth/test_router.py::test_create_first_user_when_users_exist PASSED [ 96%]
+app/features/auth/test_router.py::test_sign_in_success PASSED            [ 96%]
+app/features/auth/test_router.py::test_sign_in_invalid_credentials PASSED [ 97%]
+app/features/auth/test_router.py::test_unhandled_sign_in_error_is_json_with_cors PASSED [ 97%]
+app/features/auth/test_router.py::test_auth_test_authenticated PASSED    [ 97%]
+app/features/auth/test_router.py::test_auth_test_unauthenticated PASSED  [ 97%]
+app/features/auth/test_router.py::test_sign_out PASSED                   [ 97%]
+app/features/auth/test_router.py::test_create_user_authenticated PASSED  [ 97%]
+app/features/auth/test_router.py::test_list_users_authenticated PASSED   [ 97%]
+app/features/auth/test_router.py::test_delete_user_authenticated PASSED  [ 97%]
+app/features/auth/test_utils.py::test_hash_password PASSED               [ 97%]
+app/features/auth/test_utils.py::test_verify_password_correct PASSED     [ 98%]
+app/features/auth/test_utils.py::test_verify_password_incorrect PASSED   [ 98%]
+app/features/auth/test_utils.py::test_hash_password_different_each_time PASSED [ 98%]
+app/features/auth/test_utils.py::test_verify_password_with_invalid_hash PASSED [ 98%]
+app/features/auth/test_utils.py::test_verify_password_empty_password PASSED [ 98%]
+app/features/auth/test_utils.py::test_hash_password_unicode PASSED       [ 98%]
+app/features/internal_auth/test_concurrent_access.py::test_concurrent_grpc_requests PASSED [ 98%]
+app/features/internal_auth/test_concurrent_access.py::test_mixed_fastapi_and_grpc_requests PASSED [ 98%]
+app/features/internal_auth/test_concurrent_access.py::test_grpc_under_load PASSED [ 98%]
+app/features/internal_auth/test_concurrent_access.py::test_database_isolation_concurrent_reads PASSED [ 98%]
+app/features/internal_auth/test_grpc_integration.py::test_validate_api_key_rejects_unauthenticated_internal_caller PASSED [ 99%]
+app/features/internal_auth/test_grpc_integration.py::test_validate_api_key_integration_with_production_key PASSED [ 99%]
+app/features/internal_auth/test_grpc_integration.py::test_validate_api_key_integration_invalid PASSED [ 99%]
+app/features/internal_auth/test_grpc_integration.py::test_validate_api_key_integration_empty PASSED [ 99%]
+app/features/internal_auth/test_grpc_integration.py::test_grpc_server_connectivity PASSED [ 99%]
+app/features/internal_auth/test_grpc_service.py::test_validate_api_key_valid PASSED [ 99%]
+app/features/internal_auth/test_grpc_service.py::test_validate_api_key_invalid PASSED [ 99%]
+app/features/internal_auth/test_grpc_service.py::test_validate_api_key_database_error PASSED [ 99%]
+app/features/internal_auth/test_grpc_service.py::test_validate_api_key_empty PASSED [ 99%]
+app/features/internal_auth/test_grpc_service.py::test_validate_api_key_rejects_missing_workload_token PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/error_recovery/test_database_failures.py::test_api_key_creation_database_error
+tests/security/test_auth_bypass.py::test_sign_out_clears_session
+tests/security/test_auth_bypass.py::test_sign_out_revokes_all_concurrent_sessions_for_the_user
+app/features/auth/test_router.py::test_create_user_authenticated
+app/features/auth/test_router.py::test_delete_user_authenticated
+  /Users/matt/repos/junjo/apps/studio/backend/.venv/lib/python3.13/site-packages/httpx/_client.py:1859: DeprecationWarning: Setting per-request cookies=<...> is being deprecated, because the expected behaviour on cookie persistence is ambiguous. Set cookies directly on the client instance instead.
+    return await self.request(
+
+tests/error_recovery/test_database_failures.py: 2 warnings
+tests/security/test_auth_bypass.py: 12 warnings
+app/features/auth/test_router.py: 4 warnings
+  /Users/matt/repos/junjo/apps/studio/backend/.venv/lib/python3.13/site-packages/httpx/_client.py:1768: DeprecationWarning: Setting per-request cookies=<...> is being deprecated, because the expected behaviour on cookie persistence is ambiguous. Set cookies directly on the client instance instead.
+    return await self.request(
+
+tests/error_recovery/test_database_failures.py::test_delete_api_key_database_error
+tests/security/test_auth_bypass.py::test_session_is_rejected_after_its_user_is_deleted
+app/features/auth/test_router.py::test_delete_user_authenticated
+  /Users/matt/repos/junjo/apps/studio/backend/.venv/lib/python3.13/site-packages/httpx/_client.py:1966: DeprecationWarning: Setting per-request cookies=<...> is being deprecated, because the expected behaviour on cookie persistence is ambiguous. Set cookies directly on the client instance instead.
+    return await self.request(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 964 passed, 2 skipped, 26 warnings in 56.55s =================
+
+==========================================
+Test Results Summary:
+==========================================
+Backend collection: ✓ PASSED
+gRPC tests:         included
+==========================================
+✓ Backend test collection passed!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3/6: Ingestion Tests (Rust)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running unittests src/main.rs (target/debug/deps/ingestion-25f3eac25ba08b41)
+
+running 26 tests
+test config::tests::defaults_use_junjo_local_port_model ... ok
+test config::tests::bounded_auth_settings_reject_unsafe_values ... ok
+test server::auth::tests::deletion_after_a_warm_hit_is_observed_at_fixed_expiry ... ok
+test server::auth::tests::cancelled_leader_does_not_cancel_shared_refresh ... ok
+test server::auth::tests::expired_positive_is_not_served_when_refresh_fails ... ok
+test server::auth::tests::deletion_racing_after_authoritative_lookup_keeps_one_fixed_window ... ok
+test server::auth::tests::cache_capacity_evicts_the_oldest_validation ... ok
+test server::auth::tests::pending_cold_requests_are_bounded ... ok
+test server::auth::tests::invalid_and_failed_results_are_not_cached ... ok
+test server::auth::tests::distinct_key_refreshes_are_bounded_without_queueing ... ok
+test server::auth::tests::simultaneous_same_key_misses_are_coalesced ... ok
+test server::auth::tests::successful_validation_is_reused_until_fixed_expiry ... ok
+test server::auth::tests::timeout_is_retryable_and_not_cached ... ok
+test server::auth::tests::zero_ttl_disables_positive_reuse ... ok
+test server::internal_service::tests::internal_workload_token_is_required ... ok
+test wal::span_record::tests::test_from_otlp_preserves_current_junjo_attributes_and_resource_service_name ... ok
+test wal::span_record::tests::test_serialize_events_uses_time_unix_nano_camel_case ... ok
+test wal::span_record::tests::test_from_otlp_preserves_hook_error_and_set_state_events ... ok
+test server::auth::tests::backend_outage_is_retryable_unavailable ... ok
+test wal::arrow_wal::tests::test_truncate ... ok
+test wal::arrow_wal::tests::test_write_and_read ... ok
+test flusher::tests::closed_notification_channel_persists_pending_spans_and_stops_flusher ... ok
+test wal::arrow_wal::tests::test_multiple_segments ... ok
+test backend::client::tests::shared_channel_reconnects_after_backend_restart ... ok
+test wal::span_record::tests::shared_store_contract_survives_otlp_wal_and_parquet ... ok
+test server::trace_service::tests::full_notification_queue_releases_wal_and_shutdown_persists_tail ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-8a5116903c838c1c)
+
+running 14 tests
+test backpressure_tests::test_backpressure_trigger ... ok
+test backpressure_tests::test_memory_threshold_calculation ... ok
+test config_tests::test_env_var_parsing ... ok
+test grpc_tests::test_trace_id_hex_conversion ... ok
+test grpc_tests::test_span_id_hex_conversion ... ok
+test grpc_tests::test_empty_parent_span ... ok
+test partitioning_tests::test_filename_generation ... ok
+test schema_tests::test_nullable_fields ... ok
+test schema_tests::test_span_schema_fields ... ok
+test partitioning_tests::test_date_partition_path ... ok
+test wal_tests::test_wal_directory_creation ... ok
+test wal_tests::test_parquet_output_directory_structure ... ok
+test parquet_tests::test_create_parquet_file ... ok
+test parquet_tests::test_read_parquet_file ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+Regenerating OpenAPI schema for frontend tests...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4/6: Frontend Tests, Lint, and Build (TypeScript)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+> junjo-ai-studio-frontend@0.84.1 test:run
+> node --test e2e/request-failure-policy.node-test.mjs && vitest run
+
+TAP version 13
+# Subtest: reports only actionable first-party browser request failures
+ok 1 - reports only actionable first-party browser request failures
+  ---
+  duration_ms: 0.4
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 44.872833
+
+ RUN  v3.2.7 /Users/matt/repos/junjo/apps/studio/frontend
+
+stdout | src/features/evaluation-runs/EvaluationRunsPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/auth/setup/SetupForm.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/evaluation-tokens/EvaluationTokensPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/evaluation-runs/EvaluationRunDetailPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/auth/sign-in/SignInForm.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/components/overlays/modal.test.tsx (3 tests) 305ms
+ ✓ src/auth/setup/SetupForm.test.tsx (3 tests) 432ms
+ ✓ src/components/layout/app-shell.test.tsx (7 tests) 455ms
+ ✓ src/mermaidjs/mermaid-dom-adapter.test.ts (3 tests) 383ms
+ ✓ src/features/evaluation-runs/EvaluationRunDetailPage.test.tsx (2 tests) 322ms
+ ✓ src/features/evaluation-runs/EvaluationRunsPage.test.tsx (4 tests) 395ms
+ ✓ src/auth/sign-in/SignInForm.test.tsx (7 tests) 924ms
+ ✓ src/features/evaluation-tokens/EvaluationTokensPage.test.tsx (5 tests) 694ms
+   ✓ EvaluationTokensPage > creates a scoped token with a non-expiring default  397ms
+stdout | src/features/api-keys/ApiKeysPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/agent-executions/AgentExecutionsPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/evaluation-runs/EvaluationRunComparisonPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/api-keys/api-keys-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/features/traces/OpenAIAgentsSpanDetails.test.tsx (3 tests) 175ms
+ ✓ src/features/evaluation-runs/EvaluationRunComparisonPage.test.tsx (2 tests) 187ms
+ ✓ src/features/api-keys/api-keys-store.test.ts (4 tests) 242ms
+ ✓ src/features/agent-executions/AgentExecutionsPage.test.tsx (2 tests) 353ms
+ ✓ src/components/forms/switch.test.tsx (2 tests) 171ms
+ ✓ src/features/api-keys/ApiKeysPage.test.tsx (4 tests) 491ms
+stdout | src/features/traces/TraceDetails.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/mermaidjs/RenderJunjoGraphMermaid.test.tsx (1 test) 549ms
+   ✓ RenderJunjoGraphMermaid selection integration > keeps the real Graph renderer, nested tree, Redux selection, and URL synchronized  547ms
+ ✓ src/features/agent-executions/testing/composable-stores.integration.test.tsx (1 test) 2026ms
+   ✓ hydrates and displays distinct Agent runtime and application state from shared backend evidence  2024ms
+ ✓ src/features/junjo-data/workflow-detail/WorkflowDetailStateDiff.test.tsx (3 tests) 334ms
+stdout | src/features/users/UsersPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/evaluation-runs/EvaluationDatasetPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/features/execution-resolution/ExecutionResolverPage.test.tsx (6 tests) 179ms
+ ✓ src/features/junjo-data/workflow-detail/WorkflowDetailPage.test.tsx (4 tests) 230ms
+ ✓ src/features/agent-executions/components/AgentExecutionDetailView.test.tsx (6 tests) 2490ms
+   ✓ AgentExecutionDetailView > renders a sequence-authoritative operation rail without inventing Tool operations  675ms
+   ✓ AgentExecutionDetailView > keeps producer policy, candidate availability, and partial integrity distinct  393ms
+   ✓ AgentExecutionDetailView > navigates backend-verified Store projections and links to nested and raw diagnostics  627ms
+ ✓ src/components/actions/action-button.test.tsx (2 tests) 144ms
+stdout | src/features/users/users-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/features/traces/TraceDetails.test.tsx (3 tests) 269ms
+ ✓ src/features/users/UsersPage.test.tsx (2 tests) 259ms
+ ✓ src/features/evaluation-runs/EvaluationDatasetPage.test.tsx (1 test) 279ms
+ ✓ src/components/navigation/app-link.test.tsx (2 tests) 79ms
+ ✓ src/features/users/users-store.test.ts (3 tests) 188ms
+ ✓ src/features/traces/SpanRow.test.tsx (3 tests) 153ms
+stdout | src/features/traces/store/traces-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/junjo-data/list-spans-workflow/store/workflow-span-list-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/auth/navigation-helpers.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/auth/navigation-helpers.test.ts (4 tests) 23ms
+ ✓ src/features/junjo-data/list-spans-workflow/WorkflowListItem.test.tsx (2 tests) 56ms
+ ✓ src/features/traces/store/traces-store.test.ts (1 test) 129ms
+stdout | src/features/evaluation-tokens/store/evaluation-tokens-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/features/junjo-data/workflow-detail/SpanFailuresList.test.tsx (1 test) 106ms
+ ✓ src/features/junjo-data/list-spans-workflow/store/workflow-span-list-store.test.ts (2 tests) 117ms
+ ✓ src/features/evaluation-tokens/store/evaluation-tokens-store.test.ts (2 tests) 80ms
+ ✓ src/features/agent-executions/schemas/agent-execution.test.ts (16 tests) 49ms
+ ✓ src/features/junjo-data/workflow-detail/WorkflowStoreTransitionNavigation.test.tsx (5 tests) 264ms
+stdout | src/features/agent-executions/store/agent-executions-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/settings/settings-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/features/settings/settings-store.test.ts (2 tests) 71ms
+ ✓ src/features/agent-executions/store/agent-executions-store.test.ts (3 tests) 98ms
+stdout | src/features/evaluation-runs/store/evaluation-runs-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/__tests__/integration/agent-execution-requests.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/__tests__/integration/mutation-requests.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/__tests__/integration/mutation-requests.test.ts > API Request Validation: Mutation Operations > User Management > DELETE /users/{user_id} sends string ID in path parameter
+User with ID usr_2k4h6j8m9n0p1q2r deleted successfully.
+
+ ✓ src/__tests__/integration/agent-execution-requests.test.ts (7 tests) 63ms
+ ✓ src/features/junjo-data/span-lists/determine-span-icon.test.tsx (10 tests) 45ms
+stdout | src/__tests__/integration/mutation-requests.test.ts > API Request Validation: Mutation Operations > User Management > DELETE /users/{user_id} handles user ID with special characters
+User with ID usr_abc123_xyz789 deleted successfully.
+
+ ✓ src/__tests__/integration/mutation-requests.test.ts (8 tests) 42ms
+ ✓ src/util/telemetry-paths.test.ts (8 tests) 7ms
+ ✓ src/features/evaluation-runs/store/evaluation-runs-store.test.ts (4 tests) 81ms
+ ✓ src/features/workflow-executions/components/WorkflowStoreDiagnosticsNotice.test.tsx (3 tests) 127ms
+ ✓ src/__tests__/contracts/evaluation-runs-contract.test.ts (5 tests) 8ms
+ ✓ src/__tests__/contracts/read-contracts.test.ts (6 tests) 16ms
+ ✓ src/junjo-graph/junjo-graph.test.ts (6 tests) 10ms
+ ✓ src/features/evaluation-runs/schemas/evaluation-runs.test.ts (4 tests) 8ms
+ ✓ src/features/workflow-executions/testing/workflow-store-projections.integration.test.ts (1 test) 11ms
+ ✓ src/features/traces/schemas/openai-agents-telemetry.test.ts (8 tests) 21ms
+ ✓ src/features/telemetry-contract/schemas/scalars.test.ts (2 tests) 7ms
+ ✓ src/__tests__/contracts/evaluation-tokens-contract.test.ts (3 tests) 6ms
+ ✓ src/__tests__/contracts/mutation-contracts.test.ts (9 tests) 10ms
+ ✓ src/features/traces/utils/span-accessor.test.ts (5 tests) 9ms
+ ✓ src/features/evaluation-tokens/schemas.test.ts (2 tests) 5ms
+ ✓ src/util/duration-utils.test.ts (4 tests) 3ms
+ ✓ src/__tests__/contracts/execution-resolution-contract.test.ts (3 tests) 5ms
+ ✓ src/mermaidjs/junjo-graph-span-matching.test.ts (4 tests) 8ms
+ ✓ src/features/traces/schemas/junjo-transport-contract.test.ts (7 tests) 10ms
+ ✓ src/features/junjo-data/workflow-detail/store/slice.test.ts (1 test) 4ms
+ ✓ src/features/evaluation-tokens/expiration-presets.test.ts (2 tests) 3ms
+stdout | src/features/traces/store/selectors.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ✓ src/features/agent-executions/schemas/query.test.ts (1 test) 4ms
+ ✓ src/__tests__/contracts/agent-execution-contract.test.ts (2 tests) 4ms
+ ✓ src/features/junjo-data/span-lists/span-presentation.test.ts (4 tests) 4ms
+ ✓ src/features/traces/store/selectors.test.ts (5 tests) 9ms
+ ✓ src/features/agent-executions/testing/projection-adapter.integration.test.tsx (2 tests) 16233ms
+   ✓ API Contract: backend Agent semantic projections > strictly parses every backend projection and covers every valid contract fixture  460ms
+   ✓ API Contract: backend Agent semantic projections > renders every valid semantic detail without a raw-span or fake-Graph adapter  15771ms
+
+ Test Files  65 passed (65)
+      Tests  252 passed (252)
+   Start at  02:15:05
+   Duration  17.39s (transform 1.42s, setup 6.71s, collect 12.66s, tests 30.46s, environment 19.53s, prepare 3.27s)
+
+
+> junjo-ai-studio-frontend@0.84.1 lint
+> eslint .
+
+
+> junjo-ai-studio-frontend@0.84.1 build
+> tsc -b && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 3865 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                           1.20 kB │ gzip:   0.59 kB
+dist/assets/junjo-logo-CyFLCFag.svg                       8.71 kB │ gzip:   4.22 kB
+dist/assets/index-3viTaEsf.css                           67.34 kB │ gzip:  13.39 kB
+dist/assets/channel-C_kpn1AR.js                           0.11 kB │ gzip:   0.12 kB
+dist/assets/init-Gi6I4Gst.js                              0.15 kB │ gzip:   0.13 kB
+dist/assets/chunk-2Q5K7J3B-DUpIEzNf.js                    0.19 kB │ gzip:   0.16 kB
+dist/assets/chunk-XXDRQBXY-DSjffV3p.js                    0.23 kB │ gzip:   0.20 kB
+dist/assets/chunk-JWPE2WC7-C7hrfbc4.js                    0.29 kB │ gzip:   0.20 kB
+dist/assets/chunk-5VM5RSS4-Kayagitt.js                    0.36 kB │ gzip:   0.27 kB
+dist/assets/stateDiagram-v2-6OUMAXLB-bHloYy_C.js          0.39 kB │ gzip:   0.29 kB
+dist/assets/classDiagram-OUVF2IWQ-DuZXNuAx.js             0.43 kB │ gzip:   0.30 kB
+dist/assets/classDiagram-v2-EOCWNBFH-DuZXNuAx.js          0.43 kB │ gzip:   0.30 kB
+dist/assets/swimlanesDiagram-G3AALYLV-CtC56t3V.js         0.51 kB │ gzip:   0.35 kB
+dist/assets/chunk-VR4S4FIN-C8Szm09j.js                    0.53 kB │ gzip:   0.37 kB
+dist/assets/infoDiagram-FWYZ7A6U-w023vj46.js              0.55 kB │ gzip:   0.38 kB
+dist/assets/sizeCapture-X5ZJPWSS-CXbdXfoo.js              0.96 kB │ gzip:   0.54 kB
+dist/assets/ordinal-Cboi1Yqb.js                           1.19 kB │ gzip:   0.57 kB
+dist/assets/railroadDiagram-RFXS5EU6-CB3ddmme.js          1.57 kB │ gzip:   0.74 kB
+dist/assets/abnfDiagram-VRR7QNED-PGHQRclk.js              1.77 kB │ gzip:   0.87 kB
+dist/assets/chunk-32BRIVSS-CjyHHFMw.js                    1.88 kB │ gzip:   0.83 kB
+dist/assets/pegDiagram-2B236MQR-wYLzEyj-.js               1.92 kB │ gzip:   0.90 kB
+dist/assets/ebnfDiagram-CCIWWBDH-BiVx9Uvm.js              1.97 kB │ gzip:   0.86 kB
+dist/assets/arc-pjThgnNm.js                               3.43 kB │ gzip:   1.48 kB
+dist/assets/diagram-NH7WQ7WH-B0gxneo9.js                  4.21 kB │ gzip:   1.84 kB
+dist/assets/defaultLocale-DX6XiGOO.js                     4.69 kB │ gzip:   2.18 kB
+dist/assets/map-BQHxRNoK.js                               5.07 kB │ gzip:   2.07 kB
+dist/assets/linear-fz_PDfh5.js                            5.65 kB │ gzip:   2.30 kB
+dist/assets/diagram-WEI45ONY-CgyjCygN.js                  6.04 kB │ gzip:   2.58 kB
+dist/assets/pieDiagram-ENE6RG2P-DDoKiE9u.js               6.32 kB │ gzip:   2.63 kB
+dist/assets/chunk-RYQCIY6F-GsHky1Bi.js                    7.17 kB │ gzip:   2.77 kB
+dist/assets/diagram-OA4YK3LP-D4eSz_D-.js                  8.44 kB │ gzip:   3.75 kB
+dist/assets/dagre-VKFMJZFB-Da5PDNfP.js                    8.87 kB │ gzip:   3.38 kB
+dist/assets/cynefinDiagram-TSTJHNR4-Bwlbaf1x.js          10.06 kB │ gzip:   3.61 kB
+dist/assets/stateDiagram-2N3HPSRC-DxqpgvAa.js            10.39 kB │ gzip:   3.63 kB
+dist/assets/diagram-FQU43EPY-CGaxUJhw.js                 10.79 kB │ gzip:   4.15 kB
+dist/assets/chunk-MOJQB5TN-b1nP9Dvq.js                   15.75 kB │ gzip:   4.42 kB
+dist/assets/diagram-G47NLZAW-Cy8IuTvu.js                 16.04 kB │ gzip:   5.71 kB
+dist/assets/ishikawaDiagram-FXEZZL3T-Dx3Uk96u.js         17.53 kB │ gzip:   6.65 kB
+dist/assets/kanban-definition-HUTT4EX6-BitRQ8nT.js       20.66 kB │ gzip:   7.27 kB
+dist/assets/mindmap-definition-LN4V7U3C-Cb8lF1fE.js      23.32 kB │ gzip:   7.87 kB
+dist/assets/sankeyDiagram-HTMAVEWB-pKqrflLa.js           23.35 kB │ gzip:   8.55 kB
+dist/assets/journeyDiagram-5HDEW3XC-DciSuU6U.js          23.55 kB │ gzip:   8.33 kB
+dist/assets/graph-C2PyVmSI.js                            23.94 kB │ gzip:   8.32 kB
+dist/assets/wardleyDiagram-EHGQE667-Cje8r8u4.js          26.06 kB │ gzip:   6.92 kB
+dist/assets/erDiagram-Q63AITRT-DF2xZ1YJ.js               27.18 kB │ gzip:   9.43 kB
+dist/assets/gitGraphDiagram-IHSO6WYX-CNBDCEKF.js         29.90 kB │ gzip:   8.85 kB
+dist/assets/layout-HEHzrzvT.js                           31.00 kB │ gzip:  11.19 kB
+dist/assets/requirementDiagram-TGXJPOKE-DK4UOexD.js      31.17 kB │ gzip:   9.79 kB
+dist/assets/timeline-definition-FHXFAJF6-DMJDHiTG.js     31.32 kB │ gzip:  10.41 kB
+dist/assets/quadrantDiagram-ABIIQ3AL-D1RNNWVF.js         34.45 kB │ gzip:  10.11 kB
+dist/assets/chunk-EX3LRPZG-vein1AKj.js                   38.61 kB │ gzip:  12.68 kB
+dist/assets/xychartDiagram-FW5EYKEG-Cq_czuaT.js          41.89 kB │ gzip:  12.03 kB
+dist/assets/vennDiagram-L72KCM5P-Dz1pzj61.js             42.33 kB │ gzip:  15.77 kB
+dist/assets/chunk-V7JOEXUC-BoIeaygc.js                   49.29 kB │ gzip:  15.77 kB
+dist/assets/flowDiagram-23GEKE2U-B5QfEL-k.js             61.39 kB │ gzip:  19.66 kB
+dist/assets/ganttDiagram-NO4QXBWP-B97lkcZQ.js            69.61 kB │ gzip:  23.53 kB
+dist/assets/c4Diagram-LMCZKHZV-RAM4IDPK.js               69.93 kB │ gzip:  19.63 kB
+dist/assets/blockDiagram-677ZJIJ3-BRsE6F6F.js            75.09 kB │ gzip:  21.57 kB
+dist/assets/cose-bilkent-JH36ORCC-DhJEBegt.js            81.58 kB │ gzip:  22.45 kB
+dist/assets/sequenceDiagram-DBY2YBRQ-COY7Wh6V.js        117.41 kB │ gzip:  31.25 kB
+dist/assets/swimlanes-5IMT3BWC-DOXbMN9H.js              120.18 kB │ gzip:  43.97 kB
+dist/assets/architectureDiagram-ZJ3FMSHR-CA2ZRVog.js    151.53 kB │ gzip:  43.10 kB
+dist/assets/katex-C5jXJg4s.js                           261.33 kB │ gzip:  77.57 kB
+dist/assets/cytoscape.esm-CUqq0XTU.js                   443.69 kB │ gzip: 142.35 kB
+dist/assets/cynefin-VYW2F7L2-C_htzkLv.js                690.63 kB │ gzip: 155.09 kB
+dist/assets/index-NCbkyJEx.js                         2,685.89 kB │ gzip: 629.49 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.89s
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5/6: Contract Tests (Schema Validation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+========================================
+API Schema Validation (CI/CD)
+========================================
+
+Step 1: Exporting OpenAPI schema from backend...
+2026-09-20 02:15:36.694 | INFO     | __main__:main:77 - ============================================================
+2026-09-20 02:15:36.695 | INFO     | __main__:main:78 - FastAPI OpenAPI Schema Exporter
+2026-09-20 02:15:36.695 | INFO     | __main__:main:79 - ============================================================
+2026-09-20 02:15:36.695 | INFO     | __main__:export_openapi_schema:39 - Importing FastAPI app...
+2026-09-20 02:15:37.059 | INFO     | app.db_sqlite.db_config:<module>:61 - Database engine created: /var/folders/8x/1fpbfy550t5298wts0ll7x340000gn/T/junjo-openapi-m3bv2yog/unused.db
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36mapp.config.logger[0m:[36msetup_logging[0m:[36m68[0m | [1mLogging configured (level=INFO, format=text)[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m43[0m | [1mGenerating OpenAPI schema...[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m47[0m | [1mSaving schema to /Users/matt/repos/junjo/apps/studio/backend/openapi.json[0m
+[32m2026-09-20 02:15:37[0m | [32m[1mSUCCESS [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m52[0m | [32m[1mOpenAPI schema exported to /Users/matt/repos/junjo/apps/studio/backend/openapi.json[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m53[0m | [1m------------------------------------------------------------[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m54[0m | [1mOpenAPI version: 3.1.0[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m55[0m | [1mAPI title: Junjo AI Studio[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m56[0m | [1mAPI version: 0.84.1[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m57[0m | [1mEndpoints: 36[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m58[0m | [1mSchemas: 89[0m
+[32m2026-09-20 02:15:37[0m | [1mINFO    [0m | [36m__main__[0m:[36mexport_openapi_schema[0m:[36m59[0m | [1m------------------------------------------------------------[0m
+
+Step 2: Copying OpenAPI schema to frontend...
+
+Step 3: Running frontend contract tests...
+
+> junjo-ai-studio-frontend@0.84.1 test:contracts
+> vitest run -t 'API Contract'
+
+
+ RUN  v3.2.7 /Users/matt/repos/junjo/apps/studio/frontend
+
+stdout | src/auth/sign-in/SignInForm.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/auth/setup/SetupForm.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/api-keys/ApiKeysPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/evaluation-tokens/EvaluationTokensPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/evaluation-runs/EvaluationRunsPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/auth/setup/SetupForm.test.tsx (3 tests | 3 skipped)
+ ↓ src/auth/sign-in/SignInForm.test.tsx (7 tests | 7 skipped)
+ ↓ src/components/layout/app-shell.test.tsx (7 tests | 7 skipped)
+ ↓ src/mermaidjs/mermaid-dom-adapter.test.ts (3 tests | 3 skipped)
+ ↓ src/features/evaluation-runs/EvaluationRunsPage.test.tsx (4 tests | 4 skipped)
+ ↓ src/features/agent-executions/components/AgentExecutionDetailView.test.tsx (6 tests | 6 skipped)
+ ↓ src/features/agent-executions/testing/composable-stores.integration.test.tsx (1 test | 1 skipped)
+ ↓ src/features/evaluation-tokens/EvaluationTokensPage.test.tsx (5 tests | 5 skipped)
+ ↓ src/features/api-keys/ApiKeysPage.test.tsx (4 tests | 4 skipped)
+ ↓ src/mermaidjs/RenderJunjoGraphMermaid.test.tsx (1 test | 1 skipped)
+stdout | src/features/agent-executions/AgentExecutionsPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/evaluation-runs/EvaluationRunDetailPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/features/agent-executions/AgentExecutionsPage.test.tsx (2 tests | 2 skipped)
+ ↓ src/features/evaluation-runs/EvaluationRunDetailPage.test.tsx (2 tests | 2 skipped)
+ ↓ src/components/overlays/modal.test.tsx (3 tests | 3 skipped)
+ ↓ src/features/junjo-data/workflow-detail/WorkflowDetailStateDiff.test.tsx (3 tests | 3 skipped)
+stdout | src/features/evaluation-runs/EvaluationDatasetPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/traces/TraceDetails.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/features/evaluation-runs/EvaluationDatasetPage.test.tsx (1 test | 1 skipped)
+stdout | src/features/api-keys/api-keys-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/users/UsersPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/features/junjo-data/workflow-detail/WorkflowStoreTransitionNavigation.test.tsx (5 tests | 5 skipped)
+ ↓ src/features/api-keys/api-keys-store.test.ts (4 tests | 4 skipped)
+ ↓ src/features/junjo-data/workflow-detail/WorkflowDetailPage.test.tsx (4 tests | 4 skipped)
+ ↓ src/features/traces/TraceDetails.test.tsx (3 tests | 3 skipped)
+stdout | src/features/users/users-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/features/users/users-store.test.ts (3 tests | 3 skipped)
+stdout | src/features/evaluation-runs/EvaluationRunComparisonPage.test.tsx
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/features/users/UsersPage.test.tsx (2 tests | 2 skipped)
+ ↓ src/features/execution-resolution/ExecutionResolverPage.test.tsx (6 tests | 6 skipped)
+ ↓ src/features/traces/OpenAIAgentsSpanDetails.test.tsx (3 tests | 3 skipped)
+ ↓ src/features/evaluation-runs/EvaluationRunComparisonPage.test.tsx (2 tests | 2 skipped)
+ ↓ src/components/actions/action-button.test.tsx (2 tests | 2 skipped)
+ ↓ src/components/forms/switch.test.tsx (2 tests | 2 skipped)
+stdout | src/features/traces/store/traces-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/features/traces/store/traces-store.test.ts (1 test | 1 skipped)
+ ↓ src/features/traces/SpanRow.test.tsx (3 tests | 3 skipped)
+ ↓ src/features/workflow-executions/components/WorkflowStoreDiagnosticsNotice.test.tsx (3 tests | 3 skipped)
+stdout | src/features/agent-executions/store/agent-executions-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/junjo-data/list-spans-workflow/store/workflow-span-list-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/evaluation-runs/store/evaluation-runs-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/features/agent-executions/store/agent-executions-store.test.ts (3 tests | 3 skipped)
+stdout | src/features/evaluation-tokens/store/evaluation-tokens-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/features/junjo-data/list-spans-workflow/store/workflow-span-list-store.test.ts (2 tests | 2 skipped)
+ ↓ src/features/evaluation-runs/store/evaluation-runs-store.test.ts (4 tests | 4 skipped)
+ ↓ src/features/junjo-data/workflow-detail/SpanFailuresList.test.tsx (1 test | 1 skipped)
+ ↓ src/features/evaluation-tokens/store/evaluation-tokens-store.test.ts (2 tests | 2 skipped)
+stdout | src/__tests__/integration/agent-execution-requests.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/features/settings/settings-store.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/__tests__/integration/agent-execution-requests.test.ts (7 tests | 7 skipped)
+ ↓ src/components/navigation/app-link.test.tsx (2 tests | 2 skipped)
+ ↓ src/features/settings/settings-store.test.ts (2 tests | 2 skipped)
+ ↓ src/features/agent-executions/schemas/agent-execution.test.ts (16 tests | 16 skipped)
+ ↓ src/features/junjo-data/list-spans-workflow/WorkflowListItem.test.tsx (2 tests | 2 skipped)
+stdout | src/auth/navigation-helpers.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+stdout | src/__tests__/integration/mutation-requests.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/__tests__/integration/mutation-requests.test.ts (8 tests | 8 skipped)
+ ↓ src/auth/navigation-helpers.test.ts (4 tests | 4 skipped)
+ ↓ src/features/traces/schemas/openai-agents-telemetry.test.ts (8 tests | 8 skipped)
+ ↓ src/features/junjo-data/span-lists/determine-span-icon.test.tsx (10 tests | 10 skipped)
+ ✓ src/__tests__/contracts/read-contracts.test.ts (6 tests) 33ms
+ ✓ src/features/workflow-executions/testing/workflow-store-projections.integration.test.ts (1 test) 10ms
+ ↓ src/features/traces/schemas/junjo-transport-contract.test.ts (7 tests | 7 skipped)
+ ✓ src/__tests__/contracts/mutation-contracts.test.ts (9 tests) 13ms
+ ↓ src/junjo-graph/junjo-graph.test.ts (6 tests | 6 skipped)
+ ↓ src/features/traces/utils/span-accessor.test.ts (5 tests | 5 skipped)
+stdout | src/features/traces/store/selectors.test.ts
+Junjo Frontend API Host: http://localhost:26154
+
+ ↓ src/mermaidjs/junjo-graph-span-matching.test.ts (4 tests | 4 skipped)
+ ↓ src/features/traces/store/selectors.test.ts (5 tests | 5 skipped)
+ ↓ src/features/evaluation-runs/schemas/evaluation-runs.test.ts (4 tests | 4 skipped)
+ ✓ src/__tests__/contracts/evaluation-runs-contract.test.ts (5 tests) 9ms
+ ↓ src/features/telemetry-contract/schemas/scalars.test.ts (2 tests | 2 skipped)
+ ↓ src/util/telemetry-paths.test.ts (8 tests | 8 skipped)
+ ✓ src/__tests__/contracts/execution-resolution-contract.test.ts (3 tests) 7ms
+ ↓ src/features/evaluation-tokens/schemas.test.ts (2 tests | 2 skipped)
+ ✓ src/__tests__/contracts/evaluation-tokens-contract.test.ts (3 tests) 10ms
+ ↓ src/features/junjo-data/span-lists/span-presentation.test.ts (4 tests | 4 skipped)
+ ↓ src/features/agent-executions/schemas/query.test.ts (1 test | 1 skipped)
+ ↓ src/features/junjo-data/workflow-detail/store/slice.test.ts (1 test | 1 skipped)
+ ↓ src/util/duration-utils.test.ts (4 tests | 4 skipped)
+ ↓ src/features/evaluation-tokens/expiration-presets.test.ts (2 tests | 2 skipped)
+ ✓ src/__tests__/contracts/agent-execution-contract.test.ts (2 tests) 4ms
+ ✓ src/features/agent-executions/testing/projection-adapter.integration.test.tsx (2 tests) 15110ms
+   ✓ API Contract: backend Agent semantic projections > strictly parses every backend projection and covers every valid contract fixture  439ms
+   ✓ API Contract: backend Agent semantic projections > renders every valid semantic detail without a raw-span or fake-Graph adapter  14669ms
+
+ Test Files  8 passed | 57 skipped (65)
+      Tests  31 passed | 221 skipped (252)
+   Start at  02:15:37
+   Duration  16.38s (transform 1.38s, setup 7.58s, collect 13.20s, tests 15.20s, environment 19.49s, prepare 3.45s)
+
+
+========================================
+✅ Schema validation completed successfully
+Backend and frontend schemas are in sync!
+========================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6/6: Proto File Validation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Regenerating Python proto files...
+
+Checking for uncommitted proto changes...
+✅ Proto files are up-to-date
+
+==============================================
+Test Results Summary
+==============================================
+Python linting:    ✓ PASSED
+Backend tests:     ✓ PASSED
+Ingestion tests:   ✓ PASSED
+Frontend tests:    ✓ PASSED
+Contract tests:    ✓ PASSED
+Proto validation:  ✓ PASSED
+==============================================
+✓ All tests passed!

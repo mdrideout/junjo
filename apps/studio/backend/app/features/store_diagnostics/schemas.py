@@ -113,13 +113,15 @@ class StoreTransition(BaseModel):
         return self
 
 
-class StoreDetail(BaseModel):
-    """Owner-scoped Store evidence and the backend's reconstruction verdict."""
+class StoreBoundaryDetail(BaseModel):
+    """Execution interval on a Store, independent of its shared transition log."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
     available: bool
     store_id: NonEmptyPortableText | None = None
+    sequence_start: SafeNonNegativeInt | None = None
+    sequence_end: SafeNonNegativeInt | None = None
     revision_start: SafeNonNegativeInt | None = None
     revision_end: SafeNonNegativeInt | None = None
     transition_count: SafeNonNegativeInt = 0
@@ -129,15 +131,16 @@ class StoreDetail(BaseModel):
     reconstruction_reason: NonEmptyPortableText | None = None
     start: PayloadEvidence | None = None
     end: PayloadEvidence | None = None
-    transitions: list[StoreTransition] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_availability_shape(self) -> StoreDetail:
+    def validate_availability_shape(self) -> StoreBoundaryDetail:
         if not self.available:
             if any(
                 value is not None
                 for value in (
                     self.store_id,
+                    self.sequence_start,
+                    self.sequence_end,
                     self.revision_start,
                     self.revision_end,
                     self.start,
@@ -147,8 +150,6 @@ class StoreDetail(BaseModel):
                 raise ValueError("unavailable Store cannot contain Store evidence")
             if self.transition_count or self.reconstructable_claimed or self.reconstructable:
                 raise ValueError("unavailable Store cannot claim transitions or reconstruction")
-            if self.transitions:
-                raise ValueError("unavailable Store cannot contain transitions")
             if self.reconstruction_status != "not_applicable" or not self.reconstruction_reason:
                 raise ValueError(
                     "unavailable Store requires a not-applicable reconstruction reason"
@@ -162,8 +163,10 @@ class StoreDetail(BaseModel):
                 )
             if self.start is None or self.end is None:
                 raise ValueError("verified reconstruction requires start and end evidence")
-            if self.transition_count != len(self.transitions):
-                raise ValueError("verified reconstruction requires every transition")
+            if self.sequence_start is None or self.sequence_end is None:
+                raise ValueError("verified reconstruction requires sequence boundaries")
+            if self.sequence_end - self.sequence_start != self.transition_count:
+                raise ValueError("verified reconstruction requires a consistent interval")
         expected_status = "verified" if self.reconstructable else self.reconstruction_status
         if self.reconstructable and expected_status != self.reconstruction_status:
             raise ValueError("reconstructable Store requires verified status")
@@ -176,4 +179,18 @@ class StoreDetail(BaseModel):
                 raise ValueError("verified reconstruction cannot have an unavailability reason")
         elif not self.reconstruction_reason:
             raise ValueError("unverified reconstruction requires a reason")
+        return self
+
+
+class StoreDetail(StoreBoundaryDetail):
+    """An execution boundary hydrated with the transitions in its interval."""
+
+    transitions: list[StoreTransition] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_transitions(self) -> StoreDetail:
+        if not self.available and self.transitions:
+            raise ValueError("unavailable Store cannot contain transitions")
+        if self.reconstructable and self.transition_count != len(self.transitions):
+            raise ValueError("verified reconstruction requires every transition")
         return self

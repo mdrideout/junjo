@@ -1,0 +1,8 @@
+................................................................................................................Pulling exact published Studio backend image.
+Pulling exact published Studio frontend image.
+Pulling exact published Studio ingestion image.
+....................................
+----------------------------------------------------------------------
+Ran 148 tests in 6.108s
+
+OK

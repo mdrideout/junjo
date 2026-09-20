@@ -55,6 +55,32 @@ must never be coerced through a JSON number. Event ordering comparisons use its
 exact integer value; executable operation and Store transition sequences remain
 the semantic ordering authorities.
 
+## Composable application Stores (contract 3)
+
+Each execution records a Store boundary, not exclusive ownership of a Store.
+The shared physical transition log uses `junjo.store.id` and monotonically
+increasing `junjo.store.transition.sequence`. A boundary observes
+`(transition.start, transition.end]`; `transition.count` equals that interval's
+length. Revision boundaries can start above zero. No-ops advance the transition
+sequence without changing revision. Events are emitted once on their real
+writer spans, including when several execution views overlap.
+
+Workflow application and Agent private runtime boundaries retain their existing
+payload roots and `junjo.store.*` metadata. An Agent's optional application
+boundary uses `junjo.agent.application_store.id`, metadata under
+`junjo.agent.application_store.*`, and payload roots
+`junjo.agent.application_state.start/end`. Its explicit
+`junjo.agent.application_state.available` flag distinguishes absence from empty
+state. Private runtime Store IDs cannot be borrowed by another execution.
+
+Studio collects same-trace events by Store ID and reconstructs each interval
+independently. No cross-trace Store lookup or event duplication is required.
+The `shared_application_store` producer fixture proves nonzero boundaries,
+a prior no-op, and an Agent lending its borrowed Store to a nested Workflow.
+ADR 0016 owns the semantics. This is a coordinated breaking SDK/Studio change;
+serialized graph snapshots remain v2 and the external OpenAI Agents bridge
+retains its independent v1 integration contract.
+
 ## Application execution correlation
 
 An application may attach one trusted identity to a Junjo execution tree with
@@ -64,8 +90,8 @@ I-JSON text, and propagates unchanged to nested executable owners. Model and
 Tool operation spans do not repeat it. Correlation remains distinct from
 Junjo definition/runtime identities and OpenTelemetry trace/span identities.
 
-This is an optional governed extension of contract version 2: existing valid
-version 2 evidence remains valid without the pair. The canonical
+Introduced as an optional extension of contract 2, correlation remains optional
+in contract 3. The canonical
 `agent/producer/tool_invokes_nested_workflow` fixture proves propagation across
 an Agent, a Tool-owned nested Workflow, and its Nodes. ADR 0007 owns the
 application trust and Studio resolution semantics.
@@ -78,8 +104,8 @@ Those non-executable spans use the optional `junjo.evaluation.*` attributes
 governed by ADR 0014. They retain the application's normal OpenTelemetry
 service identity and do not repeat evaluation attributes on every descendant.
 
-This is an optional governed extension of contract version 2. Existing valid
-version 2 evidence remains valid without evaluation spans. Studio's canonical
+Introduced as an optional extension of contract 2, evaluation spans remain
+optional in contract 3. Studio's canonical
 evaluation membership remains the Attempt-to-execution binding rather than an
 inference over telemetry attributes.
 

@@ -6,9 +6,12 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Generic, TypeVar
+from typing import Generic
+
+from typing_extensions import TypeVar
 
 from .._json import require_ijson_integer, require_ijson_text
+from ..state import BaseState
 from .messages import (
     AgentInputMessage,
     AgentMessage,
@@ -20,6 +23,7 @@ from .messages import (
 )
 
 OutputT = TypeVar("OutputT")
+StateT = TypeVar("StateT", bound=BaseState, default=BaseState)
 
 USAGE_FIELDS = (
     "inputTokens",
@@ -120,7 +124,7 @@ class AgentUsage:
 
 
 @dataclass(frozen=True, slots=True, init=False)
-class AgentExecutionResult(Generic[OutputT]):
+class AgentExecutionResult(Generic[OutputT, StateT]):
     """Frozen detached result returned only after validated final output."""
 
     agent_key: str
@@ -135,6 +139,10 @@ class AgentExecutionResult(Generic[OutputT]):
     """Identity of this admitted Agent invocation, distinct from an evaluation run ID."""
     output: OutputT
     """Final output validated against the Agent output type."""
+    application_state: StateT | None
+    """Detached application-state checkpoint at completion; None when no Store was configured."""
+    application_store_id: str | None
+    """Identity of the application Store observed by this invocation."""
     transcript: tuple[AgentMessage, ...]
     """Immutable normalized records of the messages and operations captured for this invocation."""
     usage: AgentUsage
@@ -168,6 +176,8 @@ class AgentExecutionResult(Generic[OutputT]):
         tool_call_admitted_count: int,
         tool_call_started_count: int,
         tool_call_completed_count: int,
+        application_state: StateT | None = None,
+        application_store_id: str | None = None,
     ) -> None:
         """Create a detached successful Agent execution result.
 
@@ -175,6 +185,9 @@ class AgentExecutionResult(Generic[OutputT]):
         fingerprint form, a complete normalized transcript, usage/request
         consistency, and ``completed <= started <= admitted <= requested``.
 
+        :param application_state: Detached typed application state at this run
+            boundary. The live Store may continue changing in another execution.
+        :param application_store_id: Identity of that application Store, if configured.
         :param output: Already validated typed output owned by the caller.
         :param transcript: One or more complete normalized exchanges.
         :param usage: Immutable aggregate usage evidence.
@@ -204,6 +217,12 @@ class AgentExecutionResult(Generic[OutputT]):
         object.__setattr__(self, "structural_id", identities["structural_id"])
         object.__setattr__(self, "run_id", identities["run_id"])
         object.__setattr__(self, "output", output)
+        object.__setattr__(
+            self,
+            "application_state",
+            application_state.model_copy(deep=True) if application_state is not None else None,
+        )
+        object.__setattr__(self, "application_store_id", application_store_id)
         object.__setattr__(self, "transcript", detached_transcript)
         object.__setattr__(self, "usage", validated_usage)
         for field, value in counts.items():

@@ -1,5 +1,8 @@
 # Junjo Python SDK
 
+[Examples and integrations](https://junjo.ai/docs/examples-and-integrations/) — including a native Junjo Agent with the OpenAI SDK, OpenInference, and composable application state.
+
+
 > 順序 (junjo): order, sequence, procedure
 
 Junjo is a modern Python library for designing, executing, testing, and

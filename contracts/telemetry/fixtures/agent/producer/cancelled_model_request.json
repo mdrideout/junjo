@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "cancelled_model_request",
   "trace_id": "5ae31e00b4bfcfc481d7ed7010581c22",
   "service_name": "svc-agent-cancelled-model-request",
@@ -22,7 +22,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-3e4eb25f4288c287",
         "junjo.executable_runtime_id": "run-3e4eb25f4288c2879e2a",
@@ -60,7 +60,10 @@
         "junjo.agent.state.end.policy": "junjo.full.v1",
         "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":0,\"fields\":{}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":\"cancelled\"}",
         "junjo.cancelled": true,
-        "junjo.cancelled_reason": "fixture cancellation"
+        "junjo.cancelled_reason": "fixture cancellation",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 2
       },
       "events_json": [
         {
@@ -106,7 +109,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-3e4eb25f4288c2879e2a",

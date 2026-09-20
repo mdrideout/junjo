@@ -89,10 +89,12 @@ export const StoreTransitionSchema = z
   })
 export type StoreTransition = z.infer<typeof StoreTransitionSchema>
 
-export const StoreDetailSchema = z
+const StoreBoundaryObjectSchema = z
   .object({
     available: z.boolean(),
     store_id: NonEmptyPortableStringSchema.nullable(),
+    sequence_start: SafeNonNegativeIntegerSchema.nullable(),
+    sequence_end: SafeNonNegativeIntegerSchema.nullable(),
     revision_start: SafeNonNegativeIntegerSchema.nullable(),
     revision_end: SafeNonNegativeIntegerSchema.nullable(),
     transition_count: SafeNonNegativeIntegerSchema,
@@ -102,19 +104,19 @@ export const StoreDetailSchema = z
     reconstruction_reason: NonEmptyPortableStringSchema.nullable(),
     start: PayloadEvidenceSchema.nullable(),
     end: PayloadEvidenceSchema.nullable(),
-    transitions: z.array(StoreTransitionSchema),
   })
   .strict()
-  .superRefine((state, context) => {
+export type StoreBoundaryDetail = z.infer<typeof StoreBoundaryObjectSchema>
+
+function validateStoreBoundary(state: StoreBoundaryDetail, context: z.RefinementCtx) {
     if (!state.available) {
-      const hasEvidence = [state.store_id, state.revision_start, state.revision_end, state.start, state.end]
+      const hasEvidence = [state.store_id, state.sequence_start, state.sequence_end, state.revision_start, state.revision_end, state.start, state.end]
         .some((value) => value !== null)
       if (
         hasEvidence ||
         state.transition_count !== 0 ||
         state.reconstructable_claimed ||
-        state.reconstructable ||
-        state.transitions.length > 0
+        state.reconstructable
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -137,7 +139,9 @@ export const StoreDetailSchema = z
         state.revision_end === null ||
         state.start === null ||
         state.end === null ||
-        state.transition_count !== state.transitions.length
+        state.sequence_start === null ||
+        state.sequence_end === null ||
+        state.sequence_end - state.sequence_start !== state.transition_count
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -176,7 +180,18 @@ export const StoreDetailSchema = z
         path: ['reconstruction_reason'],
       })
     }
-  })
+}
+
+export const StoreBoundaryDetailSchema = StoreBoundaryObjectSchema.superRefine(validateStoreBoundary)
+export const StoreDetailSchema = StoreBoundaryObjectSchema.extend({
+  transitions: z.array(StoreTransitionSchema),
+}).superRefine((state, context) => {
+  validateStoreBoundary(state, context)
+  if ((!state.available && state.transitions.length > 0) ||
+      (state.reconstructable && state.transitions.length !== state.transition_count)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'Store transitions disagree with the execution boundary' })
+  }
+})
 export type StoreDetail = z.infer<typeof StoreDetailSchema>
 
 export const EvidenceDiagnosticSchema = z

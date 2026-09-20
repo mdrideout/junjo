@@ -1,5 +1,10 @@
 # ADR 0005: Agent and Workflow composition
 
+Application Store composition and telemetry contract 3 are governed by
+[ADR 0016](0016-composable-application-stores.md). Its shared application Store and execution-interval
+semantics supersede the original isolation-only restrictions below; private
+Agent runtime state remains isolated.
+
 - Status: Accepted
 - Date: 2026-07-13
 - Owners: Junjo platform
@@ -53,8 +58,9 @@ An application Node owns this sequence:
 4. await `Agent.execute()`;
 5. map the detached `AgentExecutionResult` into explicit Store actions.
 
-No live Workflow Store is passed to the Agent or its Tools. Agent state is
-independent from Workflow state. The Node owns every input and output mapping,
+The Node can pass its live application Store explicitly under ADR 0016, or
+use separate Stores. Private Agent runtime state remains independent. The Node
+owns every explicit input and output mapping,
 including whether any transcript or usage evidence becomes Workflow state.
 
 The Agent span is a child of the active Node span. The Node is the semantic
@@ -71,21 +77,19 @@ is application behavior rather than an implicit Junjo fallback.
 
 A Tool service owns this sequence:
 
-1. pass validated Tool input and dependencies to an application-owned
-   Workflow factory;
-2. receive a fresh Workflow definition whose zero-argument Store and Graph
-   factories safely close over detached per-call values;
-3. await the Workflow through its normal public execution API;
+1. select a reusable Workflow definition or construct one with factories that
+   close over detached per-call values;
+2. select factory-owned application state or the Tool context's live Store;
+3. await `Workflow.execute()`, passing `store=context.store` when sharing;
 4. map the detached `ExecutionResult` into the declared Tool output.
 
-An existing reusable Workflow definition may be used only when it needs no
-per-call data in its Store or Graph factories. The Agent layer does not add
-input or dependency parameters to `Workflow.execute()` and does not mutate
-factory closures on a shared definition.
+Per-call state can be passed through an explicit Store or captured by a new
+definition's factories. The Agent layer does not add input or dependency
+parameters to `Workflow.execute()` or mutate reusable factory closures.
 
 The Workflow keeps its own definition ID, run ID, Graph structural identity,
-Store, hooks, limits, and result. It is a normal Workflow, not a Subflow and not
-an Agent Store adapter.
+hooks, limits, and result. Its application Store may be shared or independent.
+It remains a normal Workflow; Subflow isolation and mapping actions are unchanged.
 
 The nested Workflow span is a child of the active Tool operation span. Because
 a Tool is an operation rather than an executable, the Agent is the semantic
@@ -102,8 +106,8 @@ application code.
 
 ### State and limits remain independent
 
-Composition never shares a live Store across executable boundaries. Parent and
-child each own:
+Application Stores may be shared explicitly under ADR 0016. Parent and child
+each retain independent:
 
 - definition and run identity;
 - private execution state;
@@ -274,7 +278,7 @@ Horizon 1 must prove:
 - successful detached mapping in both composition directions;
 - failure and cancellation propagation in both directions;
 - exact parent executable identity without fake Graph fields;
-- Agent and Workflow Store isolation;
+- private Agent runtime Store isolation and both application Store choices;
 - independent limits and results;
 - correct span parentage for both hybrid hierarchies;
 - hook registration and unsubscription during a run cannot change that run's
@@ -313,7 +317,8 @@ repetition supplies evidence for any future adapter.
   are application policy.
 - Generic WorkflowTool initially: Workflow construction and result mapping are
   application policy.
-- Shared parent/child Store: it breaks isolated execution ownership.
+- Implicit shared application Store: ADR 0016 permits explicit sharing while
+  preserving independent execution identity and private Agent runtime state.
 - Fake or nullable Graph fields on Agent events: they weaken truthful contracts.
 - Hooks inherited across nesting: it creates hidden observer behavior.
 - Telemetry through hooks: optional callbacks cannot be the diagnostic control

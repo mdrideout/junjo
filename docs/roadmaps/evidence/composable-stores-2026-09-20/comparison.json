@@ -1,0 +1,217 @@
+{
+  "scalar": {
+    "operations_per_second": {
+      "baseline": {
+        "median": 1587.7765030988708,
+        "min": 1584.686955027762,
+        "max": 1589.289564448545
+      },
+      "candidate": {
+        "median": 1580.4432026798775,
+        "min": 1576.5277401974574,
+        "max": 1587.7879977537095
+      },
+      "change_percent": -0.461859739370174
+    },
+    "cpu_us_per_operation": {
+      "baseline": {
+        "median": 315.1076003,
+        "min": 314.32831269999997,
+        "max": 315.8215126333333
+      },
+      "candidate": {
+        "median": 316.3012670666667,
+        "min": 314.8019059666667,
+        "max": 317.6042015
+      },
+      "change_percent": 0.37881243281032706
+    },
+    "p95_ms": {
+      "baseline": {
+        "median": 0.36841999826719984,
+        "min": 0.36554500184138305,
+        "max": 0.3748359995370265
+      },
+      "candidate": {
+        "median": 0.37258600059431046,
+        "min": 0.3670859987323638,
+        "max": 0.3740859974641353
+      },
+      "change_percent": 1.1307752963206852
+    },
+    "p99_ms": {
+      "baseline": {
+        "median": 0.48787899868329987,
+        "min": 0.47133699990808964,
+        "max": 0.4995039998902939
+      },
+      "candidate": {
+        "median": 0.49858700003824197,
+        "min": 0.4743369972857181,
+        "max": 0.5139200002304278
+      },
+      "change_percent": 2.1948067827967765
+    },
+    "peak_rss_mib": {
+      "baseline": {
+        "median": 53.3984375,
+        "min": 52.00390625,
+        "max": 53.52734375
+      },
+      "candidate": {
+        "median": 40.03515625,
+        "min": 39.0390625,
+        "max": 40.03515625
+      },
+      "change_percent": -25.0256035113387
+    }
+  },
+  "workflow": {
+    "operations_per_second": {
+      "baseline": {
+        "median": 98.9063023019201,
+        "min": 96.99855199703079,
+        "max": 99.52944092705796
+      },
+      "candidate": {
+        "median": 100.05158039169197,
+        "min": 98.41811810788637,
+        "max": 100.36926771973788
+      },
+      "change_percent": 1.157942480020946
+    },
+    "cpu_us_per_operation": {
+      "baseline": {
+        "median": 5047.995943333332,
+        "min": 5033.4897,
+        "max": 5133.384075
+      },
+      "candidate": {
+        "median": 4994.088175,
+        "min": 4972.552956666666,
+        "max": 5093.093381666667
+      },
+      "change_percent": -1.06790435132037
+    },
+    "p95_ms": {
+      "baseline": {
+        "median": 55.49324299863656,
+        "min": 55.38232500111917,
+        "max": 55.5669109999144
+      },
+      "candidate": {
+        "median": 55.5897440026456,
+        "min": 55.40169999949285,
+        "max": 55.61728600150673
+      },
+      "change_percent": 0.17389685445381442
+    },
+    "p99_ms": {
+      "baseline": {
+        "median": 63.18376399940462,
+        "min": 58.46010000095703,
+        "max": 64.15214699882199
+      },
+      "candidate": {
+        "median": 61.448790998838376,
+        "min": 58.21976500010351,
+        "max": 61.94242099809344
+      },
+      "change_percent": -2.745915866269999
+    },
+    "peak_rss_mib": {
+      "baseline": {
+        "median": 39.76171875,
+        "min": 39.6484375,
+        "max": 39.79296875
+      },
+      "candidate": {
+        "median": 39.3828125,
+        "min": 39.36328125,
+        "max": 39.3828125
+      },
+      "change_percent": -0.952942332252682
+    }
+  },
+  "studio": {
+    "spans_per_second": {
+      "baseline": {
+        "median": 2401.0723388675156,
+        "min": 2400.925997083908,
+        "max": 2401.1874772581027
+      },
+      "candidate": {
+        "median": 2401.1850748666716,
+        "min": 2400.566723903436,
+        "max": 2401.3540135749167
+      },
+      "change_percent": 0.00469523543007444
+    },
+    "query_count": {
+      "baseline": {
+        "median": 274,
+        "min": 272,
+        "max": 282
+      },
+      "candidate": {
+        "median": 270,
+        "min": 264,
+        "max": 286
+      },
+      "change_percent": -1.4598540145985384
+    },
+    "query_p95_ms": {
+      "baseline": {
+        "median": 29.608708806335926,
+        "min": 28.8455409463495,
+        "max": 34.72074982710183
+      },
+      "candidate": {
+        "median": 34.087833017110825,
+        "min": 28.706999961286783,
+        "max": 35.99795885384083
+      },
+      "change_percent": 15.12772556234001
+    },
+    "backend_cpu_ms_per_query": {
+      "baseline": {
+        "median": 10.96539705882353,
+        "min": 10.948135036496351,
+        "max": 11.233875886524823
+      },
+      "candidate": {
+        "median": 11.070268939393939,
+        "min": 10.990576923076922,
+        "max": 11.309170370370369
+      },
+      "change_percent": 0.9563892671448748
+    },
+    "backend_peak_cgroup_mib": {
+      "baseline": {
+        "median": 256.15234375,
+        "min": 178.28515625,
+        "max": 360.88671875
+      },
+      "candidate": {
+        "median": 166.56640625,
+        "min": 150.87890625,
+        "max": 208.484375
+      },
+      "change_percent": -34.97369424323294
+    },
+    "ingestion_peak_cgroup_mib": {
+      "baseline": {
+        "median": 87.10546875,
+        "min": 78.015625,
+        "max": 103.69921875
+      },
+      "candidate": {
+        "median": 72.3671875,
+        "min": 71.08984375,
+        "max": 78.7578125
+      },
+      "change_percent": -16.920041257455487
+    },
+    "interpretation": "All work delivered; query p95 median +15.1% exceeds the historical 10% mixed-query guidance. Overlapping run ranges and roughly flat CPU/query prevent a latency-neutral claim on this shared host. This is not a changed or waived gate."
+  }
+}

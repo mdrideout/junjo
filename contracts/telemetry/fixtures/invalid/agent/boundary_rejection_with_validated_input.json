@@ -1,7 +1,7 @@
 {
   "expected_diagnostic": "unexpected_boundary_input_evidence",
   "fixture": {
-    "contract_version": 2,
+    "contract_version": 3,
     "scenario": "boundary_rejection_with_validated_input",
     "trace_id": "892d98a004cc2790ca034bb8d0b906c2",
     "service_name": "svc-agent-boundary-input-history-rejection",
@@ -24,7 +24,7 @@
         "status_code": "2",
         "status_message": "input_validation_error",
         "attributes_json": {
-          "junjo.telemetry.contract_version": 2,
+          "junjo.telemetry.contract_version": 3,
           "junjo.span_type": "agent",
           "junjo.executable_definition_id": "definition-2a87fae1326997fa",
           "junjo.executable_runtime_id": "run-2a87fae1326997fa4045",
@@ -52,6 +52,7 @@
           "junjo.agent.input_candidate.policy": "junjo.full.v1",
           "junjo.agent.input_candidate": "{\"invalid\":true}",
           "error.type": "AgentInputValidationError",
+          "junjo.agent.application_state.available": false,
           "junjo.agent.input.mode": "full",
           "junjo.agent.input.policy": "junjo.full.v1",
           "junjo.agent.input": "{\"question\":\"validated\"}"
@@ -93,7 +94,7 @@
         "status_code": "2",
         "status_message": "history_validation_error",
         "attributes_json": {
-          "junjo.telemetry.contract_version": 2,
+          "junjo.telemetry.contract_version": 3,
           "junjo.span_type": "agent",
           "junjo.executable_definition_id": "definition-b15bf2862a8e2745",
           "junjo.executable_runtime_id": "run-b15bf2862a8e2745c8db",
@@ -120,7 +121,8 @@
           "junjo.agent.history_candidate.mode": "full",
           "junjo.agent.history_candidate.policy": "junjo.full.v1",
           "junjo.agent.history_candidate": "[{\"type\":\"agent_input\",\"input\":{\"invalid\":true}}]",
-          "error.type": "AgentHistoryValidationError"
+          "error.type": "AgentHistoryValidationError",
+          "junjo.agent.application_state.available": false
         },
         "events_json": [
           {

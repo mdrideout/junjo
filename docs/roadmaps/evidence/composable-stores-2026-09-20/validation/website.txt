@@ -1,0 +1,321 @@
+
+> @junjo/website@0.0.1 validate
+> npm run docs:assemble && npm run check && npm run build && npm run validate:build && npm run docs:check
+
+
+> @junjo/website@0.0.1 docs:assemble
+> python3 ../../tooling/docs/assemble_public_docs.py --write
+
+Generated 231 API pages covering 1504 public Python objects.
+Assembled 270 documentation files into Starlight staging.
+
+> @junjo/website@0.0.1 check
+> astro check
+
+02:41:10 [content] Syncing content
+02:41:10 [content] Synced content
+02:41:10 [types] Generated 528ms
+02:41:10 [check] Getting diagnostics for Astro files in /Users/matt/repos/junjo/apps/website...
+Result (41 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+
+
+> @junjo/website@0.0.1 build
+> astro build
+
+02:41:14 [content] Syncing content
+02:41:15 [content] Synced content
+02:41:15 [types] Generated 463ms
+02:41:15 [build] output: "static"
+02:41:15 [build] mode: "static"
+02:41:15 [build] directory: /Users/matt/repos/junjo/apps/website/dist/
+02:41:15 [build] Collecting build info...
+02:41:15 [build] ✓ Completed in 584ms.
+02:41:15 [build] Building static entrypoints...
+02:41:15 [vite] ✓ built in 615ms
+02:41:15 [vite] ✓ built in 44ms
+02:41:15 [build] Rearranging server assets...
+
+ generating static routes
+02:41:15 [WARN] [content] The collection "i18n" does not exist or is empty. Please check your content config file for errors.
+02:41:15   ├─ /404.html02:41:15 [WARN] [content] Entry docs → 404 was not found.
+ (+15ms)
+02:41:15   ├─ /index.html (+21ms)
+02:41:15   ├─ /docs/index.html (+15ms)
+02:41:15   ├─ /docs/architecture-exploration/index.html (+3ms)
+02:41:15   ├─ /docs/examples-and-integrations/index.html (+2ms)
+02:41:15   ├─ /docs/observability/opentelemetry/index.html (+4ms)
+02:41:15   ├─ /docs/python/index.html (+2ms)
+02:41:15   ├─ /docs/python/agents/index.html (+3ms)
+02:41:16   ├─ /docs/python/agents/composition/index.html (+3ms)
+02:41:16   ├─ /docs/python/agents/model-drivers/index.html (+2ms)
+02:41:16   ├─ /docs/python/agents/testing/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/definition/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/definition/agent/index.html (+3ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/definition/agentlimits/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentadmissionerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentconfigurationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agenterror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentexecutionerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agenthistoryvalidationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentinputvalidationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentinternalerror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentinvocationerror/index.html (+3ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentlimitexceedederror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentmodelerror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentmodelresponseerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentoutputvalidationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agenttoolerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agenttoolinputvalidationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agenttooloutputvalidationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/agentunknowntoolerror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/modeldriverconfigurationerror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/errors/toolconfigurationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/json/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/agentinputmessage/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/assistantoutputmessage/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/assistanttoolcallsmessage/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/detach_message/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/finaloutputresponse/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/message_to_json/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/modelrequest/index.html (+3ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/modelusage/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/normalize_model_response/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/response_to_json/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/toolcall/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/toolcallsresponse/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/tooldefinition/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/toolresultmessage/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/messages/validate_history/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/model_driver/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/model_driver/modeldriver/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/model_driver/modeldriverbinding/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/model_driver/modeldriverdescriptor/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/result/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/result/agentexecutionresult/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/result/agentusage/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/result/usageaggregatefield/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/state/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/state/agentstatesnapshot/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/testing/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/testing/scriptederror/index.html (+3ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/testing/scriptedmodeldriver/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/testing/scriptedresponse/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/tool/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/tool/agentruncontext/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/tool/tool/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/agent/tool/toolservice/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/basestate/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/basestore/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/compilededge/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/compiledgraph/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/compilednode/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/condition/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/edge/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluate_node/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/agentinvocation/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/agenttarget/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/booleanpredicateevaluator/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/callbackevaluator/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/casegenerationerror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/clean_source_revision/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/dirtysourcetreeerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluation_span/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationcontext/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationcontrolclient/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationexecutor/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationharness/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationresult/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationrole/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationrunclass/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationrunerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluationtarget/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluator/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluatorcontracterror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluatordescriptor/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluatorexecutionerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/evaluatornotregisterederror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/exactmatchevaluator/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/executionserviceidentity/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/generatecaserequest/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/harnessconfigurationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/nodeinvocation/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/nodetarget/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/preparedevaluation/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/structuredfieldevaluator/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/targetcontracterror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/targetdescriptor/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/targetexecution/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/targetexecutionerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/targetnotregisterederror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/workflowinvocation/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/evaluation/workflowtarget/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/executioncorrelation/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/executionresult/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/graph/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/graphcompilationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/graphfactory/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/graphrendererror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/graphserializationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/graphvalidationerror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/agentcancelledevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/agentcompletedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/agentfailedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/agentstartedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/lifecycleevent/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/nodecancelledevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/nodecompletedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/nodefailedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/nodestartedevent/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/object/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/runconcurrentcancelledevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/runconcurrentcompletedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/runconcurrentfailedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/runconcurrentstartedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/statechangedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/subflowcancelledevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/subflowcompletedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/subflowfailedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/subflowstartedevent/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/workflowcancelledevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/workflowcompletedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/workflowfailedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/hooks/workflowstartedevent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/node/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/nodeevaluationresult/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/agent_as_tool/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/agenttoolinvocation/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/evaluation/index.html (+3ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/evaluation/openaiagentinvocation/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/evaluation/openaiagenttarget/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/instrument_openai_agents/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/openaiagentsintegration/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/openaiagentsintegrationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/workflow_as_tool/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/plugins/openai_agents/workflowtoolinvocation/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/runconcurrent/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/storefactory/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptdetail/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidence/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencebind/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencediagnostic/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidenceexecutablesummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencefailuresummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencemanifest/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidenceoperationsummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencerelationships/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencespanitem/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencespanrequest/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencespans/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencespansummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencestoresummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencesubject/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidencetracesummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptevidenceunavailable/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptread/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptresultwrite/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/attemptstatus/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/casecreate/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/caseorigin/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/caseread/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/conflictresponse/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/datasetcreate/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/datasetdetail/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/datasetlist/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/datasetread/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/datasetstatus/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/datasetsummary/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/evaluationnamefacet/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/evidencemembershipitem/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/evidencemembershiplist/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/executabletype/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/executionevidencepending/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/executionidentityambiguous/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/executionresolutionconflict/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/executionresolutionread/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/opentelemetryspanreference/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/opentelemetryspanresolutionread/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/outcomesummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/project_run_comparison/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runcaseread/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runcomparison/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runcomparisonerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runcomparisonrow/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runcomparisonsummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runcomparisontransition/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runcomparisontransitioncounts/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/rundetail/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runlist/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runread/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runscope/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runstart/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runstatus/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/runsummary/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/semanticexecutionreference/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studioauthenticationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studioauthorizationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studioclient/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studioconflicterror/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studiocontracterror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studiodto/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studioerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studiohealth/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studiorequesterror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studioresponsetoolargeerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studiotransienterror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/studiovalidationerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/targetfacet/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/targetkind/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/studio/traceevidenceread/index.html (+2ms)
+02:41:16   ├─ /docs/python/api/junjo/subflow/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/telemetry/junjo_otel_exporter/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/telemetry/junjo_otel_exporter/junjootelexporter/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/workflow/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/workflowcancellederror/index.html (+1ms)
+02:41:16   ├─ /docs/python/api/junjo/workflowexecutionerror/index.html (+1ms)
+02:41:16   ├─ /docs/python/concepts/index.html (+1ms)
+02:41:16   ├─ /docs/python/evaluation/index.html (+1ms)
+02:41:16   ├─ /docs/python/get-started/index.html (+1ms)
+02:41:16   ├─ /docs/python/hooks/index.html (+1ms)
+02:41:16   ├─ /docs/python/integrations/openai-agents/index.html (+2ms)
+02:41:16   ├─ /docs/python/testing/eval-driven-development/index.html (+1ms)
+02:41:16   ├─ /docs/python/tutorial/index.html (+1ms)
+02:41:16   ├─ /docs/python/workflows/concurrency/index.html (+1ms)
+02:41:16   ├─ /docs/python/workflows/state/index.html (+1ms)
+02:41:16   ├─ /docs/python/workflows/subflows/index.html (+1ms)
+02:41:16   ├─ /docs/python/workflows/visualization/index.html (+1ms)
+02:41:16   ├─ /docs/recursive-self-improvement/index.html (+2ms)
+02:41:16   ├─ /docs/studio/deployment/index.html (+1ms)
+02:41:16   ├─ /docs/studio/docker-reference/index.html (+1ms)
+02:41:16   ├─ /docs/studio/overview/index.html (+3ms)
+02:41:16   ├─ /docs/studio/performance-and-deployment/index.html (+1ms)
+02:41:16 ✓ Completed in 474ms.
+
+02:41:16 [build] ✓ Completed in 1.16s.
+02:41:16 [starlight:pagefind] Building search index with Pagefind...
+02:41:16 [starlight:pagefind] Found 258 HTML files.
+02:41:16 [starlight:pagefind] Finished building search index in 290ms.
+02:41:16 [@astrojs/sitemap] `sitemap-index.xml` created at `dist`
+02:41:16 [build] 258 page(s) built in 2.12s
+02:41:16 [build] Complete!
+
+> @junjo/website@0.0.1 validate:build
+> node scripts/validate-build.mjs
+
+Validated 258 website pages, 252 published routes, and 1504 Python API objects.
+
+> @junjo/website@0.0.1 docs:check
+> python3 ../../tooling/docs/assemble_public_docs.py --check
+
+Generated 231 API pages covering 1504 public Python objects.
+Validated 270 assembled documentation files for Python SDK 0.68.0.

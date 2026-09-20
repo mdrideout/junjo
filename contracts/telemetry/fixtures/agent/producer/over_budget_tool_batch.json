@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "over_budget_tool_batch",
   "trace_id": "8165f5ef1aedfb7c92d1529e59a0d5ae",
   "service_name": "svc-agent-over-budget-tool-batch",
@@ -22,7 +22,7 @@
       "status_code": "2",
       "status_message": "tool_calls",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-15db19320be03b20",
         "junjo.executable_runtime_id": "run-15db19320be03b20544f",
@@ -62,7 +62,10 @@
         "junjo.agent.limit.exceeded": "tool_calls",
         "junjo.agent.limit.attempted_count": 2,
         "junjo.agent.limit.requested_batch_size": 2,
-        "error.type": "AgentLimitExceededError"
+        "error.type": "AgentLimitExceededError",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 3
       },
       "events_json": [
         {
@@ -118,7 +121,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-15db19320be03b20544f",

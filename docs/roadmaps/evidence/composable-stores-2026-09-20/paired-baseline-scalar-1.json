@@ -1,0 +1,20 @@
+{
+  "completed": 30000,
+  "wall_seconds": 18.89434686900131,
+  "operations_per_second": 1587.7765030988708,
+  "cpu_seconds": 9.453228009,
+  "cpu_us_per_operation": 315.1076003,
+  "p95_ms": 0.3748359995370265,
+  "p99_ms": 0.48787899868329987,
+  "peak_rss_mib": 52.00390625,
+  "before_rss_mib": 39.66015625,
+  "after_work_rss_mib": 50.7421875,
+  "after_release_rss_mib": 51.19921875,
+  "label": "paired-baseline-scalar-1",
+  "case": "scalar",
+  "iterations": 30000,
+  "warmup_iterations": 1000,
+  "size": 128,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "2289b7da5da7d2d30308bcab19aa1bf0ba05292b2178aea63f641c87bf0920d8"
+}

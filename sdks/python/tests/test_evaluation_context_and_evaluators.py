@@ -151,7 +151,7 @@ def test_evaluation_spans_have_exact_bounded_attributes_and_truthful_resource(
         "junjo.evaluation.attempt.id": "attempt-1",
         "junjo.evaluation.source.revision": REVISION,
         "junjo.evaluation.role": "orchestrator",
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
     }
     subject = spans["junjo.evaluation.subject"]
     assert subject.parent is not None

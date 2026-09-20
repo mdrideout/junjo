@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import SpanAttributeKeyValueViewer from '../../../components/SpanAttributeKeyValueViewer'
 import type { StoreDetail } from '../schemas/agent-execution'
 import { PayloadEvidenceView } from './PayloadEvidenceView'
+import { AppLink } from '../../../components/navigation/app-link'
+import { tracesPath } from '../../../util/telemetry-paths'
 
 type StateSelection = { kind: 'start' } | { kind: 'transition'; sequence: number } | { kind: 'end' }
 
@@ -23,7 +25,13 @@ function StateProjection({ label, value, available }: { label: string; value: un
   )
 }
 
-export function AgentStateTimeline({ state }: { state: StoreDetail }) {
+export function AgentStateTimeline({ state, role, traceId, serviceName }: {
+  state: StoreDetail
+  role: 'application' | 'runtime'
+  traceId: string
+  serviceName: string
+}) {
+  const label = role === 'application' ? 'Application state' : 'Agent runtime state'
   const [selection, setSelection] = useState<StateSelection>({ kind: 'start' })
   const orderedTransitions = useMemo(
     () => [...state.transitions].sort((left, right) => left.sequence - right.sequence),
@@ -32,14 +40,14 @@ export function AgentStateTimeline({ state }: { state: StoreDetail }) {
 
   useEffect(() => {
     setSelection({ kind: 'start' })
-  }, [state.store_id])
+  }, [state.store_id, state.sequence_start, state.sequence_end, role])
 
   if (!state.available) {
     return (
       <section className="rounded-xl border border-dashed border-[var(--studio-border-strong)] p-5">
-        <h2 className="m-0">Agent state</h2>
+        <h2 className="m-0">{label}</h2>
         <p className="mt-2 text-sm text-[var(--studio-text-muted)]">
-          This invocation never admitted a run-local Store. No state or transition evidence is fabricated.
+          {role === 'application' ? 'This Agent execution did not use an application Store.' : 'This invocation never admitted a run-local Store.'}
         </p>
         <p className="mt-1 font-mono text-xs text-[var(--studio-text-subtle)]">
           {state.reconstruction_reason}
@@ -53,10 +61,10 @@ export function AgentStateTimeline({ state }: { state: StoreDetail }) {
     : null
 
   return (
-    <section aria-label="Agent state history" className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)]">
+    <section aria-label={`${label} history`} className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--studio-border)] p-4">
         <div>
-          <h2 className="m-0">Agent state revisions</h2>
+          <h2 className="m-0">{label} revisions</h2>
           <p className="mt-1 font-mono text-xs text-[var(--studio-text-subtle)]">
             {state.store_id ?? 'Store identity unavailable'}
           </p>
@@ -158,7 +166,9 @@ export function AgentStateTimeline({ state }: { state: StoreDetail }) {
             <>
               <div className="flex flex-wrap justify-between gap-2 text-xs text-[var(--studio-text-subtle)]">
                 <span className="font-mono">event {selectedTransition.event_id}</span>
-                <span className="font-mono">owner span {selectedTransition.span_id}</span>
+                <AppLink to={tracesPath(serviceName, traceId, selectedTransition.span_id)}>
+                  View writer span <span className="font-mono">{selectedTransition.span_id}</span>
+                </AppLink>
               </div>
               <div className="grid gap-4 xl:grid-cols-2">
                 <StateProjection

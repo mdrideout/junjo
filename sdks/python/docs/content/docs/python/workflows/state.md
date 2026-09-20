@@ -71,7 +71,7 @@ live state when later store actions call `set_state`.
 
 ## BaseStore: Managing Your State
 
-The `BaseStore` is the heart of Junjo's state management. It holds the state and provides methods for updating it. You will create a custom store for each workflow that inherits from `BaseStore` and is typed with your custom `BaseState`.
+The `BaseStore` is the heart of Junjo's state management. It holds the state and provides methods for updating it. Create an application store that inherits from `BaseStore` and is typed with your custom `BaseState`. A Workflow can create it through `store_factory`, or borrow an existing instance with `workflow.execute(store=app_store)`. Agents can use the same Store. See [Store composition](/docs/python/agents/composition/) for ownership and explicit input/output mapping.
 
 ```python
 from junjo import BaseStore

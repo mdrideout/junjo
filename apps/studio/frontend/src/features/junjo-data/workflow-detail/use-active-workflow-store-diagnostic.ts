@@ -2,9 +2,8 @@ import { useAppSelector } from '../../../root-store/hooks'
 import type { RootState } from '../../../root-store/store'
 import type { OtelSpan } from '../../traces/schemas/schemas'
 import {
-  selectActiveStoreID,
   selectSpanById,
-  selectWorkflowSpanByStoreId,
+  selectWorkflowStoreViewOwner,
 } from '../../traces/store/selectors'
 import {
   useWorkflowStoreDiagnostic,
@@ -25,9 +24,8 @@ export function useActiveWorkflowStoreDiagnostic(
   traceId: string,
   defaultWorkflowSpanId: string,
 ): ActiveWorkflowStoreDiagnostic {
-  const activeStoreId = useAppSelector((state: RootState) => selectActiveStoreID(state))
   const selectedOwner = useAppSelector((state: RootState) =>
-    selectWorkflowSpanByStoreId(state, { traceId, storeId: activeStoreId }),
+    selectWorkflowStoreViewOwner(state, { traceId }),
   )
   const defaultOwner = useAppSelector((state: RootState) =>
     selectSpanById(state, { traceId, spanId: defaultWorkflowSpanId }),

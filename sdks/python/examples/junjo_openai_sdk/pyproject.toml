@@ -1,0 +1,15 @@
+[project]
+name = "junjo-openai-sdk-example"
+version = "0.1.0"
+description = "Native Junjo Agent, composable application Store, OpenAI SDK, and OpenInference"
+requires-python = ">=3.11"
+dependencies = ["junjo", "openai>=3.2.0", "openinference-instrumentation-openai"]
+
+[tool.uv.sources]
+junjo = { workspace = true }
+
+[dependency-groups]
+dev = ["pytest", "pytest-asyncio", "httpx2>=2.10.0", "ruff>=0.15.0", "ty"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

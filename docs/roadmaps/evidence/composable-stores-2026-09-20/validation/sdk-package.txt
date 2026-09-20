@@ -1,0 +1,2 @@
+Checking dist/junjo-0.68.0-py3-none-any.whl: PASSED
+Checking dist/junjo-0.68.0.tar.gz: PASSED

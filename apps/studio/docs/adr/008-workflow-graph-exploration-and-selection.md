@@ -40,6 +40,10 @@ that same selection.
 - Selecting a Store transition selects its carrier span and transition. The
   tree and Graph follow the carrier span while the state panel shows the exact
   backend-verified transition.
+- Under root ADR 0016, a shared application Store interval may include a writer
+  outside this Workflow's descendants. That selection retains the execution
+  view and exact transition identity, with a link to the real writer in trace
+  detail. It does not put the sibling writer into this Workflow's Graph or URL.
 - Previous and next transition controls update both identities together.
 - Reloading a span URL restores the same primary selection.
 
@@ -91,6 +95,7 @@ not a routine lockfile refresh, and requires the real-renderer acceptance suite.
 | Graph node click | active node | owning span | span boundary | owning span |
 | Tree span click | nearest represented ancestor | active span | span boundary | active span |
 | Store transition | carrier's represented ancestor | carrier span | exact transition | carrier span |
+| Shared Store transition from outside this Workflow | current selection | current selection | exact transition in selected execution view; link to actual writer | current Workflow span |
 | Previous/next transition | follows carrier | follows carrier | adjacent sequence | carrier span |
 | Agent/model/tool inside Node | owning Node | selected runtime span | selected span boundary | selected runtime span |
 | Node inside Subflow | parent container and child node | selected Node | selected Node boundary | selected Node |

@@ -9,6 +9,11 @@ This quickstart introduces the SDK's graph and state building blocks with a
 provider-free example. It runs in your Python environment; it does not deploy
 Studio or configure telemetry by itself.
 
+For a complete native Agent setup with model calls and Studio telemetry, start
+with [junjo_openai_sdk](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/junjo_openai_sdk).
+The [examples and integrations index](/docs/examples-and-integrations/) compares
+execution runtimes, provider SDKs, instrumentation, and setup requirements.
+
 If you already have an AI application, begin with
 [recursive self improvement](/docs/recursive-self-improvement/) or the
 [OpenAI Agents SDK integration](/docs/python/integrations/openai-agents/).
@@ -36,7 +41,7 @@ The following is a basic, single file example of how to use Junjo to create a si
 The example counts items and selects a conditional path. These same building
 blocks can separate retrieval, policy checks, and synthesis in an AI workflow.
 
-More advanced examples can be found in the [examples directory](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples) of the Junjo repository.
+Find further runnable setups in the [examples and integrations index](/docs/examples-and-integrations/).
 
 ```python
 from junjo import BaseState, BaseStore, Condition, Edge, Graph, Node, Workflow

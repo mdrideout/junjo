@@ -7,7 +7,12 @@ from urllib.parse import quote
 
 from app.features.agent_diagnostics.assembler import assemble_agent_detail
 from app.features.agent_diagnostics.contract import AgentEvidenceError
-from app.features.store_diagnostics.schemas import EvidenceDiagnostic
+from app.features.store_diagnostics.reconstruction import index_store_spans
+from app.features.store_diagnostics.schemas import (
+    EvidenceDiagnostic,
+    StoreBoundaryDetail,
+    StoreDetail,
+)
 from app.features.trace_evidence.schemas import (
     AgentExecutableAnnotation,
     AttemptEvidenceManifest,
@@ -22,6 +27,7 @@ from app.features.trace_evidence.schemas import (
     SemanticSpanKind,
     SpanManifestEntry,
     StoreAnnotation,
+    StoreExecutionDetail,
     StoreManifestEntry,
     TraceEvidence,
     TraceEvidenceDiagnostic,
@@ -74,6 +80,7 @@ def _semantic_error_diagnostics(
 
 def assemble_trace_evidence(trace_id: str, trace_spans: list[dict[str, Any]]) -> TraceEvidence:
     """Keep every raw span while enriching supported executable owners."""
+    store_index = index_store_spans(trace_spans)
     spans = [NormalizedSpanEvidence.model_validate(span) for span in trace_spans]
     executables: dict[str, Any] = {}
     operations: dict[str, dict[str, Any]] = {}
@@ -100,7 +107,7 @@ def assemble_trace_evidence(trace_id: str, trace_spans: list[dict[str, Any]]) ->
         executable_type = attributes.get("junjo.span_type")
         if executable_type == "agent":
             try:
-                detail = assemble_agent_detail(span, trace_spans)
+                detail = assemble_agent_detail(span, trace_spans, store_index=store_index)
             except AgentEvidenceError as error:
                 diagnostics.extend(
                     _semantic_error_diagnostics(owner_span_id=owner_span_id, error=error)
@@ -108,13 +115,14 @@ def assemble_trace_evidence(trace_id: str, trace_spans: list[dict[str, Any]]) ->
                 continue
 
             runtime_id = detail.summary.runtime_id
-            store_id = detail.state.store_id if detail.state.available else None
             executables[owner_span_id] = AgentExecutableAnnotation(
                 executable_type="agent",
                 owner_span_id=owner_span_id,
                 runtime_id=runtime_id,
-                store_id=store_id,
-                unavailable_store=None if detail.state.available else detail.state,
+                stores={
+                    "runtime": _index_store_view(stores, detail.state),
+                    "application": _index_store_view(stores, detail.application_state),
+                },
                 summary=detail.summary,
                 definition=detail.definition,
                 input=detail.input,
@@ -140,32 +148,12 @@ def assemble_trace_evidence(trace_id: str, trace_spans: list[dict[str, Any]]) ->
                 )
                 for issue in detail.integrity.diagnostics
             )
-            if store_id is not None:
-                if store_id in stores:
-                    diagnostics.append(
-                        _diagnostic(
-                            scope="trace",
-                            owner_span_id=None,
-                            code="duplicate_store_identity",
-                            path=f"stores.{store_id}",
-                            message="More than one executable owns the same Store ID.",
-                        )
-                    )
-                else:
-                    stores[store_id] = StoreAnnotation(
-                        store_id=store_id,
-                        owner_span_id=owner_span_id,
-                        owner_runtime_id=runtime_id,
-                        owner_executable_type="agent",
-                        detail=detail.state,
-                        integrity=detail.integrity,
-                    )
             continue
 
         if executable_type not in {"workflow", "subflow"}:
             continue
         try:
-            detail = assemble_workflow_store_diagnostic(span, trace_spans)
+            detail = assemble_workflow_store_diagnostic(span, trace_spans, store_index=store_index)
         except WorkflowEvidenceError as error:
             diagnostics.extend(
                 _semantic_error_diagnostics(owner_span_id=owner_span_id, error=error)
@@ -173,7 +161,6 @@ def assemble_trace_evidence(trace_id: str, trace_spans: list[dict[str, Any]]) ->
             continue
 
         runtime_id = _optional_string(attributes.get("junjo.executable_runtime_id"))
-        store_id = detail.state.store_id if detail.state.available else None
         executables[owner_span_id] = WorkflowExecutableAnnotation(
             executable_type=detail.executable_type,
             owner_span_id=owner_span_id,
@@ -181,8 +168,7 @@ def assemble_trace_evidence(trace_id: str, trace_spans: list[dict[str, Any]]) ->
             definition_id=_optional_string(attributes.get("junjo.executable_definition_id")),
             runtime_id=runtime_id,
             structural_id=_optional_string(attributes.get("junjo.executable_structural_id")),
-            store_id=store_id,
-            unavailable_store=None if detail.state.available else detail.state,
+            stores={"application": _index_store_view(stores, detail.state)},
             integrity=detail.integrity,
         )
         diagnostics.extend(
@@ -193,26 +179,23 @@ def assemble_trace_evidence(trace_id: str, trace_spans: list[dict[str, Any]]) ->
             )
             for issue in detail.integrity.diagnostics
         )
-        if store_id is not None:
-            if store_id in stores:
-                diagnostics.append(
-                    _diagnostic(
-                        scope="trace",
-                        owner_span_id=None,
-                        code="duplicate_store_identity",
-                        path=f"stores.{store_id}",
-                        message="More than one executable owns the same Store ID.",
-                    )
+
+    store_users: dict[str, list[tuple[str, str]]] = {}
+    for owner_span_id, executable in executables.items():
+        for role, view in executable.stores.items():
+            if view.store_id is not None:
+                store_users.setdefault(view.store_id, []).append((owner_span_id, role))
+    for store_id, users in store_users.items():
+        if len(users) > 1 and any(role == "runtime" for _, role in users):
+            diagnostics.append(
+                _diagnostic(
+                    scope="trace",
+                    owner_span_id=None,
+                    code="runtime_store_identity_conflict",
+                    path=f"stores.{store_id}",
+                    message="Private Agent runtime Stores cannot be borrowed by other executions.",
                 )
-            else:
-                stores[store_id] = StoreAnnotation(
-                    store_id=store_id,
-                    owner_span_id=owner_span_id,
-                    owner_runtime_id=runtime_id,
-                    owner_executable_type=detail.executable_type,
-                    detail=detail.state,
-                    integrity=detail.integrity,
-                )
+            )
 
     return TraceEvidence(
         trace_id=trace_id,
@@ -223,6 +206,50 @@ def assemble_trace_evidence(trace_id: str, trace_spans: list[dict[str, Any]]) ->
         relationships_by_owner_span_id=relationships,
         diagnostics=diagnostics,
     )
+
+
+def _index_store_view(
+    stores: dict[str, StoreAnnotation], detail: StoreDetail
+) -> StoreBoundaryDetail:
+    if detail.store_id is not None:
+        existing = stores.get(detail.store_id)
+        by_event = (
+            {(item.sequence, item.span_id, item.event_id): item for item in existing.transitions}
+            if existing is not None
+            else {}
+        )
+        for item in detail.transitions:
+            key = (item.sequence, item.span_id, item.event_id)
+            if key not in by_event or detail.reconstructable:
+                by_event[key] = item
+        stores[detail.store_id] = StoreAnnotation(
+            store_id=detail.store_id,
+            transitions=sorted(
+                by_event.values(), key=lambda item: (item.sequence, item.span_id, item.event_id)
+            ),
+        )
+    return StoreBoundaryDetail.model_validate(detail.model_dump(exclude={"transitions"}))
+
+
+def hydrate_store_view(
+    view: StoreBoundaryDetail, stores: dict[str, StoreAnnotation]
+) -> StoreDetail:
+    """Select the observed interval without treating sibling writers as children."""
+    store = stores.get(view.store_id) if view.store_id else None
+    transitions = (
+        [
+            item
+            if view.reconstructable
+            else item.model_copy(update={"before": None, "after": None})
+            for item in store.transitions
+            if view.sequence_start is not None
+            and view.sequence_end is not None
+            and view.sequence_start < item.sequence <= view.sequence_end
+        ]
+        if store is not None
+        else []
+    )
+    return StoreDetail(**view.model_dump(), transitions=transitions)
 
 
 def _semantic_kind(span: NormalizedSpanEvidence) -> SemanticSpanKind:
@@ -432,7 +459,7 @@ def assemble_attempt_evidence_manifest(
                 executable_type=executable.executable_type,
                 name=name,
                 runtime_id=executable.runtime_id,
-                store_id=executable.store_id,
+                store_ids={role: view.store_id for role, view in executable.stores.items()},
                 outcome=outcome,
                 status_code=owner_span.status_code,
                 failed=_is_failed(owner_span),
@@ -491,32 +518,23 @@ def assemble_attempt_evidence_manifest(
 
     stores: list[StoreManifestEntry] = []
     for owner_span_id, executable in evidence.executables_by_span_id.items():
-        indexed_store = (
-            evidence.stores_by_id.get(executable.store_id)
-            if executable.store_id is not None
-            else None
-        )
-        store = (
-            indexed_store
-            if indexed_store is not None and indexed_store.owner_span_id == owner_span_id
-            else None
-        )
-        detail = store.detail if store is not None else executable.unavailable_store
-        if detail is None:
-            continue
-        stores.append(
-            StoreManifestEntry(
-                store_id=store.store_id if store is not None else None,
-                owner_span_id=owner_span_id,
-                owner_runtime_id=executable.runtime_id,
-                owner_executable_type=executable.executable_type,
-                available=detail.available,
-                transition_count=detail.transition_count,
-                reconstructable=detail.reconstructable,
-                reconstruction_status=detail.reconstruction_status,
-                integrity=executable.integrity,
+        for role, detail in executable.stores.items():
+            stores.append(
+                StoreManifestEntry(
+                    store_id=detail.store_id,
+                    owner_span_id=owner_span_id,
+                    owner_runtime_id=executable.runtime_id,
+                    owner_executable_type=executable.executable_type,
+                    role=role,
+                    sequence_start=detail.sequence_start,
+                    sequence_end=detail.sequence_end,
+                    available=detail.available,
+                    transition_count=detail.transition_count,
+                    reconstructable=detail.reconstructable,
+                    reconstruction_status=detail.reconstruction_status,
+                    integrity=executable.integrity,
+                )
             )
-        )
     return AttemptEvidenceManifest(
         subject=subject,
         trace=TraceManifestSummary(
@@ -543,9 +561,17 @@ def select_attempt_span_evidence(
     """Return complete evidence for explicit span identities in caller order."""
     spans_by_id = {span.span_id: span for span in evidence.spans}
     operations_by_span_id, _owner_span_id_by_runtime_id = _operation_index(evidence)
-    stores_by_owner_span_id: dict[str, list[StoreAnnotation]] = {}
-    for store in evidence.stores_by_id.values():
-        stores_by_owner_span_id.setdefault(store.owner_span_id, []).append(store)
+    stores_by_owner_span_id = {
+        owner_span_id: [
+            StoreExecutionDetail(
+                owner_span_id=owner_span_id,
+                role=role,
+                detail=hydrate_store_view(view, evidence.stores_by_id),
+            )
+            for role, view in executable.stores.items()
+        ]
+        for owner_span_id, executable in evidence.executables_by_span_id.items()
+    }
 
     items: list[SelectedSpanEvidence] = []
     missing_span_ids: list[str] = []

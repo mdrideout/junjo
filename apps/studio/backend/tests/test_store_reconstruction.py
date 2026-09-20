@@ -48,6 +48,8 @@ def _store_evidence(
         "junjo.agent.store.id": "store-1",
         "junjo.store.revision.start": 0,
         "junjo.store.revision.end": revision_after,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 1,
         "junjo.store.transition.count": 1,
         "junjo.store.reconstructable": True,
     }
@@ -102,6 +104,7 @@ def test_mixed_transition_sequences_have_total_order_and_partial_diagnostics() -
     owner, spans = _store_evidence({}, {}, [], sequence="one", revision_after=0)
     second_owner, second_spans = _store_evidence({}, {}, [], sequence=2, revision_after=0)
     owner["junjo.store.transition.count"] = 2
+    owner["junjo.store.transition.end"] = 2
     owner["junjo.store.revision.end"] = 0
     spans.extend(second_spans)
     result = reconstruct_store(owner, spans, AGENT_STORE_BOUNDARY)
@@ -152,6 +155,7 @@ def test_one_store_id_cannot_change_names_between_transitions() -> None:
     )
     owner["junjo.store.revision.end"] = 2
     owner["junjo.store.transition.count"] = 2
+    owner["junjo.store.transition.end"] = 2
     _, second_spans = _store_evidence(
         {"a": 1},
         final_state,
@@ -182,6 +186,7 @@ def test_one_store_name_across_distinct_actions_replays_successfully() -> None:
     )
     owner["junjo.store.revision.end"] = 2
     owner["junjo.store.transition.count"] = 2
+    owner["junjo.store.transition.end"] = 2
     _, second_spans = _store_evidence(
         {"a": 1},
         final_state,

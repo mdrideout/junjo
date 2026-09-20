@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 import os
 import sys
 import tempfile
@@ -75,6 +76,8 @@ def verified_store() -> dict[str, object]:
         "available": True,
         "store_id": "store-test",
         "revision_start": 0,
+        "sequence_start": 0,
+        "sequence_end": 2,
         "revision_end": 2,
         "transition_count": 2,
         "reconstructable_claimed": True,
@@ -235,21 +238,37 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
             validator.write_browser_evidence(output, evidence)
             self.assertIn('"service_name": "agent-proof"', output.read_text(encoding="utf-8"))
 
+    def test_shared_store_projection_uses_each_execution_interval(self) -> None:
+        fixture = REPOSITORY_ROOT / "apps/studio/backend/tests/generated/composable_store_trace.json"
+        evidence = json.loads(fixture.read_text())
+        agent = next(item for item in evidence["executables_by_span_id"].values()
+                     if item["executable_type"] == "agent")
+        workflow = next(item for item in evidence["executables_by_span_id"].values()
+                        if item["executable_type"] == "workflow")
+        application = validator._indexed_store_detail(evidence, agent, role="application")
+        child = validator._indexed_store_detail(evidence, workflow, role="application")
+        self.assertEqual([item["sequence"] for item in application["transitions"]], [3, 4, 5])
+        self.assertEqual([item["sequence"] for item in child["transitions"]], [4])
+
     def test_current_trace_evidence_projects_agent_and_workflow_details(self) -> None:
         summary = {
             "trace_id": "1" * 32,
             "agent_span_id": "a" * 16,
             "runtime_id": "agent-runtime",
         }
-        agent_store = verified_store()
-        workflow_store = verified_store()
+        agent_store = {**verified_store(), "store_id": "agent-store"}
+        workflow_store = {**verified_store(), "store_id": "workflow-store"}
+        def boundary(store):
+            return {key: value for key, value in store.items() if key != "transitions"}
         evidence = {
             "executables_by_span_id": {
                 "a" * 16: {
                     "executable_type": "agent",
                     "runtime_id": "agent-runtime",
-                    "store_id": "agent-store",
-                    "unavailable_store": None,
+                    "stores": {
+                        "runtime": boundary(agent_store),
+                        "application": {"available": False, "store_id": None},
+                    },
                     "summary": summary,
                     "definition": full({"name": "agent"}),
                     "input": full({"value": "input"}),
@@ -263,8 +282,7 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
                 "b" * 16: {
                     "executable_type": "workflow",
                     "runtime_id": "workflow-runtime",
-                    "store_id": "workflow-store",
-                    "unavailable_store": None,
+                    "stores": {"application": boundary(workflow_store)},
                     "name": validator.WORKFLOW_NAME,
                     "integrity": {"status": "complete"},
                 },
@@ -277,12 +295,12 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
             },
             "stores_by_id": {
                 "agent-store": {
-                    "owner_span_id": "a" * 16,
-                    "detail": agent_store,
+                    "store_id": "agent-store",
+                    "transitions": agent_store["transitions"],
                 },
                 "workflow-store": {
-                    "owner_span_id": "b" * 16,
-                    "detail": workflow_store,
+                    "store_id": "workflow-store",
+                    "transitions": workflow_store["transitions"],
                 },
             },
             "relationships_by_owner_span_id": {
@@ -304,9 +322,9 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
             [operation["sequence"] for operation in agent["operations"]],
             [1, 2],
         )
-        self.assertIs(agent["state"], agent_store)
+        self.assertEqual(agent["state"], agent_store)
         self.assertEqual(agent["nested_executables"], [{"span_id": "b" * 16}])
-        self.assertIs(workflow["state"], workflow_store)
+        self.assertEqual(workflow["state"], workflow_store)
         self.assertEqual(workflow["executable_type"], "workflow")
 
     def test_identity_cleanup_returns_to_owner_before_deleting_disposable_user(self) -> None:

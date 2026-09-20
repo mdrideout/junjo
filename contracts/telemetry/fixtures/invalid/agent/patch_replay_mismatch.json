@@ -1,7 +1,7 @@
 {
   "expected_diagnostic": "patch_replay_mismatch",
   "fixture": {
-    "contract_version": 2,
+    "contract_version": 3,
     "scenario": "patch_replay_mismatch",
     "trace_id": "ea4cc30a6f64cdf4f4f1aca2af1a3ad3",
     "service_name": "svc-agent-direct-typed-completion",
@@ -24,7 +24,7 @@
         "status_code": "0",
         "status_message": "",
         "attributes_json": {
-          "junjo.telemetry.contract_version": 2,
+          "junjo.telemetry.contract_version": 3,
           "junjo.span_type": "agent",
           "junjo.executable_definition_id": "definition-84b91bd2c2e69bf4",
           "junjo.executable_runtime_id": "run-84b91bd2c2e69bf49c5a",
@@ -63,7 +63,10 @@
           "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_output\",\"output\":{\"answer\":\"done\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":true,\"final_output\":{\"answer\":\"done\"},\"terminal_reason\":\"final_output\"}",
           "junjo.agent.output.mode": "full",
           "junjo.agent.output.policy": "junjo.full.v1",
-          "junjo.agent.output": "{\"answer\":\"done\"}"
+          "junjo.agent.output": "{\"answer\":\"done\"}",
+          "junjo.agent.application_state.available": false,
+          "junjo.store.transition.start": 0,
+          "junjo.store.transition.end": 3
         },
         "events_json": [
           {
@@ -109,7 +112,7 @@
         "status_code": "0",
         "status_message": "",
         "attributes_json": {
-          "junjo.telemetry.contract_version": 2,
+          "junjo.telemetry.contract_version": 3,
           "junjo.agent.operation_type": "model_request",
           "junjo.agent.key": "fixture_agent",
           "junjo.agent.runtime_id": "run-84b91bd2c2e69bf49c5a",

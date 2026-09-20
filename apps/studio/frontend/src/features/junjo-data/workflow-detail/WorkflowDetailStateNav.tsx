@@ -7,6 +7,8 @@ import {
 } from '../../../util/duration-utils'
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { useMemo } from 'react'
+import { Link } from 'react-router'
+import { useWorkflowDetailRoute } from './workflow-detail-route-context'
 import type { WorkflowStoreDiagnosticRequest } from '../../workflow-executions/hooks/use-workflow-store-diagnostic'
 import {
   stateEventIdentityKey,
@@ -20,6 +22,7 @@ interface WorkflowDetailStateNavProps {
 
 export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProps) {
   const { traceId, diagnosticRequest } = props
+  const route = useWorkflowDetailRoute()
 
   const activeStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeStateEvent,
@@ -49,7 +52,10 @@ export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProp
       {activeTransition && (
         <div>
           Transition {activeTransition.sequence} &rarr; {activeTransition.action} &rarr;{' '}
-          {activeTransition.event_id}
+          {activeTransition.event_id}{' '}
+          <Link to={`/traces/${encodeURIComponent(route.serviceName ?? '')}/${traceId}/${activeTransition.span_id}`}>
+            View writer span
+          </Link>
         </div>
       )}
       <div className={'font-mono flex items-center gap-x-2'}>
@@ -57,6 +63,7 @@ export default function WorkflowDetailStateNav(props: WorkflowDetailStateNavProp
         {start_micro}
         <WorkflowStateEventNavButtons
           traceId={traceId}
+          ownerSpanId={diagnosticRequest.data?.workflow_span_id}
           storeId={storeId}
           transitions={transitions}
         />

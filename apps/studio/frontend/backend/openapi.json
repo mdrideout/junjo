@@ -2503,26 +2503,18 @@
             "type": "string",
             "title": "Runtime Id"
           },
-          "store_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Store Id"
-          },
-          "unavailable_store": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/StoreDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "stores": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StoreBoundaryDetail"
+            },
+            "propertyNames": {
+              "enum": [
+                "application",
+                "runtime"
+              ]
+            },
+            "type": "object",
+            "title": "Stores"
           },
           "summary": {
             "$ref": "#/components/schemas/AgentExecutionSummary"
@@ -2600,7 +2592,7 @@
           "executable_type",
           "owner_span_id",
           "runtime_id",
-          "store_id",
+          "stores",
           "summary",
           "definition",
           "integrity"
@@ -4688,16 +4680,25 @@
             ],
             "title": "Runtime Id"
           },
-          "store_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Store Id"
+          "store_ids": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "propertyNames": {
+              "enum": [
+                "application",
+                "runtime"
+              ]
+            },
+            "type": "object",
+            "title": "Store Ids"
           },
           "outcome": {
             "anyOf": [
@@ -4734,7 +4735,7 @@
           "executable_type",
           "name",
           "runtime_id",
-          "store_id",
+          "store_ids",
           "outcome",
           "status_code",
           "failed",
@@ -5929,7 +5930,7 @@
           },
           "stores": {
             "items": {
-              "$ref": "#/components/schemas/StoreAnnotation"
+              "$ref": "#/components/schemas/StoreExecutionDetail"
             },
             "type": "array",
             "title": "Stores"
@@ -6204,48 +6205,161 @@
             "type": "string",
             "title": "Store Id"
           },
-          "owner_span_id": {
-            "type": "string",
-            "title": "Owner Span Id"
-          },
-          "owner_runtime_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Owner Runtime Id"
-          },
-          "owner_executable_type": {
-            "type": "string",
-            "enum": [
-              "workflow",
-              "subflow",
-              "agent"
-            ],
-            "title": "Owner Executable Type"
-          },
-          "detail": {
-            "$ref": "#/components/schemas/StoreDetail"
-          },
-          "integrity": {
-            "$ref": "#/components/schemas/EvidenceIntegrity"
+          "transitions": {
+            "items": {
+              "$ref": "#/components/schemas/StoreTransition"
+            },
+            "type": "array",
+            "title": "Transitions"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "store_id",
-          "owner_span_id",
-          "owner_executable_type",
-          "detail",
-          "integrity"
+          "transitions"
         ],
         "title": "StoreAnnotation",
-        "description": "One independently verified executable Store, keyed by its Store ID."
+        "description": "One shared transition log, keyed by the physical Store identity."
+      },
+      "StoreBoundaryDetail": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "store_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Id"
+          },
+          "sequence_start": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence Start"
+          },
+          "sequence_end": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence End"
+          },
+          "revision_start": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Start"
+          },
+          "revision_end": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision End"
+          },
+          "transition_count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Transition Count",
+            "default": 0
+          },
+          "reconstructable_claimed": {
+            "type": "boolean",
+            "title": "Reconstructable Claimed",
+            "default": false
+          },
+          "reconstructable": {
+            "type": "boolean",
+            "title": "Reconstructable"
+          },
+          "reconstruction_status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "policy_unavailable",
+              "failed",
+              "not_applicable"
+            ],
+            "title": "Reconstruction Status"
+          },
+          "reconstruction_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reconstruction Reason"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "end": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PayloadEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "available",
+          "reconstructable",
+          "reconstruction_status"
+        ],
+        "title": "StoreBoundaryDetail",
+        "description": "Execution interval on a Store, independent of its shared transition log."
       },
       "StoreDetail": {
         "properties": {
@@ -6264,6 +6378,32 @@
               }
             ],
             "title": "Store Id"
+          },
+          "sequence_start": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence Start"
+          },
+          "sequence_end": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence End"
           },
           "revision_start": {
             "anyOf": [
@@ -6365,7 +6505,35 @@
           "reconstruction_status"
         ],
         "title": "StoreDetail",
-        "description": "Owner-scoped Store evidence and the backend's reconstruction verdict."
+        "description": "An execution boundary hydrated with the transitions in its interval."
+      },
+      "StoreExecutionDetail": {
+        "properties": {
+          "owner_span_id": {
+            "type": "string",
+            "title": "Owner Span Id"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "application",
+              "runtime"
+            ],
+            "title": "Role"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/StoreDetail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "owner_span_id",
+          "role",
+          "detail"
+        ],
+        "title": "StoreExecutionDetail",
+        "description": "One selected execution's Store role and independently verified interval."
       },
       "StoreManifestEntry": {
         "properties": {
@@ -6405,6 +6573,38 @@
             ],
             "title": "Owner Executable Type"
           },
+          "role": {
+            "type": "string",
+            "enum": [
+              "application",
+              "runtime"
+            ],
+            "title": "Role"
+          },
+          "sequence_start": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence Start"
+          },
+          "sequence_end": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence End"
+          },
           "available": {
             "type": "boolean",
             "title": "Available"
@@ -6439,6 +6639,9 @@
           "owner_span_id",
           "owner_runtime_id",
           "owner_executable_type",
+          "role",
+          "sequence_start",
+          "sequence_end",
           "available",
           "transition_count",
           "reconstructable",
@@ -7045,26 +7248,18 @@
             ],
             "title": "Structural Id"
           },
-          "store_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Store Id"
-          },
-          "unavailable_store": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/StoreDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "stores": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StoreBoundaryDetail"
+            },
+            "propertyNames": {
+              "enum": [
+                "application",
+                "runtime"
+              ]
+            },
+            "type": "object",
+            "title": "Stores"
           },
           "integrity": {
             "$ref": "#/components/schemas/EvidenceIntegrity"
@@ -7076,6 +7271,7 @@
           "executable_type",
           "owner_span_id",
           "name",
+          "stores",
           "integrity"
         ],
         "title": "WorkflowExecutableAnnotation",

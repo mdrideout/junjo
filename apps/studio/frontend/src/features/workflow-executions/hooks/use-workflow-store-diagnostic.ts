@@ -1,3 +1,4 @@
+import { hydrateStoreView } from '../../store-diagnostics/hydrate-store-view'
 import { useMemo } from 'react'
 import { useAppSelector } from '../../../root-store/hooks'
 import { selectTraceEvidenceRequestForTraceId } from '../../traces/store/selectors'
@@ -32,9 +33,8 @@ export function useWorkflowStoreDiagnostic(
         error: request.error ? 'Failed to fetch Workflow Store diagnostics' : null,
       }
     }
-    const state = executable.store_id === null
-      ? executable.unavailable_store
-      : evidence?.stores_by_id[executable.store_id]?.detail
+    const view = executable.stores.application
+    const state = hydrateStoreView(view, view?.store_id ? evidence?.stores_by_id[view.store_id]?.transitions : [])
     if (state === null || state === undefined) {
       return {
         data: null,

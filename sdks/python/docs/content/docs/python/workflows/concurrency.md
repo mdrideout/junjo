@@ -90,6 +90,21 @@ and applies each committed update under the store lock. **Junjo AI Studio**
 allows you to step through state updates incrementally to see which nodes
 update state and when, even during high concurrency.
 
+## Concurrent Agent and Workflow invocations
+
+Nodes in `RunConcurrent` can call `agent.execute(..., store=store)` or
+`workflow.execute(store=store)` to share their Workflow's application Store.
+Outside a Graph, use `asyncio.gather` for concurrent executions with the same
+explicit Store. Omitting the argument uses each definition's factory instead.
+Agent private runtime state remains per-run in either case.
+
+The Store lock covers individual commits. A snapshot read followed by an awaited
+model call and list replacement can overwrite another writer's replacement;
+Junjo does not merge those changes automatically. Overlapping executions retain
+separate state boundaries and shared events keep their actual writer spans.
+[Composition](/docs/python/agents/composition/) explains these choices and the
+same-trace requirement for complete shared-state reconstruction in Studio.
+
 ## Immutable State: Ensuring Concurrency Safety
 
 One of the challenges in concurrent programming is managing shared state. When multiple nodes attempt to modify the same piece of data simultaneously, it can lead to race conditions, data corruption, and unpredictable behavior.

@@ -1,34 +1,30 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons'
 import { useMemo } from 'react'
-import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
+import { useAppSelector } from '../../../root-store/hooks'
 import type { RootState } from '../../../root-store/store'
 import type { StoreTransition } from '../../store-diagnostics/schemas/store-diagnostics'
 import { JunjoSetStateEventSchema } from '../../traces/schemas/schemas'
 import { selectTraceSpansForTraceId } from '../../traces/store/selectors'
-import { spanSelection, WorkflowDetailStateActions } from './store/slice'
 import {
   rawStateEventIdentity,
   stateEventIdentityKey,
   transitionStateEventIdentity,
 } from './state-event-identity'
-import { useNavigate } from 'react-router'
-import { useWorkflowDetailRoute } from './workflow-detail-route-context'
-import { workflowPath } from '../../../util/telemetry-paths'
+import { useSelectStoreTransition } from './use-select-store-transition'
 
 interface WorkflowStateEventNavButtonsProps {
   traceId: string
+  ownerSpanId?: string
   storeId: string | null
   transitions: StoreTransition[]
 }
 
 export default function WorkflowStateEventNavButtons({
   traceId,
+  ownerSpanId,
   storeId,
   transitions,
 }: WorkflowStateEventNavButtonsProps) {
-  const dispatch = useAppDispatch()
-  const navigate = useNavigate()
-  const route = useWorkflowDetailRoute()
   const activeStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeStateEvent,
   )
@@ -58,6 +54,7 @@ export default function WorkflowStateEventNavButtons({
     () => new Map(traceSpans.map((span) => [span.span_id, span])),
     [traceSpans],
   )
+  const selectStateEvent = useSelectStoreTransition(ownerSpanId, spansById)
   const activeTransitionIndex = orderedTransitions.findIndex(
     (transition) => storeId !== null
       && activeStateEvent !== null
@@ -72,18 +69,8 @@ export default function WorkflowStateEventNavButtons({
     if (storeId === null) return
     const identity = transitionStateEventIdentity(storeId, transition)
     const event = rawEventsByIdentity.get(stateEventIdentityKey(identity))
-    const span = spansById.get(transition.span_id)
-    if (event === undefined || span === undefined) return
-
-    dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
-    dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event }))
-    dispatch(WorkflowDetailStateActions.setStateEventScrollTarget(identity))
-    navigate(workflowPath(
-      route.serviceName,
-      route.traceId,
-      route.workflowSpanId,
-      span.span_id,
-    ), { replace: true })
+    if (event === undefined) return
+    selectStateEvent({ ...identity, event })
   }
 
   return (

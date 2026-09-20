@@ -1,0 +1,55 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.12, pytest-9.0.1, pluggy-1.6.0
+rootdir: /Users/matt/repos/junjo/sdks/python
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.11.0, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 471 items
+
+tests/junjo/plugins/test_openai_agents.py ......                         [  1%]
+tests/junjo/plugins/test_openai_agents_span_mapping.py ................. [  4%]
+.....                                                                    [  5%]
+tests/junjo/plugins/test_openai_agents_trace_provider.py ...........     [  8%]
+tests/test_agent_boundary_schemas.py ..............                      [ 11%]
+tests/test_agent_composition_concurrency.py ..............               [ 14%]
+tests/test_agent_contracts.py .......................................... [ 23%]
+....................                                                     [ 27%]
+tests/test_agent_execution.py .................................          [ 34%]
+tests/test_agent_failures_and_cancellation.py .......................... [ 39%]
+........                                                                 [ 41%]
+tests/test_agent_producer_conformance.py ............................... [ 48%]
+....                                                                     [ 49%]
+tests/test_agent_telemetry.py ............                               [ 51%]
+tests/test_agent_typing.py .                                             [ 51%]
+tests/test_application_stores.py .....                                   [ 52%]
+tests/test_cli.py ......................                                 [ 57%]
+tests/test_diagnostic_portability.py .........                           [ 59%]
+tests/test_docs_export.py ........                                       [ 61%]
+tests/test_evaluation_context_and_evaluators.py .......                  [ 62%]
+tests/test_evaluation_runner.py ..........                               [ 64%]
+tests/test_evaluation_targets.py ........                                [ 66%]
+tests/test_execution_result.py ..........                                [ 68%]
+tests/test_execution_runtime_failures.py ....                            [ 69%]
+tests/test_graph_compile.py ....................                         [ 73%]
+tests/test_graph_exceptions.py ...                                       [ 74%]
+tests/test_graph_plural_sinks.py .........                               [ 76%]
+tests/test_graph_rendering.py .............                              [ 78%]
+tests/test_graph_serialization.py .....                                  [ 80%]
+tests/test_graph_validation.py .........                                 [ 81%]
+tests/test_hooks.py .......................                              [ 86%]
+tests/test_junjo_otel_exporter.py .......                                [ 88%]
+tests/test_logging.py .....                                              [ 89%]
+tests/test_node_evaluation.py .                                          [ 89%]
+tests/test_run_concurrent_cancellation_telemetry.py .                    [ 89%]
+tests/test_state_snapshot_isolation.py ..                                [ 90%]
+tests/test_store_atomicity.py .                                          [ 90%]
+tests/test_store_ownership.py .....                                      [ 91%]
+tests/test_store_state_serialization.py ....                             [ 92%]
+tests/test_store_telemetry_v2.py ............                            [ 94%]
+tests/test_studio_client.py ...........                                  [ 97%]
+tests/test_studio_models.py .......                                      [ 98%]
+tests/test_studio_openapi_contract.py ....                               [ 99%]
+tests/test_telemetry_contract.py ..                                      [100%]
+
+============================= 471 passed in 4.57s ==============================

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
@@ -26,8 +26,8 @@ from .errors import AgentConfigurationError
 from .json import FrozenJsonValue
 from .messages import AgentMessage
 from .model_driver import ModelDriverBinding
-from .result import AgentExecutionResult
-from .tool import Tool
+from .result import AgentExecutionResult, StateT
+from .tool import StoreT, Tool
 
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
@@ -59,8 +59,8 @@ class AgentLimits:
 
 
 @dataclass(frozen=True, slots=True, init=False)
-class Agent(Generic[InputT, OutputT, DependenciesT]):
-    """A reusable typed Agent definition with isolated bounded executions."""
+class Agent(Generic[InputT, OutputT, DependenciesT, StateT, StoreT]):
+    """A reusable typed Agent definition with per-run runtime state and optional application Store."""
 
     key: str
     name: str
@@ -72,9 +72,10 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
     input_adapter: TypeAdapter[InputT]
     output_adapter: TypeAdapter[OutputT]
     model: ModelDriverBinding
-    tools: tuple[Tool[Any, Any, DependenciesT], ...]
+    tools: tuple[Tool[Any, Any, DependenciesT, StoreT], ...]
     limits: AgentLimits
     hooks: Hooks | None
+    store_factory: Callable[[], StoreT] | None
 
     def __init__(
         self,
@@ -84,10 +85,11 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
         instructions: str,
         input_type: TypeForm[InputT],  # ty: ignore[invalid-type-form]
         model: ModelDriverBinding,
-        tools: Sequence[Tool[Any, Any, DependenciesT]],
+        tools: Sequence[Tool[Any, Any, DependenciesT, StoreT]],
         output_type: TypeForm[OutputT],  # ty: ignore[invalid-type-form]
         limits: AgentLimits | None = None,
         hooks: Hooks | None = None,
+        store_factory: Callable[[], StoreT] | None = None,
     ) -> None:
         """Declare one immutable, reusable Agent definition.
 
@@ -103,6 +105,9 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
         :param tools: Ordered Tool definitions available to the model.
         :param output_type: Pydantic-compatible successful output type.
         :param limits: Positive per-execution limits; defaults are explicit.
+        :param store_factory: Optional zero-argument application Store factory.
+            Invoked once per admitted execution unless ``execute(store=...)``
+            supplies a live Store. Runtime bookkeeping always remains private.
         :param hooks: Optional lifecycle observers. Hooks do not own execution.
         :raises AgentConfigurationError: If any declaration is invalid.
             Schema errors identify ``input_type`` or ``output_type`` and include
@@ -110,6 +115,8 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
         """
         _validate_identity(key=key, name=name, instructions=instructions)
         _validate_model_and_hooks(model=model, hooks=hooks)
+        if store_factory is not None and not callable(store_factory):
+            raise AgentConfigurationError("store_factory must be callable.")
         effective_limits = _effective_limits(limits)
         declared_tools = _validated_tools(tools)
         input_adapter, output_adapter, input_schema, output_schema = _boundary_contracts(
@@ -145,6 +152,7 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
         object.__setattr__(self, "tools", declared_tools)
         object.__setattr__(self, "limits", effective_limits)
         object.__setattr__(self, "hooks", hooks)
+        object.__setattr__(self, "store_factory", store_factory)
 
     def structural_material(self) -> dict[str, object]:
         """Return the exact pre-policy material used for this fingerprint."""
@@ -182,12 +190,16 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
         dependencies: DependenciesT,
         history: Sequence[AgentMessage] = (),
         correlation: ExecutionCorrelation | None = None,
-    ) -> AgentExecutionResult[OutputT]:
-        """Execute one isolated run against detached typed boundaries.
+        store: StoreT | None = None,
+    ) -> AgentExecutionResult[OutputT, StateT]:
+        """Execute one run with private runtime state and the selected application Store.
 
         :param input: Value validated against ``input_type``.
         :param dependencies: Opaque application-owned services passed only to
             Tool contexts.
+        :param store: Optional live application Store. It is used directly and
+            skips ``store_factory``. Tools access it through ``context.store``;
+            sharing does not expose private runtime state or inject prompt data.
         :param history: Complete prior normalized exchanges. Junjo does not
             persist history between calls.
         :param correlation: Optional trusted application identity for this
@@ -207,6 +219,7 @@ class Agent(Generic[InputT, OutputT, DependenciesT]):
             dependencies=dependencies,
             history=history,
             correlation=correlation,
+            store=store,
         )
 
 
@@ -216,7 +229,7 @@ def _structural_material(
     instructions: str,
     input_schema: Mapping[str, FrozenJsonValue],
     model: ModelDriverBinding,
-    tools: Sequence[Tool],
+    tools: Sequence[Tool[Any, Any, Any, Any]],
     output_schema: Mapping[str, FrozenJsonValue],
     limits: AgentLimits,
 ) -> dict[str, object]:
@@ -264,8 +277,8 @@ def _effective_limits(limits: AgentLimits | None) -> AgentLimits:
 
 
 def _validated_tools(
-    tools: Sequence[Tool[Any, Any, DependenciesT]],
-) -> tuple[Tool[Any, Any, DependenciesT], ...]:
+    tools: Sequence[Tool[Any, Any, DependenciesT, StoreT]],
+) -> tuple[Tool[Any, Any, DependenciesT, StoreT], ...]:
     declared = tuple(tools)
     if any(not isinstance(tool, Tool) for tool in declared):
         raise AgentConfigurationError("tools must contain only Tool definitions.")

@@ -1,5 +1,10 @@
 # ADR 0003: Agent execution model
 
+Application Store composition and telemetry contract 3 are governed by
+[ADR 0016](0016-composable-application-stores.md). Its shared application Store and execution-interval
+semantics supersede the original isolation-only restrictions below; private
+Agent runtime state remains isolated.
+
 - Status: Accepted
 - Date: 2026-07-13
 - Last clarified: 2026-07-14
@@ -96,6 +101,7 @@ The public execution operation is `Agent.execute()`. Its semantic inputs are:
 - typed application input for the current request;
 - opaque request-scoped application dependencies;
 - optional detached provider-neutral history selected by the application.
+- an optional live application Store, overriding the definition's Store factory.
 
 Every call first creates an execution identity and diagnostic context, then
 validates and detaches its input and history. Boundary validation failure is an
@@ -110,7 +116,7 @@ run creates:
 - no Agent-owned mutable run state shared with another run.
 
 The Agent definition never becomes the live run container. Concurrent calls on
-one definition must have independent state, transcripts, counters, results,
+one definition must have independent private runtime state, transcripts, counters, results,
 telemetry, and factory-created collaborator products. Explicit shared
 collaborators may be used concurrently under ADR 0004's caller guarantee.
 
@@ -122,6 +128,11 @@ silently serialize an unsafe collaborator behind a lock.
 
 Junjo owns a private Agent run-state model and Store. Application developers do
 not define or directly mutate that Store.
+
+ADR 0016 adds an optional typed application Store alongside it. A definition's
+`store_factory` creates one per run; `execute(store=...)` borrows the supplied
+Store. Tool contexts expose this application Store. Neither choice changes the
+private runtime state or automatically exposes application state to the model.
 
 Run state contains only information that evolves during one execution:
 
@@ -150,7 +161,7 @@ graph-shaped lifecycle context onto an Agent or emit fake Graph identities.
 
 ### Successful execution returns one detached typed result
 
-`Agent.execute()` returns a frozen `AgentExecutionResult[OutputT]` only after
+`Agent.execute()` returns a frozen `AgentExecutionResult[OutputT, StateT]` only after
 the final output passes declared validation.
 
 The result contains detached values:
@@ -158,6 +169,7 @@ The result contains detached values:
 - Agent key, display name, definition ID, and structural ID;
 - run ID;
 - validated typed output;
+- application Store ID and detached application state, when configured;
 - normalized final transcript snapshot;
 - normalized usage summary;
 - model-request count and requested, admitted, started, and completed Tool-call

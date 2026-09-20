@@ -1,6 +1,6 @@
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { useEffect, useMemo, useRef } from 'react'
-import { useAppDispatch, useAppSelector } from '../../../root-store/hooks'
+import { useAppSelector } from '../../../root-store/hooks'
 import type { RootState } from '../../../root-store/store'
 import {
   formatMicrosecondsSinceEpochToTime,
@@ -8,11 +8,7 @@ import {
 } from '../../../util/duration-utils'
 import type { WorkflowStoreDiagnosticRequest } from '../../workflow-executions/hooks/use-workflow-store-diagnostic'
 import { JunjoSetStateEventSchema } from '../../traces/schemas/schemas'
-import { selectSpanAndChildren } from '../../traces/store/selectors'
-import {
-  spanSelection,
-  WorkflowDetailStateActions,
-} from '../workflow-detail/store/slice'
+import { selectTraceSpansForTraceId } from '../../traces/store/selectors'
 import { selectWorkflowDetailActiveSpan } from '../workflow-detail/store/selectors'
 import {
   rawStateEventIdentity,
@@ -23,9 +19,7 @@ import { SpanIconConstructor } from './determine-span-icon'
 import { SpanKindChip } from './SpanKindChip'
 import { SpanFixtureChip } from './SpanFixtureChip'
 import { spanPresentation } from './span-presentation'
-import { useNavigate } from 'react-router'
-import { useWorkflowDetailRoute } from '../workflow-detail/workflow-detail-route-context'
-import { workflowPath } from '../../../util/telemetry-paths'
+import { useSelectStoreTransition } from '../workflow-detail/use-select-store-transition'
 
 interface FlatStateEventsListProps {
   traceId: string
@@ -41,11 +35,8 @@ export default function FlatStateEventsList({
 }: FlatStateEventsListProps) {
   const scrollableContainerRef = useRef<HTMLDivElement>(null)
   const transitionRowRefs = useRef(new Map<string, HTMLButtonElement>())
-  const dispatch = useAppDispatch()
-  const navigate = useNavigate()
-  const route = useWorkflowDetailRoute()
   const spans = useAppSelector((state: RootState) =>
-    selectSpanAndChildren(state, { traceId, spanId: workflowSpanId }),
+    selectTraceSpansForTraceId(state, { traceId }),
   )
   const activeStateEvent = useAppSelector(
     (state: RootState) => state.workflowDetailState.activeStateEvent,
@@ -63,6 +54,10 @@ export default function FlatStateEventsList({
   const spansById = useMemo(
     () => new Map(spans.map((span) => [span.span_id, span])),
     [spans],
+  )
+  const selectTransition = useSelectStoreTransition(
+    storeDiagnosticRequest.data?.workflow_span_id ?? workflowSpanId,
+    spansById,
   )
   const rawEventsByIdentity = useMemo(() => {
     const events = new Map<string, ReturnType<typeof JunjoSetStateEventSchema.parse>>()
@@ -141,17 +136,8 @@ export default function FlatStateEventsList({
             className={`flat-span-${transition.span_id} px-2 py-2 text-left flex justify-between items-start border-b last:border-0 border-zinc-200 dark:border-zinc-700 disabled:cursor-not-allowed ${selectable ? 'cursor-pointer' : ''} ${activeStyle}`}
             disabled={!selectable}
             onClick={() => {
-              if (event === undefined || span === undefined) return
-              dispatch(WorkflowDetailStateActions.selectSpan(spanSelection(span)))
-              if (identity !== null) {
-                dispatch(WorkflowDetailStateActions.setActiveStateEvent({ ...identity, event }))
-              }
-              navigate(workflowPath(
-                route.serviceName,
-                route.traceId,
-                route.workflowSpanId,
-                span.span_id,
-              ), { replace: true })
+              if (event === undefined || identity === null) return
+              selectTransition({ ...identity, event })
             }}
           >
             <div className="flex gap-x-1 items-start">
