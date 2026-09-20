@@ -10,16 +10,14 @@
 
 This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 
-This deployment pins Junjo AI Studio `0.84.1` and Junjo `0.68.0` as a compatible release pair.
+This deployment pins Junjo AI Studio `0.85.0` and Junjo `0.69.0` as a compatible release pair.
 
-> **Breaking upgrade policy:** The upcoming telemetry contract 3 release
+> **Breaking upgrade policy:** Studio 0.85.0 (telemetry contract 3)
 > requires wiping Studio application data and starting fresh with the matching
 > SDK and Studio versions. Existing users, credentials, evaluations, and telemetry
 > are not migrated. Follow the
 > [canonical reset procedure](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md).
 > `docker compose down --volumes` does not clear the host-mounted application data.
-> The release pins above still identify the published contract 2 pair and will
-> be updated during release preparation.
 
 Learn how to go from a fresh virtual machine to a production deployment that supports an unlimited number of users and junjo apps. 
 
@@ -494,18 +492,18 @@ This deployment includes several interconnected services. The **core Junjo AI St
 ### Core Junjo AI Studio Services
 
 #### `junjo-ai-studio-ingestion`
-*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.84.1`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.85.0`
 *   **Purpose**: High-throughput OpenTelemetry trace ingestion
 *   **Details**: Rust service that receives trace telemetry via OTLP gRPC (port 26155), writes spans to Arrow IPC WAL segments, and flushes spans to Parquet for durable cold storage. It also prepares a hot snapshot parquet file for low-latency recent queries.
 *   **Health Check**: Docker health check verifies the internal gRPC port (`50052`) is listening.
 
 #### `junjo-ai-studio-backend`
-*   **Image**: `mdrideout/junjo-ai-studio-backend:0.84.1`
+*   **Image**: `mdrideout/junjo-ai-studio-backend:0.85.0`
 *   **Purpose**: API server, authentication, and data processing
 *   **Details**: Python FastAPI application that handles HTTP API requests (port 26154), user authentication, and business logic. Uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
 
 #### `junjo-ai-studio-frontend`
-*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.84.1`
+*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.85.0`
 *   **Purpose**: Web-based debugging interface
 *   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 26153, proxied through Caddy.
 
