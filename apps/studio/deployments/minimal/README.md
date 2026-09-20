@@ -12,13 +12,14 @@ A minimal, opinionless Docker Compose setup for [Junjo AI Studio](https://github
 
 This template pins Junjo AI Studio `0.84.1`. Applications that emit Junjo workflow telemetry should use Junjo `0.68.0`.
 
-> **Upgrading from before 0.83.0:** Studio 0.83.0 replaced the database
-> migration baseline. Databases from earlier releases are incompatible.
-> Upgrading from 0.83.0 to 0.84.1 does not introduce another migration reset.
-> Follow the [canonical reset procedure](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md)
-> to initialize a fresh data directory while retaining the old installation for
-> rollback. `docker compose down --volumes` does not reset Junjo's host-mounted
-> application data.
+> **Breaking upgrade policy:** The upcoming telemetry contract 3 release
+> requires wiping Studio application data and starting fresh with the matching
+> SDK and Studio versions. Existing users, credentials, evaluations, and telemetry
+> are not migrated. Follow the
+> [canonical reset procedure](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md).
+> `docker compose down --volumes` does not clear the host-mounted application data.
+> The release pins above still identify the published contract 2 pair and will
+> be updated during release preparation.
 
 A Junjo AI Studio instance can be used for an unlimited number of projects that use the [Junjo](https://github.com/mdrideout/junjo) python AI graph workflow framework. Any Junjo Application can send telemetry to this Junjo AI Studio instance, assuming it has valid API Key credentials.
 

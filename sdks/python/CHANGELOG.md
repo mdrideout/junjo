@@ -4,18 +4,50 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+## 0.69.0 - 2026-09-20
+
+### Library
+
+- Agents and Workflows can own an application Store or explicitly borrow a live
+  Store through `execute(store=...)`. Agent Tools receive that Store through
+  `AgentRunContext.store`, and results expose a detached `application_state`.
+- Private Agent runtime state remains isolated per invocation. Subflows retain
+  their isolated Stores and explicit pre/post action mapping.
+- Direct Node execution supports Agent tools without a one-Node Workflow wrapper.
+
+### Telemetry
+
+- Telemetry contract 3 records Store identity independently from executable
+  ownership, including each execution's transition interval and application-state
+  boundaries. Each state mutation is attributed to its actual writer once.
+- Studio 0.85.0 is the matching consumer for shared Store reconstruction and
+  Agent/Workflow state navigation. Older semantic consumers are unsupported.
+
+### Docs and Examples
+
+- Added `junjo_openai_sdk`: an order-support Agent with a direct Node tool,
+  conditional Workflow tool, explicit application state, OpenAI SDK model calls,
+  and OpenInference provider telemetry.
+- Added a visible examples/integrations index and expanded canonical setup,
+  composition, model-driver, and provider-instrumentation guidance.
+- Corrected the native OpenAI SDK example's local Studio browser URL.
+- AI Chat now generates the contact's name before its biography and passes that
+  stored identity into the biography prompt.
+
 ### Breaking Changes
 
+- Upgrade the SDK and Studio as a matching contract 3 pair. Wipe Studio
+  application data and complete first-user setup again; old users, credentials,
+  evaluations, and telemetry are not migrated. See the
+  [reset procedure](../../apps/studio/deployments/RESET.md).
+- Agent, Tool, context, and result generic signatures include application
+  State/Store types. Update explicitly parameterized declarations to match the
+  current API. Application Store sharing is explicit and does not share private
+  Agent runtime bookkeeping.
 - Require Python 3.11.9+ or 3.12.3+ on those release lines; Python 3.13 and newer
   remain supported. Older patches have an upstream typing bug that can crash
   explicitly parameterized Agent and Tool construction. Package installation now
   excludes those affected versions, and CI verifies the minimum supported patches.
-
-### Docs and Examples
-
-- Corrected the native OpenAI SDK example's local Studio browser URL.
-- AI Chat now generates the contact's name before its biography and passes that
-  stored identity into the biography prompt.
 
 ## 0.68.0 - 2026-09-13
 

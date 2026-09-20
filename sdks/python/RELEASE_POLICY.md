@@ -135,4 +135,9 @@ Contract version **3** (ADR 0016, composable application Stores) requires the
 same coordinated producer/consumer cutover. The source change does not assign
 release versions or update deployment pins before publication. Version 3 SDK
 emitters require a version 3 Studio consumer for semantic state diagnostics;
-there is no dual-version parser.
+there is no dual-version parser. Upgrades require wiping Studio application data
+and initializing a fresh installation using the
+[canonical reset procedure](../../apps/studio/deployments/RESET.md). Release notes
+and deployment instructions must state that old users, credentials, evaluations,
+and telemetry are discarded. Do not add compatibility migrations or old-format
+readers to preserve them.
