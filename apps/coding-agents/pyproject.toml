@@ -9,7 +9,7 @@ description = "Run Junjo workflows with coding agents and export scoped executio
 readme = "README.md"
 requires-python = ">=3.11.9,!=3.12.0,!=3.12.1,!=3.12.2"
 license = "Apache-2.0"
-dependencies = ["junjo==0.68.0", "mcp>=1.26,<2", "uvicorn>=0.35", "python-dotenv>=1.1"]
+dependencies = ["junjo==0.69.0", "mcp>=1.26,<2", "uvicorn>=0.35", "python-dotenv>=1.1"]
 
 [project.scripts]
 junjo-coding-agents = "junjo_coding_agents.server:main"

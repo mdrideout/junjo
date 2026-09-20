@@ -57,6 +57,13 @@ SDK and Studio consumers. Ingestion continues preserving attributes/events
 without interpreting Store relationships. No storage columns, protobufs,
 database migrations, or compatibility adapters are required.
 
+The maintainer confirmed that this breaking upgrade requires discarding existing
+Studio application data and initializing a fresh store. Old users, credentials,
+evaluations, and telemetry are not migrated. Release preparation must follow the
+[canonical reset procedure](../../apps/studio/deployments/RESET.md), publish a
+matching SDK/Studio pair, and document the reset. No old-contract parser,
+dual emission, compatibility shim, or automatic data conversion is introduced.
+
 Studio represents Store identity separately from each executable's role and
 interval. Shared references are valid; private runtime Stores remain exclusive.
 Its reconstruction is authoritative and preserves missing/policy-unavailable
