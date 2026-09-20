@@ -1,5 +1,10 @@
 # ADR-007: Agent execution diagnostics
 
+Application Store composition and telemetry contract 3 are governed by
+[ADR 0016](../../../../docs/adr/0016-composable-application-stores.md). Its shared application Store and execution-interval
+semantics supersede the original isolation-only restrictions below; private
+Agent runtime state remains isolated.
+
 ## Status
 
 Accepted
@@ -22,8 +27,9 @@ Studio must provide complete Agent diagnostics without fabricating a Graph,
 moving product semantics into ingestion, exposing physical telemetry storage to
 the frontend, or creating a second copy of the shared telemetry contract.
 
-Root ADR 0006 defines telemetry contract version 2, canonical Agent fixtures,
-operation ordering, Store revisions, payload modes, and SDK/Studio conformance.
+Root ADR 0006 defines canonical Agent fixtures, operation ordering, Store
+revisions, payload modes, and SDK/Studio conformance. ADR 0016 advances the
+active contract to version 3 and adds composable application Store intervals.
 This ADR owns how Studio preserves, queries, and presents that evidence.
 
 ## Decision
@@ -86,8 +92,10 @@ frontend models.
 - executable annotations indexed by owner span ID;
 - model and Tool operation annotations indexed by owning Agent runtime ID and
   operation span ID;
-- Store annotations indexed by Store ID, including verified transitions that
-  retain their source event identity, before state, patch, and after state;
+- physical Store transitions indexed by Store ID, retaining their source event
+  identity, before state, patch, and after state once;
+- execution-local Store boundaries indexed by `application` or `runtime` role,
+  containing that execution's checkpoints, interval, and verification status;
 - semantic parent and nested executable references joined by physical and
   runtime identities; and
 - trace-level and owner-level integrity diagnostics.
@@ -130,7 +138,8 @@ The Agent annotation for an Agent owner span contains:
 - validated input and output when present, or rejected boundary candidates and
   validation diagnostics;
 - ordered model and Tool operations;
-- Store start, end, revisions, transitions, and reconstruction status;
+- separate private runtime and optional application Store boundaries, including
+  start, end, revisions, transition intervals, and reconstruction status;
 - owning errors or cancellation;
 - a typed semantic parent executable reference when one exists;
 - nested Workflow or Agent references, including the owning Tool operation
@@ -154,12 +163,15 @@ The backend:
 - selects model and Tool operations only when `junjo.agent.runtime_id` equals
   the detail Agent's `junjo.executable_runtime_id`, then orders that owner set
   by `junjo.agent.operation.sequence`;
-- selects Store events only when `junjo.store.id` equals the detail Agent's
-  `junjo.agent.store.id`, then orders that owner set by
-  `junjo.store.transition.sequence`;
+- selects private runtime Store events by `junjo.agent.store.id`, retaining the
+  private runtime's causal action ownership rules;
+- selects application Store events across the loaded trace by Store ID and the
+  execution's `(sequence.start, sequence.end]`, including nested or concurrent
+  writers, then orders that interval by `junjo.store.transition.sequence`;
 - stops semantic assembly at nested executable spans and exposes typed Workflow
-  or Agent references instead of merging their independent operations or Store
-  events into the parent;
+  or Agent references instead of merging independent operations or private
+  runtime state into the parent. Explicitly shared application Store events may
+  appear in several execution views without duplicating the physical event;
 - reconciles operation and transition counts and validates unique contiguous
   sequences, revision continuity, terminal revision, and patch replay;
 - treats the backend result as authoritative for Store reconstructability and
@@ -323,7 +335,7 @@ Frontend projection tests are generated from canonical backend results.
 
 ### Active contract support is strict
 
-Studio supports the active telemetry contract version 2. Unsupported or
+Studio supports the active telemetry contract version 3. Unsupported or
 malformed Agent evidence is explicitly rejected or labelled unsupported. There
 is no compatibility parser, guessed fallback, or silent coercion.
 

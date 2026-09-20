@@ -11,9 +11,15 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from pydantic import BaseModel, ConfigDict
 
+from junjo import Agent as JunjoAgent
+from junjo import BaseState, BaseStore, ModelDriverBinding, ModelDriverDescriptor
+from junjo.agent import FinalOutputResponse
+from junjo.agent.testing import ScriptedModelDriver
 from junjo.evaluation import EvaluationContext, EvaluationRunClass, ExecutionServiceIdentity
 from junjo.plugins.openai_agents import (
+    AgentToolInvocation,
     WorkflowToolInvocation,
+    agent_as_tool,
     instrument_openai_agents,
     workflow_as_tool,
 )
@@ -27,21 +33,58 @@ class ExampleInput(BaseModel):
 
 
 @pytest.mark.asyncio
-async def test_workflow_as_tool_validates_input_and_projects_output() -> None:
+@pytest.mark.parametrize("borrowed", [False, True])
+async def test_workflow_as_tool_validates_input_and_projects_output(borrowed: bool) -> None:
     workflow = SimpleNamespace(execute=AsyncMock(return_value=SimpleNamespace(state={"answer": "Brooklyn"})))
+    store = BaseStore(BaseState()) if borrowed else None
     tool = workflow_as_tool(
         name="find_local_place",
         description="Find one local place.",
         input_type=ExampleInput,
-        workflow_factory=lambda _input: WorkflowToolInvocation(workflow=workflow),  # type: ignore[arg-type]
+        workflow_factory=lambda _input: WorkflowToolInvocation(workflow=workflow, store=store),  # type: ignore[arg-type]
         output_projector=lambda result, _input: result.state["answer"],
     )
 
     output = await tool.on_invoke_tool(None, '{"message":"Where should I go?"}')  # type: ignore[arg-type]
 
     assert output == "Brooklyn"
-    workflow.execute.assert_awaited_once_with(correlation=None)
+    workflow.execute.assert_awaited_once_with(store=store, correlation=None)
     assert tool.params_json_schema["additionalProperties"] is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("borrowed", [False, True])
+async def test_agent_as_tool_preserves_application_store_choice(borrowed: bool) -> None:
+    class State(BaseState):
+        message: str
+
+    store = BaseStore(State(message="borrowed")) if borrowed else None
+    definition = JunjoAgent[ExampleInput, ExampleInput, None, State, BaseStore[State]](
+        key="native",
+        name="Native Agent",
+        instructions="Return one message.",
+        input_type=ExampleInput,
+        output_type=ExampleInput,
+        tools=(),
+        store_factory=lambda: BaseStore(State(message="factory")),
+        model=ModelDriverBinding.per_run(
+            descriptor=ModelDriverDescriptor(driver_key="scripted", provider="junjo", model="fixture"),
+            factory=lambda: ScriptedModelDriver([FinalOutputResponse(output={"message": "done"})]),
+        ),
+    )
+    tool = agent_as_tool(
+        name="native",
+        description="Run the native Agent.",
+        input_type=ExampleInput,
+        agent_factory=lambda value: AgentToolInvocation(
+            agent=definition,
+            input=value,
+            dependencies=None,
+            store=store,
+        ),
+        output_projector=lambda result, _input: result.application_state.message,
+    )
+    assert await tool.on_invoke_tool(None, '{"message":"run"}') == ("borrowed" if borrowed else "factory")
 
 
 @pytest.mark.asyncio

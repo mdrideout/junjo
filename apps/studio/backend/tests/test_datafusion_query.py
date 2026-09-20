@@ -336,7 +336,7 @@ def test_query_exact_executable_identity_filters_before_and_after_datafusion(
         span_id="a" * 16,
         service_name="ai-chat",
         attributes={
-            "junjo.telemetry.contract_version": 2,
+            "junjo.telemetry.contract_version": 3,
             "junjo.span_type": "workflow",
             "junjo.executable_runtime_id": "run_100%",
         },
@@ -349,7 +349,7 @@ def test_query_exact_executable_identity_filters_before_and_after_datafusion(
                 span_id="b" * 16,
                 service_name="ai-chat",
                 attributes={
-                    "junjo.telemetry.contract_version": 2,
+                    "junjo.telemetry.contract_version": 3,
                     "junjo.span_type": "agent",
                     "junjo.executable_runtime_id": "run_100%",
                 },
@@ -359,7 +359,7 @@ def test_query_exact_executable_identity_filters_before_and_after_datafusion(
                 span_id="c" * 16,
                 service_name="ai-chat",
                 attributes={
-                    "junjo.telemetry.contract_version": 2,
+                    "junjo.telemetry.contract_version": 3,
                     "junjo.span_type": "workflow",
                     "junjo.executable_runtime_id": "run_1000",
                 },

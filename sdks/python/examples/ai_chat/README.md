@@ -15,8 +15,8 @@ Contact creation:
 ```text
 Create Contact Workflow
   -> concurrently select age, personality traits, and US coordinates/location
-  -> generate a complete biography with the selected live language model
-  -> generate a coherent name with the selected live language model
+  -> generate and store a name with the selected live language model
+  -> generate a complete biography using that name and the stored contact facts
   -> Avatar Subflow
        -> generate a photography concept
        -> generate a realistic profile image

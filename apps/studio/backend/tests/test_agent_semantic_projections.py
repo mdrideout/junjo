@@ -112,7 +112,7 @@ def test_state_unavailable_agent_ignores_unrelated_workflow_store_event() -> Non
     unrelated_workflow["span_id"] = "ffffffffffffffff"
     unrelated_workflow["name"] = "Unrelated Workflow"
     unrelated_workflow["attributes_json"] = {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_runtime_id": "workflow-run",
     }
@@ -416,7 +416,7 @@ def test_agent_store_event_on_unowned_span_is_diagnostic_not_replayed() -> None:
     unrelated = copy.deepcopy(model)
     unrelated["span_id"] = "ffffffffffffffff"
     unrelated["parent_span_id"] = None
-    unrelated["attributes_json"] = {"junjo.telemetry.contract_version": 2}
+    unrelated["attributes_json"] = {"junjo.telemetry.contract_version": 3}
     unrelated["events_json"] = [copy.deepcopy(model["events_json"][0])]
     fixture["spans"].append(unrelated)
 

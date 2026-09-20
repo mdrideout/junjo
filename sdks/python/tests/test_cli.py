@@ -292,7 +292,7 @@ def test_capabilities_reports_sdk_studio_and_control_boundaries(
 
     payload = _payload(capsys)
     assert exit_code == EXIT_OK
-    assert payload["data"]["sdk"]["telemetry_contract_version"] == 2
+    assert payload["data"]["sdk"]["telemetry_contract_version"] == 3
     assert payload["data"]["studio"]["version"] == "0.82.1"
     assert payload["data"]["control_api"] == {
         "authentication": "evaluation_control_token",

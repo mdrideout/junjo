@@ -2,6 +2,22 @@
   {
     "case_name": "admission_internal_error",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -114,6 +130,8 @@
         "reconstruction_status": "not_applicable",
         "revision_end": null,
         "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
         "start": null,
         "store_id": null,
         "transition_count": 0,
@@ -198,6 +216,22 @@
   {
     "case_name": "agent_cancellation_inside_workflow_node",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": {
         "reason": "fixture cancellation"
       },
@@ -457,6 +491,8 @@
         "reconstruction_status": "verified",
         "revision_end": 2,
         "revision_start": 0,
+        "sequence_end": 2,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -804,6 +840,22 @@
   {
     "case_name": "agent_failure_inside_workflow_node",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -1067,6 +1119,8 @@
         "reconstruction_status": "verified",
         "revision_end": 2,
         "revision_start": 0,
+        "sequence_end": 2,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -1414,6 +1468,22 @@
   {
     "case_name": "agent_inside_workflow_node",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -1740,6 +1810,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -2307,6 +2379,22 @@
   {
     "case_name": "boundary_input_history_rejection__agent_1",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -2431,6 +2519,8 @@
         "reconstruction_status": "not_applicable",
         "revision_end": null,
         "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
         "start": null,
         "store_id": null,
         "transition_count": 0,
@@ -2515,6 +2605,22 @@
   {
     "case_name": "boundary_input_history_rejection__agent_2",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -2644,6 +2750,8 @@
         "reconstruction_status": "not_applicable",
         "revision_end": null,
         "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
         "start": null,
         "store_id": null,
         "transition_count": 0,
@@ -2728,6 +2836,22 @@
   {
     "case_name": "cancelled_model_request",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": {
         "reason": "fixture cancellation"
       },
@@ -2973,6 +3097,8 @@
         "reconstruction_status": "verified",
         "revision_end": 2,
         "revision_start": 0,
+        "sequence_end": 2,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -3320,6 +3446,22 @@
   {
     "case_name": "cancelled_tool_service",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": {
         "reason": "fixture cancellation"
       },
@@ -3701,6 +3843,8 @@
         "reconstruction_status": "verified",
         "revision_end": 5,
         "revision_start": 0,
+        "sequence_end": 5,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -4731,6 +4875,22 @@
   {
     "case_name": "cancelled_workflow_tool",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": {
         "reason": "fixture cancellation"
       },
@@ -5129,6 +5289,8 @@
         "reconstruction_status": "verified",
         "revision_end": 5,
         "revision_start": 0,
+        "sequence_end": 5,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -6159,6 +6321,22 @@
   {
     "case_name": "concurrent_run_isolation__agent_1",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -6471,6 +6649,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -7038,6 +7218,22 @@
   {
     "case_name": "concurrent_run_isolation__agent_2",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -7350,6 +7546,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -7917,6 +8115,22 @@
   {
     "case_name": "direct_typed_completion",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -8229,6 +8443,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -8796,6 +9012,22 @@
   {
     "case_name": "dropped_evidence_partial",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -9108,6 +9340,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -9675,6 +9909,22 @@
   {
     "case_name": "final_output_validation_failure",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -9975,6 +10225,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -10526,6 +10778,22 @@
   {
     "case_name": "hook_failure_then_success",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -10838,6 +11106,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -11405,6 +11675,22 @@
   {
     "case_name": "malformed_model_response",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -11662,6 +11948,8 @@
         "reconstruction_status": "verified",
         "revision_end": 2,
         "revision_start": 0,
+        "sequence_end": 2,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -12009,6 +12297,22 @@
   {
     "case_name": "malformed_tool_arguments",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -12382,6 +12686,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -12998,6 +13304,22 @@
   {
     "case_name": "model_driver_failure",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -13247,6 +13569,8 @@
         "reconstruction_status": "verified",
         "revision_end": 2,
         "revision_start": 0,
+        "sequence_end": 2,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -13594,6 +13918,22 @@
   {
     "case_name": "model_request_limit_exhaustion",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -13999,6 +14339,8 @@
         "reconstruction_status": "verified",
         "revision_end": 6,
         "revision_start": 0,
+        "sequence_end": 6,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -15272,6 +15614,22 @@
   {
     "case_name": "multi_tool_first_cancellation",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": {
         "reason": "fixture cancellation"
       },
@@ -15741,6 +16099,8 @@
         "reconstruction_status": "verified",
         "revision_end": 5,
         "revision_start": 0,
+        "sequence_end": 5,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -16864,6 +17224,22 @@
   {
     "case_name": "multi_tool_first_failure",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -17337,6 +17713,8 @@
         "reconstruction_status": "verified",
         "revision_end": 5,
         "revision_start": 0,
+        "sequence_end": 5,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -18460,6 +18838,22 @@
   {
     "case_name": "nested_agent_owner_isolation__agent_1",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -19045,6 +19439,8 @@
         "reconstruction_status": "verified",
         "revision_end": 8,
         "revision_start": 0,
+        "sequence_end": 8,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -20788,6 +21184,22 @@
   {
     "case_name": "nested_agent_owner_isolation__agent_2",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -21114,6 +21526,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -21681,6 +22095,22 @@
   {
     "case_name": "nested_workflow_failure",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -22083,6 +22513,8 @@
         "reconstruction_status": "verified",
         "revision_end": 5,
         "revision_start": 0,
+        "sequence_end": 5,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -23113,6 +23545,22 @@
   {
     "case_name": "nonfull_payload_modes",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "redacted",
@@ -23304,6 +23752,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "redacted",
           "policy": "fixture.redacted.v1",
@@ -23493,6 +23943,22 @@
   {
     "case_name": "nonserializable_model_response_candidate",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -23742,6 +24208,8 @@
         "reconstruction_status": "verified",
         "revision_end": 2,
         "revision_start": 0,
+        "sequence_end": 2,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -24089,6 +24557,22 @@
   {
     "case_name": "nonserializable_tool_result_candidate",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -24474,6 +24958,8 @@
         "reconstruction_status": "verified",
         "revision_end": 5,
         "revision_start": 0,
+        "sequence_end": 5,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -25504,6 +25990,22 @@
   {
     "case_name": "ordered_multiple_tools",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -26268,6 +26770,8 @@
         "reconstruction_status": "verified",
         "revision_end": 10,
         "revision_start": 0,
+        "sequence_end": 10,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -28787,6 +29291,22 @@
   {
     "case_name": "over_budget_tool_batch",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -29209,6 +29729,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -29860,6 +30382,22 @@
   {
     "case_name": "policy_unavailable_store",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -30121,6 +30659,8 @@
         "reconstruction_status": "policy_unavailable",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "excluded",
           "policy": "fixture.excluded.v1",
@@ -30289,6 +30829,22 @@
   {
     "case_name": "redacted_operation_payloads",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -30661,6 +31217,8 @@
         "reconstruction_status": "verified",
         "revision_end": 8,
         "revision_start": 0,
+        "sequence_end": 8,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -32402,8 +32960,2468 @@
     }
   },
   {
+    "case_name": "shared_application_store",
+    "detail": {
+      "application_state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "value": "after"
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 4,
+        "revision_start": 1,
+        "sequence_end": 5,
+        "sequence_start": 2,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "value": "prepared"
+          }
+        },
+        "store_id": "workflow-store-ed398b285c",
+        "transition_count": 3,
+        "transitions": [
+          {
+            "action": "write_value",
+            "after": {
+              "value": "tool"
+            },
+            "before": {
+              "value": "prepared"
+            },
+            "event_id": "event-shared-3",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "/value",
+                  "value": "tool"
+                }
+              ]
+            },
+            "revision_after": 2,
+            "revision_before": 1,
+            "sequence": 3,
+            "span_id": "1b47233a2ec714f1"
+          },
+          {
+            "action": "write_value",
+            "after": {
+              "value": "result-1"
+            },
+            "before": {
+              "value": "tool"
+            },
+            "event_id": "event-shared-4",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "/value",
+                  "value": "result-1"
+                }
+              ]
+            },
+            "revision_after": 3,
+            "revision_before": 2,
+            "sequence": 4,
+            "span_id": "8ea8648968a16aa4"
+          },
+          {
+            "action": "write_value",
+            "after": {
+              "value": "after"
+            },
+            "before": {
+              "value": "result-1"
+            },
+            "event_id": "event-shared-5",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "/value",
+                  "value": "after"
+                }
+              ]
+            },
+            "revision_after": 4,
+            "revision_before": 3,
+            "sequence": 5,
+            "span_id": "1b47233a2ec714f1"
+          }
+        ]
+      },
+      "cancellation": null,
+      "definition": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "reason": null,
+        "reference": null,
+        "value": {
+          "agentKey": "fixture_agent",
+          "inputSchema": {
+            "additionalProperties": false,
+            "properties": {
+              "question": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "question"
+            ],
+            "type": "object"
+          },
+          "instructions": "Answer with deterministic fixture evidence.",
+          "limits": {
+            "modelRequests": 4,
+            "toolCalls": 4
+          },
+          "model": {
+            "driverKey": "scripted",
+            "fixture": true,
+            "model": "scripted-v1",
+            "provider": "junjo",
+            "settings": {}
+          },
+          "name": "Fixture Agent",
+          "outputSchema": {
+            "additionalProperties": false,
+            "properties": {
+              "answer": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "answer"
+            ],
+            "type": "object"
+          },
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
+          "tools": [
+            {
+              "description": "Run lookup",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "name": "lookup",
+              "outputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "type": "object"
+              },
+              "structuralId": "tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab"
+            }
+          ],
+          "v": 1
+        }
+      },
+      "error": null,
+      "history_candidate": null,
+      "input": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "reason": null,
+        "reference": null,
+        "value": {
+          "question": "fixture?"
+        }
+      },
+      "input_candidate": null,
+      "integrity": {
+        "diagnostics": [],
+        "loss_counts": {
+          "event_dropped_attributes": 0,
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0
+        },
+        "status": "complete"
+      },
+      "nested_executables": [
+        {
+          "definition_id": "workflow-definition-ed398b285c",
+          "executable_type": "workflow",
+          "name": "nested workflow",
+          "parent_operation_sequence": 2,
+          "parent_operation_span_id": "1b47233a2ec714f1",
+          "runtime_id": "workflow-run-ed398b285c",
+          "service": {
+            "name": "svc-agent-shared-application-store",
+            "namespace": "junjo.contract",
+            "version": "2.0.0"
+          },
+          "span_id": "cafbeea4998ba018",
+          "structural_id": "graph-ed398b285cc38561",
+          "trace_id": "9c741615a324c2c0ccae725f59524801"
+        }
+      ],
+      "operations": [
+        {
+          "cancellation": null,
+          "driver_key": "scripted",
+          "duration_ns": 500000,
+          "end_time": "2026-07-13T12:00:00.001500Z",
+          "error": null,
+          "model_name": "scripted-v1",
+          "operation_type": "model_request",
+          "ordinal": 1,
+          "outcome": "completed",
+          "provider": "junjo",
+          "request": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "reason": null,
+            "reference": null,
+            "value": {
+              "agentKey": "fixture_agent",
+              "instructions": "Answer with deterministic fixture evidence.",
+              "messages": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                }
+              ],
+              "ordinal": 1,
+              "outputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "answer": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "answer"
+                ],
+                "type": "object"
+              },
+              "runId": "run-ed398b285cc38561d7eb",
+              "tools": [
+                {
+                  "description": "Run lookup",
+                  "inputSchema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "query": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "query"
+                    ],
+                    "type": "object"
+                  },
+                  "name": "lookup",
+                  "outputSchema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ],
+                    "type": "object"
+                  }
+                }
+              ],
+              "v": 1
+            }
+          },
+          "requested_tool_calls": [
+            {
+              "admission": "admitted",
+              "call_id": "call-1",
+              "observed_tool_operation": true,
+              "ordinal": 1,
+              "reason": null,
+              "tool_name": "lookup"
+            }
+          ],
+          "response": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "reason": null,
+            "reference": null,
+            "value": {
+              "assistantText": "Using tools",
+              "calls": [
+                {
+                  "arguments": {
+                    "query": "q1"
+                  },
+                  "id": "call-1",
+                  "name": "lookup"
+                }
+              ],
+              "type": "tool_calls",
+              "usage": {
+                "inputTokens": 10,
+                "outputTokens": 4,
+                "totalTokens": 14,
+                "v": 1
+              },
+              "v": 1
+            }
+          },
+          "response_candidate": {
+            "available": true,
+            "payload": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": {
+                "assistantText": "Using tools",
+                "calls": [
+                  {
+                    "arguments": {
+                      "query": "q1"
+                    },
+                    "id": "call-1",
+                    "name": "lookup"
+                  }
+                ],
+                "type": "tool_calls",
+                "usage": {
+                  "inputTokens": 10,
+                  "outputTokens": 4,
+                  "totalTokens": 14,
+                  "v": 1
+                },
+                "v": 1
+              }
+            },
+            "unavailable_reason": null
+          },
+          "response_type": "tool_calls",
+          "sequence": 1,
+          "span_id": "0228ba656f80ac6f",
+          "start_time": "2026-07-13T12:00:00.001000Z",
+          "state_revision": 1,
+          "usage": {
+            "cached_input_tokens": null,
+            "input_tokens": 10,
+            "output_tokens": 4,
+            "reasoning_tokens": null,
+            "total_tokens": 14
+          }
+        },
+        {
+          "arguments": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "reason": null,
+            "reference": null,
+            "value": {
+              "query": "q1"
+            }
+          },
+          "call_id": "call-1",
+          "cancellation": null,
+          "duration_ns": 500000,
+          "end_time": "2026-07-13T12:00:00.002500Z",
+          "error": null,
+          "operation_type": "tool",
+          "ordinal": 1,
+          "outcome": "completed",
+          "requested_arguments": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "reason": null,
+            "reference": null,
+            "value": {
+              "query": "q1"
+            }
+          },
+          "result": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "reason": null,
+            "reference": null,
+            "value": {
+              "value": "result-1"
+            }
+          },
+          "result_candidate": {
+            "available": true,
+            "payload": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": {
+                "value": "result-1"
+              }
+            },
+            "unavailable_reason": null
+          },
+          "sequence": 2,
+          "span_id": "1b47233a2ec714f1",
+          "start_time": "2026-07-13T12:00:00.002000Z",
+          "state_revision_after": 5,
+          "state_revision_before": 3,
+          "tool_name": "lookup",
+          "tool_structural_id": "tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab"
+        },
+        {
+          "cancellation": null,
+          "driver_key": "scripted",
+          "duration_ns": 500000,
+          "end_time": "2026-07-13T12:00:00.003500Z",
+          "error": null,
+          "model_name": "scripted-v1",
+          "operation_type": "model_request",
+          "ordinal": 2,
+          "outcome": "completed",
+          "provider": "junjo",
+          "request": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "reason": null,
+            "reference": null,
+            "value": {
+              "agentKey": "fixture_agent",
+              "instructions": "Answer with deterministic fixture evidence.",
+              "messages": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call-1",
+                  "result": {
+                    "value": "result-1"
+                  },
+                  "toolName": "lookup",
+                  "type": "tool_result"
+                }
+              ],
+              "ordinal": 2,
+              "outputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "answer": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "answer"
+                ],
+                "type": "object"
+              },
+              "runId": "run-ed398b285cc38561d7eb",
+              "tools": [
+                {
+                  "description": "Run lookup",
+                  "inputSchema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "query": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "query"
+                    ],
+                    "type": "object"
+                  },
+                  "name": "lookup",
+                  "outputSchema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ],
+                    "type": "object"
+                  }
+                }
+              ],
+              "v": 1
+            }
+          },
+          "requested_tool_calls": [],
+          "response": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "reason": null,
+            "reference": null,
+            "value": {
+              "output": {
+                "answer": "done"
+              },
+              "type": "final_output",
+              "usage": {
+                "inputTokens": 10,
+                "outputTokens": 4,
+                "totalTokens": 14,
+                "v": 1
+              },
+              "v": 1
+            }
+          },
+          "response_candidate": {
+            "available": true,
+            "payload": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": {
+                "output": {
+                  "answer": "done"
+                },
+                "type": "final_output",
+                "usage": {
+                  "inputTokens": 10,
+                  "outputTokens": 4,
+                  "totalTokens": 14,
+                  "v": 1
+                },
+                "v": 1
+              }
+            },
+            "unavailable_reason": null
+          },
+          "response_type": "final_output",
+          "sequence": 3,
+          "span_id": "e6d98e6b749e4065",
+          "start_time": "2026-07-13T12:00:00.003000Z",
+          "state_revision": 6,
+          "usage": {
+            "cached_input_tokens": null,
+            "input_tokens": 10,
+            "output_tokens": 4,
+            "reasoning_tokens": null,
+            "total_tokens": 14
+          }
+        }
+      ],
+      "output": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "reason": null,
+        "reference": null,
+        "value": {
+          "answer": "done"
+        }
+      },
+      "parent_executable": null,
+      "state": {
+        "available": true,
+        "end": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "completed_tool_call_ids": [
+              "call-1"
+            ],
+            "final_output": {
+              "answer": "done"
+            },
+            "final_output_available": true,
+            "history": [],
+            "input": {
+              "question": "fixture?"
+            },
+            "model_iteration": 2,
+            "model_request_count": 2,
+            "pending_tool_call_ids": [],
+            "terminal_reason": "final_output",
+            "tool_call_admitted_count": 1,
+            "tool_call_completed_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_started_count": 1,
+            "transcript": [
+              {
+                "input": {
+                  "question": "fixture?"
+                },
+                "type": "agent_input"
+              },
+              {
+                "assistantText": "Using tools",
+                "calls": [
+                  {
+                    "arguments": {
+                      "query": "q1"
+                    },
+                    "id": "call-1",
+                    "name": "lookup"
+                  }
+                ],
+                "type": "assistant_tool_calls"
+              },
+              {
+                "callId": "call-1",
+                "result": {
+                  "value": "result-1"
+                },
+                "toolName": "lookup",
+                "type": "tool_result"
+              },
+              {
+                "output": {
+                  "answer": "done"
+                },
+                "type": "assistant_output"
+              }
+            ],
+            "usage": {
+              "fields": {
+                "inputTokens": {
+                  "observations": 2,
+                  "sum": 20
+                },
+                "outputTokens": {
+                  "observations": 2,
+                  "sum": 8
+                },
+                "totalTokens": {
+                  "observations": 2,
+                  "sum": 28
+                }
+              },
+              "modelResponses": 2,
+              "v": 1
+            }
+          }
+        },
+        "reconstructable": true,
+        "reconstructable_claimed": true,
+        "reconstruction_reason": null,
+        "reconstruction_status": "verified",
+        "revision_end": 8,
+        "revision_start": 0,
+        "sequence_end": 8,
+        "sequence_start": 0,
+        "start": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "reason": null,
+          "reference": null,
+          "value": {
+            "admitted_tool_call_ids": [],
+            "completed_tool_call_ids": [],
+            "final_output": null,
+            "final_output_available": false,
+            "history": [],
+            "input": {
+              "question": "fixture?"
+            },
+            "model_iteration": 0,
+            "model_request_count": 0,
+            "pending_tool_call_ids": [],
+            "terminal_reason": null,
+            "tool_call_admitted_count": 0,
+            "tool_call_completed_count": 0,
+            "tool_call_requested_count": 0,
+            "tool_call_started_count": 0,
+            "transcript": [
+              {
+                "input": {
+                  "question": "fixture?"
+                },
+                "type": "agent_input"
+              }
+            ],
+            "usage": {
+              "fields": {},
+              "modelResponses": 0,
+              "v": 1
+            }
+          }
+        },
+        "store_id": "store-ed398b285cc38561",
+        "transition_count": 8,
+        "transitions": [
+          {
+            "action": "record_model_start",
+            "after": {
+              "admitted_tool_call_ids": [],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 0,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 0,
+              "tool_call_started_count": 0,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                }
+              ],
+              "usage": {
+                "fields": {},
+                "modelResponses": 0,
+                "v": 1
+              }
+            },
+            "before": {
+              "admitted_tool_call_ids": [],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 0,
+              "model_request_count": 0,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 0,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 0,
+              "tool_call_started_count": 0,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                }
+              ],
+              "usage": {
+                "fields": {},
+                "modelResponses": 0,
+                "v": 1
+              }
+            },
+            "event_id": "event-8b1c7f7d710c",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "",
+                  "value": {
+                    "admitted_tool_call_ids": [],
+                    "completed_tool_call_ids": [],
+                    "final_output": null,
+                    "final_output_available": false,
+                    "history": [],
+                    "input": {
+                      "question": "fixture?"
+                    },
+                    "model_iteration": 1,
+                    "model_request_count": 1,
+                    "pending_tool_call_ids": [],
+                    "terminal_reason": null,
+                    "tool_call_admitted_count": 0,
+                    "tool_call_completed_count": 0,
+                    "tool_call_requested_count": 0,
+                    "tool_call_started_count": 0,
+                    "transcript": [
+                      {
+                        "input": {
+                          "question": "fixture?"
+                        },
+                        "type": "agent_input"
+                      }
+                    ],
+                    "usage": {
+                      "fields": {},
+                      "modelResponses": 0,
+                      "v": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "revision_after": 1,
+            "revision_before": 0,
+            "sequence": 1,
+            "span_id": "0228ba656f80ac6f"
+          },
+          {
+            "action": "record_model_response",
+            "after": {
+              "admitted_tool_call_ids": [],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 0,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 0,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "before": {
+              "admitted_tool_call_ids": [],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 0,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 0,
+              "tool_call_started_count": 0,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                }
+              ],
+              "usage": {
+                "fields": {},
+                "modelResponses": 0,
+                "v": 1
+              }
+            },
+            "event_id": "event-edc903434f76",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "",
+                  "value": {
+                    "admitted_tool_call_ids": [],
+                    "completed_tool_call_ids": [],
+                    "final_output": null,
+                    "final_output_available": false,
+                    "history": [],
+                    "input": {
+                      "question": "fixture?"
+                    },
+                    "model_iteration": 1,
+                    "model_request_count": 1,
+                    "pending_tool_call_ids": [],
+                    "terminal_reason": null,
+                    "tool_call_admitted_count": 0,
+                    "tool_call_completed_count": 0,
+                    "tool_call_requested_count": 1,
+                    "tool_call_started_count": 0,
+                    "transcript": [
+                      {
+                        "input": {
+                          "question": "fixture?"
+                        },
+                        "type": "agent_input"
+                      },
+                      {
+                        "assistantText": "Using tools",
+                        "calls": [
+                          {
+                            "arguments": {
+                              "query": "q1"
+                            },
+                            "id": "call-1",
+                            "name": "lookup"
+                          }
+                        ],
+                        "type": "assistant_tool_calls"
+                      }
+                    ],
+                    "usage": {
+                      "fields": {
+                        "inputTokens": {
+                          "observations": 1,
+                          "sum": 10
+                        },
+                        "outputTokens": {
+                          "observations": 1,
+                          "sum": 4
+                        },
+                        "totalTokens": {
+                          "observations": 1,
+                          "sum": 14
+                        }
+                      },
+                      "modelResponses": 1,
+                      "v": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "revision_after": 2,
+            "revision_before": 1,
+            "sequence": 2,
+            "span_id": "0228ba656f80ac6f"
+          },
+          {
+            "action": "admit_tool_batch",
+            "after": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [
+                "call-1"
+              ],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 0,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "before": {
+              "admitted_tool_call_ids": [],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 0,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 0,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "event_id": "event-fdf6e13cf571",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "",
+                  "value": {
+                    "admitted_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "completed_tool_call_ids": [],
+                    "final_output": null,
+                    "final_output_available": false,
+                    "history": [],
+                    "input": {
+                      "question": "fixture?"
+                    },
+                    "model_iteration": 1,
+                    "model_request_count": 1,
+                    "pending_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "terminal_reason": null,
+                    "tool_call_admitted_count": 1,
+                    "tool_call_completed_count": 0,
+                    "tool_call_requested_count": 1,
+                    "tool_call_started_count": 0,
+                    "transcript": [
+                      {
+                        "input": {
+                          "question": "fixture?"
+                        },
+                        "type": "agent_input"
+                      },
+                      {
+                        "assistantText": "Using tools",
+                        "calls": [
+                          {
+                            "arguments": {
+                              "query": "q1"
+                            },
+                            "id": "call-1",
+                            "name": "lookup"
+                          }
+                        ],
+                        "type": "assistant_tool_calls"
+                      }
+                    ],
+                    "usage": {
+                      "fields": {
+                        "inputTokens": {
+                          "observations": 1,
+                          "sum": 10
+                        },
+                        "outputTokens": {
+                          "observations": 1,
+                          "sum": 4
+                        },
+                        "totalTokens": {
+                          "observations": 1,
+                          "sum": 14
+                        }
+                      },
+                      "modelResponses": 1,
+                      "v": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "revision_after": 3,
+            "revision_before": 2,
+            "sequence": 3,
+            "span_id": "0301fb3badc52d94"
+          },
+          {
+            "action": "record_tool_started",
+            "after": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [
+                "call-1"
+              ],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "before": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [
+                "call-1"
+              ],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 0,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "event_id": "event-41bf02198891",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "",
+                  "value": {
+                    "admitted_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "completed_tool_call_ids": [],
+                    "final_output": null,
+                    "final_output_available": false,
+                    "history": [],
+                    "input": {
+                      "question": "fixture?"
+                    },
+                    "model_iteration": 1,
+                    "model_request_count": 1,
+                    "pending_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "terminal_reason": null,
+                    "tool_call_admitted_count": 1,
+                    "tool_call_completed_count": 0,
+                    "tool_call_requested_count": 1,
+                    "tool_call_started_count": 1,
+                    "transcript": [
+                      {
+                        "input": {
+                          "question": "fixture?"
+                        },
+                        "type": "agent_input"
+                      },
+                      {
+                        "assistantText": "Using tools",
+                        "calls": [
+                          {
+                            "arguments": {
+                              "query": "q1"
+                            },
+                            "id": "call-1",
+                            "name": "lookup"
+                          }
+                        ],
+                        "type": "assistant_tool_calls"
+                      }
+                    ],
+                    "usage": {
+                      "fields": {
+                        "inputTokens": {
+                          "observations": 1,
+                          "sum": 10
+                        },
+                        "outputTokens": {
+                          "observations": 1,
+                          "sum": 4
+                        },
+                        "totalTokens": {
+                          "observations": 1,
+                          "sum": 14
+                        }
+                      },
+                      "modelResponses": 1,
+                      "v": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "revision_after": 4,
+            "revision_before": 3,
+            "sequence": 4,
+            "span_id": "1b47233a2ec714f1"
+          },
+          {
+            "action": "record_tool_result",
+            "after": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [
+                "call-1"
+              ],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 1,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call-1",
+                  "result": {
+                    "value": "result-1"
+                  },
+                  "toolName": "lookup",
+                  "type": "tool_result"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "before": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [
+                "call-1"
+              ],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "event_id": "event-60ff298ea68a",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "",
+                  "value": {
+                    "admitted_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "completed_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "final_output": null,
+                    "final_output_available": false,
+                    "history": [],
+                    "input": {
+                      "question": "fixture?"
+                    },
+                    "model_iteration": 1,
+                    "model_request_count": 1,
+                    "pending_tool_call_ids": [],
+                    "terminal_reason": null,
+                    "tool_call_admitted_count": 1,
+                    "tool_call_completed_count": 1,
+                    "tool_call_requested_count": 1,
+                    "tool_call_started_count": 1,
+                    "transcript": [
+                      {
+                        "input": {
+                          "question": "fixture?"
+                        },
+                        "type": "agent_input"
+                      },
+                      {
+                        "assistantText": "Using tools",
+                        "calls": [
+                          {
+                            "arguments": {
+                              "query": "q1"
+                            },
+                            "id": "call-1",
+                            "name": "lookup"
+                          }
+                        ],
+                        "type": "assistant_tool_calls"
+                      },
+                      {
+                        "callId": "call-1",
+                        "result": {
+                          "value": "result-1"
+                        },
+                        "toolName": "lookup",
+                        "type": "tool_result"
+                      }
+                    ],
+                    "usage": {
+                      "fields": {
+                        "inputTokens": {
+                          "observations": 1,
+                          "sum": 10
+                        },
+                        "outputTokens": {
+                          "observations": 1,
+                          "sum": 4
+                        },
+                        "totalTokens": {
+                          "observations": 1,
+                          "sum": 14
+                        }
+                      },
+                      "modelResponses": 1,
+                      "v": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "revision_after": 5,
+            "revision_before": 4,
+            "sequence": 5,
+            "span_id": "1b47233a2ec714f1"
+          },
+          {
+            "action": "record_model_start",
+            "after": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [
+                "call-1"
+              ],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 2,
+              "model_request_count": 2,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 1,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call-1",
+                  "result": {
+                    "value": "result-1"
+                  },
+                  "toolName": "lookup",
+                  "type": "tool_result"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "before": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [
+                "call-1"
+              ],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 1,
+              "model_request_count": 1,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 1,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call-1",
+                  "result": {
+                    "value": "result-1"
+                  },
+                  "toolName": "lookup",
+                  "type": "tool_result"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "event_id": "event-5a1ca6e95786",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "",
+                  "value": {
+                    "admitted_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "completed_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "final_output": null,
+                    "final_output_available": false,
+                    "history": [],
+                    "input": {
+                      "question": "fixture?"
+                    },
+                    "model_iteration": 2,
+                    "model_request_count": 2,
+                    "pending_tool_call_ids": [],
+                    "terminal_reason": null,
+                    "tool_call_admitted_count": 1,
+                    "tool_call_completed_count": 1,
+                    "tool_call_requested_count": 1,
+                    "tool_call_started_count": 1,
+                    "transcript": [
+                      {
+                        "input": {
+                          "question": "fixture?"
+                        },
+                        "type": "agent_input"
+                      },
+                      {
+                        "assistantText": "Using tools",
+                        "calls": [
+                          {
+                            "arguments": {
+                              "query": "q1"
+                            },
+                            "id": "call-1",
+                            "name": "lookup"
+                          }
+                        ],
+                        "type": "assistant_tool_calls"
+                      },
+                      {
+                        "callId": "call-1",
+                        "result": {
+                          "value": "result-1"
+                        },
+                        "toolName": "lookup",
+                        "type": "tool_result"
+                      }
+                    ],
+                    "usage": {
+                      "fields": {
+                        "inputTokens": {
+                          "observations": 1,
+                          "sum": 10
+                        },
+                        "outputTokens": {
+                          "observations": 1,
+                          "sum": 4
+                        },
+                        "totalTokens": {
+                          "observations": 1,
+                          "sum": 14
+                        }
+                      },
+                      "modelResponses": 1,
+                      "v": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "revision_after": 6,
+            "revision_before": 5,
+            "sequence": 6,
+            "span_id": "e6d98e6b749e4065"
+          },
+          {
+            "action": "record_model_response",
+            "after": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [
+                "call-1"
+              ],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 2,
+              "model_request_count": 2,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 1,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call-1",
+                  "result": {
+                    "value": "result-1"
+                  },
+                  "toolName": "lookup",
+                  "type": "tool_result"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 2,
+                    "sum": 20
+                  },
+                  "outputTokens": {
+                    "observations": 2,
+                    "sum": 8
+                  },
+                  "totalTokens": {
+                    "observations": 2,
+                    "sum": 28
+                  }
+                },
+                "modelResponses": 2,
+                "v": 1
+              }
+            },
+            "before": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [
+                "call-1"
+              ],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 2,
+              "model_request_count": 2,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 1,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call-1",
+                  "result": {
+                    "value": "result-1"
+                  },
+                  "toolName": "lookup",
+                  "type": "tool_result"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 1,
+                    "sum": 10
+                  },
+                  "outputTokens": {
+                    "observations": 1,
+                    "sum": 4
+                  },
+                  "totalTokens": {
+                    "observations": 1,
+                    "sum": 14
+                  }
+                },
+                "modelResponses": 1,
+                "v": 1
+              }
+            },
+            "event_id": "event-bcec255d335c",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "",
+                  "value": {
+                    "admitted_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "completed_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "final_output": null,
+                    "final_output_available": false,
+                    "history": [],
+                    "input": {
+                      "question": "fixture?"
+                    },
+                    "model_iteration": 2,
+                    "model_request_count": 2,
+                    "pending_tool_call_ids": [],
+                    "terminal_reason": null,
+                    "tool_call_admitted_count": 1,
+                    "tool_call_completed_count": 1,
+                    "tool_call_requested_count": 1,
+                    "tool_call_started_count": 1,
+                    "transcript": [
+                      {
+                        "input": {
+                          "question": "fixture?"
+                        },
+                        "type": "agent_input"
+                      },
+                      {
+                        "assistantText": "Using tools",
+                        "calls": [
+                          {
+                            "arguments": {
+                              "query": "q1"
+                            },
+                            "id": "call-1",
+                            "name": "lookup"
+                          }
+                        ],
+                        "type": "assistant_tool_calls"
+                      },
+                      {
+                        "callId": "call-1",
+                        "result": {
+                          "value": "result-1"
+                        },
+                        "toolName": "lookup",
+                        "type": "tool_result"
+                      }
+                    ],
+                    "usage": {
+                      "fields": {
+                        "inputTokens": {
+                          "observations": 2,
+                          "sum": 20
+                        },
+                        "outputTokens": {
+                          "observations": 2,
+                          "sum": 8
+                        },
+                        "totalTokens": {
+                          "observations": 2,
+                          "sum": 28
+                        }
+                      },
+                      "modelResponses": 2,
+                      "v": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "revision_after": 7,
+            "revision_before": 6,
+            "sequence": 7,
+            "span_id": "e6d98e6b749e4065"
+          },
+          {
+            "action": "commit_success",
+            "after": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [
+                "call-1"
+              ],
+              "final_output": {
+                "answer": "done"
+              },
+              "final_output_available": true,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 2,
+              "model_request_count": 2,
+              "pending_tool_call_ids": [],
+              "terminal_reason": "final_output",
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 1,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call-1",
+                  "result": {
+                    "value": "result-1"
+                  },
+                  "toolName": "lookup",
+                  "type": "tool_result"
+                },
+                {
+                  "output": {
+                    "answer": "done"
+                  },
+                  "type": "assistant_output"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 2,
+                    "sum": 20
+                  },
+                  "outputTokens": {
+                    "observations": 2,
+                    "sum": 8
+                  },
+                  "totalTokens": {
+                    "observations": 2,
+                    "sum": 28
+                  }
+                },
+                "modelResponses": 2,
+                "v": 1
+              }
+            },
+            "before": {
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "completed_tool_call_ids": [
+                "call-1"
+              ],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "question": "fixture?"
+              },
+              "model_iteration": 2,
+              "model_request_count": 2,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 1,
+              "tool_call_completed_count": 1,
+              "tool_call_requested_count": 1,
+              "tool_call_started_count": 1,
+              "transcript": [
+                {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "assistantText": "Using tools",
+                  "calls": [
+                    {
+                      "arguments": {
+                        "query": "q1"
+                      },
+                      "id": "call-1",
+                      "name": "lookup"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call-1",
+                  "result": {
+                    "value": "result-1"
+                  },
+                  "toolName": "lookup",
+                  "type": "tool_result"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "inputTokens": {
+                    "observations": 2,
+                    "sum": 20
+                  },
+                  "outputTokens": {
+                    "observations": 2,
+                    "sum": 8
+                  },
+                  "totalTokens": {
+                    "observations": 2,
+                    "sum": 28
+                  }
+                },
+                "modelResponses": 2,
+                "v": 1
+              }
+            },
+            "event_id": "event-7b3cc7e19cff",
+            "patch": {
+              "mode": "full",
+              "policy": "junjo.full.v1",
+              "reason": null,
+              "reference": null,
+              "value": [
+                {
+                  "op": "replace",
+                  "path": "",
+                  "value": {
+                    "admitted_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "completed_tool_call_ids": [
+                      "call-1"
+                    ],
+                    "final_output": {
+                      "answer": "done"
+                    },
+                    "final_output_available": true,
+                    "history": [],
+                    "input": {
+                      "question": "fixture?"
+                    },
+                    "model_iteration": 2,
+                    "model_request_count": 2,
+                    "pending_tool_call_ids": [],
+                    "terminal_reason": "final_output",
+                    "tool_call_admitted_count": 1,
+                    "tool_call_completed_count": 1,
+                    "tool_call_requested_count": 1,
+                    "tool_call_started_count": 1,
+                    "transcript": [
+                      {
+                        "input": {
+                          "question": "fixture?"
+                        },
+                        "type": "agent_input"
+                      },
+                      {
+                        "assistantText": "Using tools",
+                        "calls": [
+                          {
+                            "arguments": {
+                              "query": "q1"
+                            },
+                            "id": "call-1",
+                            "name": "lookup"
+                          }
+                        ],
+                        "type": "assistant_tool_calls"
+                      },
+                      {
+                        "callId": "call-1",
+                        "result": {
+                          "value": "result-1"
+                        },
+                        "toolName": "lookup",
+                        "type": "tool_result"
+                      },
+                      {
+                        "output": {
+                          "answer": "done"
+                        },
+                        "type": "assistant_output"
+                      }
+                    ],
+                    "usage": {
+                      "fields": {
+                        "inputTokens": {
+                          "observations": 2,
+                          "sum": 20
+                        },
+                        "outputTokens": {
+                          "observations": 2,
+                          "sum": 8
+                        },
+                        "totalTokens": {
+                          "observations": 2,
+                          "sum": 28
+                        }
+                      },
+                      "modelResponses": 2,
+                      "v": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "revision_after": 8,
+            "revision_before": 7,
+            "sequence": 8,
+            "span_id": "0301fb3badc52d94"
+          }
+        ]
+      },
+      "summary": {
+        "agent_key": "fixture_agent",
+        "agent_name": "Fixture Agent",
+        "agent_span_id": "0301fb3badc52d94",
+        "counts": {
+          "model_requests": 2,
+          "operations": 3,
+          "tool_calls": {
+            "admitted": 1,
+            "completed": 1,
+            "requested": 1,
+            "started": 1
+          }
+        },
+        "definition_id": "definition-ed398b285cc38561",
+        "duration_ns": 500000,
+        "end_time": "2026-07-13T12:00:00.000500Z",
+        "limits": {
+          "model_requests": 4,
+          "tool_calls": 4
+        },
+        "outcome": "completed",
+        "runtime_id": "run-ed398b285cc38561d7eb",
+        "service": {
+          "name": "svc-agent-shared-application-store",
+          "namespace": "junjo.contract",
+          "version": "2.0.0"
+        },
+        "start_time": "2026-07-13T12:00:00Z",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
+        "termination_reason": "final_output",
+        "trace_id": "9c741615a324c2c0ccae725f59524801",
+        "usage": {
+          "fields": {
+            "inputTokens": {
+              "observations": 2,
+              "sum": 20
+            },
+            "outputTokens": {
+              "observations": 2,
+              "sum": 8
+            },
+            "totalTokens": {
+              "observations": 2,
+              "sum": 28
+            }
+          },
+          "model_responses": 2
+        }
+      }
+    },
+    "summary": {
+      "agent_key": "fixture_agent",
+      "agent_name": "Fixture Agent",
+      "agent_span_id": "0301fb3badc52d94",
+      "counts": {
+        "model_requests": 2,
+        "operations": 3,
+        "tool_calls": {
+          "admitted": 1,
+          "completed": 1,
+          "requested": 1,
+          "started": 1
+        }
+      },
+      "definition_id": "definition-ed398b285cc38561",
+      "duration_ns": 500000,
+      "end_time": "2026-07-13T12:00:00.000500Z",
+      "limits": {
+        "model_requests": 4,
+        "tool_calls": 4
+      },
+      "outcome": "completed",
+      "runtime_id": "run-ed398b285cc38561d7eb",
+      "service": {
+        "name": "svc-agent-shared-application-store",
+        "namespace": "junjo.contract",
+        "version": "2.0.0"
+      },
+      "start_time": "2026-07-13T12:00:00Z",
+      "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
+      "termination_reason": "final_output",
+      "trace_id": "9c741615a324c2c0ccae725f59524801",
+      "usage": {
+        "fields": {
+          "inputTokens": {
+            "observations": 2,
+            "sum": 20
+          },
+          "outputTokens": {
+            "observations": 2,
+            "sum": 8
+          },
+          "totalTokens": {
+            "observations": 2,
+            "sum": 28
+          }
+        },
+        "model_responses": 2
+      }
+    }
+  },
+  {
     "case_name": "standalone_agent_under_non_junjo_span",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -32716,6 +35734,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -33283,6 +36303,22 @@
   {
     "case_name": "terminal_commit_internal_error_partial",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -33589,6 +36625,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -34140,6 +37178,22 @@
   {
     "case_name": "terminal_observer_cancellation",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -34452,6 +37506,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -35019,6 +38075,22 @@
   {
     "case_name": "tool_invokes_nested_workflow",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -35604,6 +38676,8 @@
         "reconstruction_status": "verified",
         "revision_end": 8,
         "revision_start": 0,
+        "sequence_end": 8,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -37347,6 +40421,22 @@
   {
     "case_name": "tool_output_validation_failure",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -37740,6 +40830,8 @@
         "reconstruction_status": "verified",
         "revision_end": 5,
         "revision_start": 0,
+        "sequence_end": 5,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -38770,6 +41862,22 @@
   {
     "case_name": "tool_service_failure",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -39155,6 +42263,8 @@
         "reconstruction_status": "verified",
         "revision_end": 5,
         "revision_start": 0,
+        "sequence_end": 5,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -40185,6 +43295,22 @@
   {
     "case_name": "unexpected_internal_error",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -40485,6 +43611,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -41036,6 +44164,22 @@
   {
     "case_name": "unknown_tool",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -41372,6 +44516,8 @@
         "reconstruction_status": "verified",
         "revision_end": 3,
         "revision_start": 0,
+        "sequence_end": 3,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",
@@ -41988,6 +45134,22 @@
   {
     "case_name": "usage_absent_vs_zero",
     "detail": {
+      "application_state": {
+        "available": false,
+        "end": null,
+        "reconstructable": false,
+        "reconstructable_claimed": false,
+        "reconstruction_reason": "state_unavailable",
+        "reconstruction_status": "not_applicable",
+        "revision_end": null,
+        "revision_start": null,
+        "sequence_end": null,
+        "sequence_start": null,
+        "start": null,
+        "store_id": null,
+        "transition_count": 0,
+        "transitions": []
+      },
       "cancellation": null,
       "definition": {
         "mode": "full",
@@ -42526,6 +45688,8 @@
         "reconstruction_status": "verified",
         "revision_end": 8,
         "revision_start": 0,
+        "sequence_end": 8,
+        "sequence_start": 0,
         "start": {
           "mode": "full",
           "policy": "junjo.full.v1",

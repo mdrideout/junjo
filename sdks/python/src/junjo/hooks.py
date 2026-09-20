@@ -265,7 +265,10 @@ class AgentStartedEvent(LifecycleEvent):
     agent_key: str
     """Application-owned stable key of the Agent that emitted this event."""
     store_id: str
-    """Identity of the application state store associated with this event."""
+    """Identity of the private Agent runtime Store."""
+
+    application_store_id: str | None = None
+    """Identity of the optional live application Store used by this execution."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -275,9 +278,12 @@ class AgentCompletedEvent(LifecycleEvent):
     agent_key: str
     """Application-owned stable key of the Agent that emitted this event."""
     store_id: str
-    """Identity of the application state store associated with this event."""
-    result: AgentExecutionResult[Any]
+    """Identity of the private Agent runtime Store."""
+    result: AgentExecutionResult[Any, Any]
     """Detached successful execution result delivered to this observer."""
+
+    application_store_id: str | None = None
+    """Identity of the optional live application Store used by this execution."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -287,11 +293,16 @@ class AgentFailedEvent(LifecycleEvent):
     agent_key: str
     """Application-owned stable key of the Agent that emitted this event."""
     store_id: str
-    """Identity of the application state store associated with this event."""
+    """Identity of the private Agent runtime Store."""
     error: AgentExecutionError
     """Execution exception delivered to this observer; callback failures do not replace the application error."""
     state: agent_state.AgentStateSnapshot
-    """Detached application state at this lifecycle point."""
+    """Detached private Agent runtime state at this lifecycle point."""
+
+    application_store_id: str | None = None
+    """Identity of the optional live application Store used by this execution."""
+    application_state: BaseState | None = None
+    """Detached application-state checkpoint, when available."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -301,11 +312,16 @@ class AgentCancelledEvent(LifecycleEvent):
     agent_key: str
     """Application-owned stable key of the Agent that emitted this event."""
     store_id: str
-    """Identity of the application state store associated with this event."""
+    """Identity of the private Agent runtime Store."""
     reason: str
     """Cancellation reason recorded for this execution."""
     state: agent_state.AgentStateSnapshot
-    """Detached application state at this lifecycle point."""
+    """Detached private Agent runtime state at this lifecycle point."""
+
+    application_store_id: str | None = None
+    """Identity of the optional live application Store used by this execution."""
+    application_state: BaseState | None = None
+    """Detached application-state checkpoint, when available."""
 
 
 class Hooks:

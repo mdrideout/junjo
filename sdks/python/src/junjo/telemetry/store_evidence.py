@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
@@ -25,6 +26,15 @@ class StoreTransitionEvidence:
         return encode_json(list(self.patch))
 
 
+@dataclass(frozen=True, slots=True, eq=False)
+class StoreBoundary:
+    """One execution's starting checkpoint; identity distinguishes equal starts."""
+
+    state: Any
+    revision: int
+    sequence: int
+
+
 @dataclass(frozen=True, slots=True)
 class StoreOwnerEvidence:
     """Terminal owner facts for one Store execution."""
@@ -35,27 +45,47 @@ class StoreOwnerEvidence:
     revision_end: int
     transition_count: int
     reconstructable: bool
+    sequence_start: int = 0
+    sequence_end: int = 0
 
 
 class StoreEvidenceTracker:
     """Retain full-policy transition facts independently from OpenTelemetry export."""
 
-    def __init__(self, initial_projection: Any) -> None:
-        self._state_start = copy.deepcopy(initial_projection)
+    def __init__(self) -> None:
         self._revision = 0
-        self._transitions: list[StoreTransitionEvidence] = []
+        self._sequence = 0
+        self._transitions: deque[StoreTransitionEvidence] = deque()
+        self._boundaries: set[StoreBoundary] = set()
 
     @property
     def revision(self) -> int:
         return self._revision
 
-    @property
-    def transition_count(self) -> int:
-        return len(self._transitions)
+    def begin(self, projection: Any) -> StoreBoundary:
+        boundary = StoreBoundary(copy.deepcopy(projection), self._revision, self._sequence)
+        self._boundaries.add(boundary)
+        return boundary
 
-    @property
-    def state_start(self) -> Any:
-        return copy.deepcopy(self._state_start)
+    def release(self, boundary: StoreBoundary) -> None:
+        """Release only replay history no active invocation can still need."""
+        self._boundaries.discard(boundary)
+        first = min((item.sequence for item in self._boundaries), default=self._sequence)
+        while self._transitions and self._transitions[0].sequence <= first:
+            self._transitions.popleft()
+
+    def checkpoint(self, projection: Any) -> StoreOwnerEvidence:
+        """Inspect the current state without retaining an execution history."""
+        return StoreOwnerEvidence(
+            state_start=copy.deepcopy(projection),
+            state_end=copy.deepcopy(projection),
+            revision_start=self._revision,
+            revision_end=self._revision,
+            transition_count=0,
+            reconstructable=True,
+            sequence_start=self._sequence,
+            sequence_end=self._sequence,
+        )
 
     def record(
         self,
@@ -71,7 +101,7 @@ class StoreEvidenceTracker:
         revision_before = self._revision
         revision_after = revision_before + (1 if live_state_changed else 0)
         transition = StoreTransitionEvidence(
-            sequence=len(self._transitions) + 1,
+            sequence=self._sequence + 1,
             revision_before=revision_before,
             revision_after=revision_after,
             patch=tuple(copy.deepcopy(raw_patch)),
@@ -81,7 +111,9 @@ class StoreEvidenceTracker:
         if transition.patch_json != encoded_patch:
             raise ValueError("Store transition patch encoding was not deterministic.")
         self._revision = revision_after
-        self._transitions.append(transition)
+        self._sequence = transition.sequence
+        if self._boundaries:
+            self._transitions.append(transition)
         return transition
 
     def validate_transition(self, *, projection_before: Any, projection_after: Any) -> None:
@@ -101,12 +133,14 @@ class StoreEvidenceTracker:
         # changed value is wrapped by the patch array and operation object.
         return raw_patch, encode_json(raw_patch)
 
-    def finalize(self, state_end: Any) -> StoreOwnerEvidence:
+    def finalize(self, state_end: Any, boundary: StoreBoundary) -> StoreOwnerEvidence:
         end = copy.deepcopy(state_end)
-        replay = copy.deepcopy(self._state_start)
-        expected_revision = 0
+        replay = copy.deepcopy(boundary.state)
+        expected_revision = boundary.revision
         reconstructable = True
-        for expected_sequence, transition in enumerate(self._transitions, start=1):
+        transitions = (item for item in self._transitions if item.sequence > boundary.sequence)
+        expected_sequence = boundary.sequence
+        for expected_sequence, transition in enumerate(transitions, start=boundary.sequence + 1):
             if transition.sequence != expected_sequence:
                 reconstructable = False
             if transition.revision_before != expected_revision:
@@ -121,14 +155,16 @@ class StoreEvidenceTracker:
                 replay = jsonpatch.JsonPatch(list(transition.patch)).apply(replay, in_place=False)
             except Exception:
                 reconstructable = False
-        if expected_revision != self._revision or replay != end:
+        if expected_sequence != self._sequence or expected_revision != self._revision or replay != end:
             reconstructable = False
         return StoreOwnerEvidence(
-            state_start=self.state_start,
+            state_start=copy.deepcopy(boundary.state),
             state_end=end,
-            revision_start=0,
+            revision_start=boundary.revision,
             revision_end=self._revision,
-            transition_count=len(self._transitions),
+            transition_count=self._sequence - boundary.sequence,
+            sequence_start=boundary.sequence,
+            sequence_end=self._sequence,
             reconstructable=reconstructable,
         )
 

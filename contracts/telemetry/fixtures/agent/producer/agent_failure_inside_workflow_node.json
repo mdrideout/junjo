@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "agent_failure_inside_workflow_node",
   "trace_id": "7a39bce75e943ab29ce853535f351ac7",
   "service_name": "svc-agent-agent-failure-inside-workflow-node",
@@ -22,7 +22,7 @@
       "status_code": "2",
       "status_message": "model_error",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow-definition-1f60e7997a",
         "junjo.executable_runtime_id": "workflow-run-1f60e7997a",
@@ -41,7 +41,9 @@
         "junjo.workflow.state.end.mode": "full",
         "junjo.workflow.state.end.policy": "junjo.full.v1",
         "junjo.workflow.state.end": "{\"question\":\"fixture?\",\"answer\":null}",
-        "error.type": "AgentModelError"
+        "error.type": "AgentModelError",
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 0
       },
       "events_json": [
         {
@@ -80,7 +82,7 @@
       "status_code": "2",
       "status_message": "model_error",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node-definition-1f60e7997a",
         "junjo.executable_runtime_id": "node-run-1f60e7997a",
@@ -128,7 +130,7 @@
       "status_code": "2",
       "status_message": "model_error",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-1f60e7997a07c6d5",
         "junjo.executable_runtime_id": "run-1f60e7997a07c6d56228",
@@ -169,7 +171,10 @@
         "junjo.parent_executable_definition_id": "node-definition-1f60e7997a",
         "junjo.parent_executable_runtime_id": "node-run-1f60e7997a",
         "junjo.parent_executable_structural_id": "node-struct-1f60e7997a",
-        "junjo.parent_executable_type": "node"
+        "junjo.parent_executable_type": "node",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 2
       },
       "events_json": [
         {
@@ -225,7 +230,7 @@
       "status_code": "2",
       "status_message": "model_error",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-1f60e7997a07c6d56228",

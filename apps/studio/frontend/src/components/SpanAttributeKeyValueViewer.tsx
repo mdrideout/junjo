@@ -43,7 +43,9 @@ export default function SpanAttributeKeyValueViewer({ value }: SpanAttributeKeyV
           value={parsedJson.result}
           displayDataTypes={false}
           style={{ ...displayTheme, fontFamily: 'var(--font-mono)', backgroundColor: 'transparent' }}
-        />
+        >
+          <JSONView.Null render={(props, { type }) => type === 'value' ? <span {...props}>null</span> : null} />
+        </JSONView>
       )
     }
   }
@@ -54,7 +56,9 @@ export default function SpanAttributeKeyValueViewer({ value }: SpanAttributeKeyV
         value={value}
         displayDataTypes={false}
         style={{ ...displayTheme, fontFamily: 'var(--font-mono)', backgroundColor: 'transparent' }}
-      />
+      >
+        <JSONView.Null render={(props, { type }) => type === 'value' ? <span {...props}>null</span> : null} />
+      </JSONView>
     )
   }
 

@@ -1,0 +1,22 @@
+{
+  "base_commit": "1faadb580d6a7be7f2824bcbfa3394a4c3884a08",
+  "image": "sha256:07ba1d278698e2c2024ac5f32135a779bfead1246ed3e5dc6e6b46cacc905989",
+  "cpus": 0.5,
+  "memory": "350m",
+  "memory_swap": "350m",
+  "baseline_source": "/tmp/junjo-composable-stores-1faadb5",
+  "note": "Same existing controlled SDK profile; not a minimum deployment requirement.",
+  "backend_dependency_lock_sha256": "cdf818ddaf304d8ebcc0ce310de6d36e5dd2e6b0469af36eb6616539a763a7d9",
+  "images": {
+    "junjo-composable-baseline:local": "sha256:3a0d9c8cb1689647f31a2437ef74217b6bacd7e3747c60609b3c0096020a09cf",
+    "junjo-composable-candidate:local": "sha256:d4dee49d17d61da198b60e4e4aeb22985a0448a30ecc465853860d6aaf1f8d09",
+    "junjo-adk-fc0e-backend:latest": "sha256:3dc3c9f24f586e0ba64c24b0fa52861f01d3ba14a821e4eed95a7a2ddd0b3ba4",
+    "junjo-adk-fc0e-ingestion:latest": "sha256:00a62820e4d4e5ac58403e38417ed473c0f2c0fd47cd6f891e18422083d0c2e1"
+  },
+  "candidate_source_hashes": {
+    "sdks/python/src/junjo/store.py": "ea0db72bee5c8869b864cfcb5b7add0fd7f2af3f50c3cca7e224e64d46b11de4",
+    "sdks/python/src/junjo/agent/_runtime.py": "10fde519fe96802f974268f16480a7424125e60f689373f2d4be69af945c6f5c",
+    "apps/studio/backend/app/features/trace_evidence/assembler.py": "0f7d840305413024f0ccbbb6213439547edefcca282bdffedb0863b0434a75fd",
+    "apps/studio/backend/app/features/store_diagnostics/reconstruction.py": "6b0f84caaa386987c7ecf5c2673da9a0694f228c981c294123a65003c1dae0ea"
+  }
+}

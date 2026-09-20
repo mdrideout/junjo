@@ -14,6 +14,8 @@ Return the city and two-letter state abbreviation through the requested schema.
 
 def biography_prompt(
     *,
+    first_name: str,
+    last_name: str,
     personality: PersonalityTraits,
     city: str,
     state: str,
@@ -23,12 +25,14 @@ def biography_prompt(
     return f"""
 Create a realistic dating profile biography for this person:
 
+Name: {first_name} {last_name}
 Personality traits: {personality.model_dump_json()}
 Location: {city}, {state}
 Age: {age}
 Sex: {sex.value}
 
-Ground the biography in those facts without listing trait scores. Include personal
+Preserve this person's name. Ground the biography in those facts without listing
+trait scores. Include personal
 history, hobbies, a specific job title and employer, family/relationship status,
 and interests. Establish details that can support a coherent continuing personal
 narrative in later conversations.

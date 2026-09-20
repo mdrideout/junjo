@@ -20,7 +20,13 @@ evidence. Your application executes the code, model calls, and evaluators.
 
 Use a Workflow when the application knows the possible procedure in advance,
 and an Agent when a model must choose among an explicit set of typed Tools at
-runtime. Both execution modes remain isolated, testable, and observable.
+runtime. Both have independent execution identities and can use factory-owned
+or explicitly shared application Stores. Both remain testable and observable.
+
+Use the [examples and integrations index](/docs/examples-and-integrations/)
+to choose a runnable setup by execution runtime, provider SDK, and telemetry.
+For native Junjo Agents with OpenAI, start with
+[junjo_openai_sdk](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/junjo_openai_sdk).
 
 ## Benefits
 
@@ -74,7 +80,7 @@ but they do not dynamically create or rewrite the graph.
 The first-class `Agent` execution model handles the complementary case where
 a model chooses the next capability at runtime from an explicit ordered set of
 typed Tools. Agent is a sibling to `Workflow`: it does not fabricate a Graph,
-share mutable run state, or delegate Junjo's limits and lifecycle to a model
+share its private runtime state, or delegate Junjo's limits and lifecycle to a model
 provider.
 
 Workflows use explicit Python Graph primitives and Agents use typed definitions,

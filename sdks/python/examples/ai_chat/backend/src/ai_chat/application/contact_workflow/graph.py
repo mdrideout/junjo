@@ -26,8 +26,8 @@ def create_contact_graph(
         name="Create Initial Contact Data",
         items=[SelectAgeNode(), SelectLocationNode(language), CreatePersonalityNode()],
     )
-    bio = CreateBioNode(language)
     name = CreateNameNode(language)
+    bio = CreateBioNode(language)
     avatar = AvatarSubflow(
         name="Create Contact Avatar Subflow",
         graph_factory=lambda: create_avatar_graph(language=language, images=images),
@@ -39,9 +39,9 @@ def create_contact_graph(
         source=initial_data,
         sinks=[persist],
         edges=[
-            Edge(tail=initial_data, head=bio),
-            Edge(tail=bio, head=name),
-            Edge(tail=name, head=avatar),
+            Edge(tail=initial_data, head=name),
+            Edge(tail=name, head=bio),
+            Edge(tail=bio, head=avatar),
             Edge(tail=avatar, head=persist),
         ],
     )

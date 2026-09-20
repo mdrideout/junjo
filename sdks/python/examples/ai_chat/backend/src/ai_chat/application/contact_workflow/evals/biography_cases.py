@@ -3,6 +3,8 @@
 BIOGRAPHY_CASES = (
     {
         "id": "mesa-high-extraversion",
+        "first_name": "Elena",
+        "last_name": "Bennett",
         "age": 24,
         "city": "Mesa",
         "state": "AZ",
@@ -21,6 +23,8 @@ BIOGRAPHY_CASES = (
     },
     {
         "id": "wisconsin-midlife-complex-history",
+        "first_name": "Daniel",
+        "last_name": "Miller",
         "age": 55,
         "city": "Madison",
         "state": "WI",
@@ -39,6 +43,8 @@ BIOGRAPHY_CASES = (
     },
     {
         "id": "boulder-young-adult",
+        "first_name": "Maya",
+        "last_name": "Chen",
         "age": 18,
         "city": "Boulder",
         "state": "CO",

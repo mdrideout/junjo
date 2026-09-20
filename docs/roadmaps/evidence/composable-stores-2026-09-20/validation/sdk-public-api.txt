@@ -1,0 +1,2 @@
+Generated 231 API pages covering 1504 public Python objects.
+Validated the Python API public-surface contract with Griffe.

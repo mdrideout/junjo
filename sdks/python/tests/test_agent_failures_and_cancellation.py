@@ -1080,13 +1080,13 @@ async def test_cancellation_during_success_terminalization_drains_committed_outc
             await release.wait()
         return state
 
-    async def owner_evidence(self):
+    async def owner_evidence(self, boundary=None):
         nonlocal owner_evidence_calls
         owner_evidence_calls += 1
         if terminal_await == "owner_evidence" and owner_evidence_calls == 1:
             entered.set()
             await release.wait()
-        return await original_owner_evidence(self)
+        return await original_owner_evidence(self, boundary)
 
     monkeypatch.setattr(AgentStore, "commit_success", commit_success)
     monkeypatch.setattr(AgentStore, "get_state", get_state)

@@ -6,17 +6,19 @@ import hashlib
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Generic, Protocol, TypeAlias, TypeVar
+from typing import Any, Generic, Protocol, TypeAlias
 
 import rfc8785
 from pydantic import TypeAdapter
-from typing_extensions import TypeForm
+from typing_extensions import TypeForm, TypeVar
 
 from .._json import JsonBoundaryError, normalize_json, require_ijson_text, thaw_json
+from ..store import BaseStore
 from ._schema import schema_for, schema_proves_object_root
 from .errors import ToolConfigurationError
 from .json import FrozenJsonValue
 
+StoreT = TypeVar("StoreT", bound=BaseStore[Any] | None, default=BaseStore[Any] | None)
 DependenciesT = TypeVar("DependenciesT")
 ToolInputT = TypeVar("ToolInputT")
 ToolOutputT = TypeVar("ToolOutputT")
@@ -25,8 +27,8 @@ TOOL_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]{0,63}$")
 
 
 @dataclass(frozen=True, slots=True)
-class AgentRunContext(Generic[DependenciesT]):
-    """Read-only Agent identity and opaque dependencies supplied to a Tool."""
+class AgentRunContext(Generic[DependenciesT, StoreT]):
+    """Read-only invocation identity, services, and typed application Store access."""
 
     dependencies: DependenciesT
     agent_key: str
@@ -34,23 +36,25 @@ class AgentRunContext(Generic[DependenciesT]):
     run_id: str
     tool_call_id: str
     call_ordinal: int
+    store: StoreT
+    """Live application Store chosen for this invocation; absent when none was configured."""
 
 
-class ToolService(Protocol[ToolInputT, ToolOutputT, DependenciesT]):
+class ToolService(Protocol[ToolInputT, ToolOutputT, DependenciesT, StoreT]):
     """Asynchronous application capability invoked by the Agent runtime."""
 
     async def __call__(
         self,
         input: ToolInputT,
-        context: AgentRunContext[DependenciesT],
+        context: AgentRunContext[DependenciesT, StoreT],
     ) -> ToolOutputT: ...
 
 
-ToolServiceFactory: TypeAlias = Callable[[], ToolService[ToolInputT, ToolOutputT, DependenciesT]]
+ToolServiceFactory: TypeAlias = Callable[[], ToolService[ToolInputT, ToolOutputT, DependenciesT, StoreT]]
 
 
 @dataclass(frozen=True, slots=True, init=False)
-class Tool(Generic[ToolInputT, ToolOutputT, DependenciesT]):
+class Tool(Generic[ToolInputT, ToolOutputT, DependenciesT, StoreT]):
     """Immutable typed capability declaration available to an Agent."""
 
     name: str
@@ -60,8 +64,8 @@ class Tool(Generic[ToolInputT, ToolOutputT, DependenciesT]):
     structural_id: str
     input_adapter: TypeAdapter[ToolInputT]
     output_adapter: TypeAdapter[ToolOutputT]
-    shared_service: ToolService[ToolInputT, ToolOutputT, DependenciesT] | None
-    factory: ToolServiceFactory[ToolInputT, ToolOutputT, DependenciesT] | None
+    shared_service: ToolService[ToolInputT, ToolOutputT, DependenciesT, StoreT] | None
+    factory: ToolServiceFactory[ToolInputT, ToolOutputT, DependenciesT, StoreT] | None
 
     def __init__(
         self,
@@ -70,8 +74,8 @@ class Tool(Generic[ToolInputT, ToolOutputT, DependenciesT]):
         description: str,
         input_type: TypeForm[ToolInputT],  # ty: ignore[invalid-type-form]
         output_type: TypeForm[ToolOutputT],  # ty: ignore[invalid-type-form]
-        shared_service: ToolService[ToolInputT, ToolOutputT, DependenciesT] | None = None,
-        factory: ToolServiceFactory[ToolInputT, ToolOutputT, DependenciesT] | None = None,
+        shared_service: ToolService[ToolInputT, ToolOutputT, DependenciesT, StoreT] | None = None,
+        factory: ToolServiceFactory[ToolInputT, ToolOutputT, DependenciesT, StoreT] | None = None,
     ) -> None:
         """Declare one typed Tool and exactly one service ownership mode.
 

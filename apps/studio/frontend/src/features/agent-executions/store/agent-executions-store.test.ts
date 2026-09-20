@@ -1,3 +1,4 @@
+import { StoreBoundaryDetailSchema } from '../../store-diagnostics/schemas/store-diagnostics'
 import { waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -24,8 +25,10 @@ function evidenceForDetail(detail: ReturnType<typeof makeAgentExecutionDetailFix
         executable_type: 'agent',
         owner_span_id: detail.summary.agent_span_id,
         runtime_id: detail.summary.runtime_id,
-        store_id: storeId,
-        unavailable_store: null,
+        stores: {
+          runtime: StoreBoundaryDetailSchema.parse(Object.fromEntries(Object.entries(detail.state).filter(([key]) => key !== 'transitions'))),
+          application: StoreBoundaryDetailSchema.parse(Object.fromEntries(Object.entries(detail.application_state).filter(([key]) => key !== 'transitions'))),
+        },
         summary: detail.summary,
         definition: detail.definition,
         input: detail.input,
@@ -45,11 +48,7 @@ function evidenceForDetail(detail: ReturnType<typeof makeAgentExecutionDetailFix
     stores_by_id: {
       [storeId]: {
         store_id: storeId,
-        owner_span_id: detail.summary.agent_span_id,
-        owner_runtime_id: detail.summary.runtime_id,
-        owner_executable_type: 'agent',
-        detail: detail.state,
-        integrity: detail.integrity,
+        transitions: detail.state.transitions,
       },
     },
     relationships_by_owner_span_id: {

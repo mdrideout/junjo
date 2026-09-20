@@ -1,0 +1,20 @@
+{
+  "completed": 600,
+  "wall_seconds": 6.096438455999305,
+  "operations_per_second": 98.41811810788637,
+  "cpu_seconds": 3.055856029,
+  "cpu_us_per_operation": 5093.093381666667,
+  "p95_ms": 55.5897440026456,
+  "p99_ms": 61.94242099809344,
+  "peak_rss_mib": 39.3828125,
+  "before_rss_mib": 39.02734375,
+  "after_work_rss_mib": 39.43359375,
+  "after_release_rss_mib": 39.43359375,
+  "label": "paired-candidate-workflow-3",
+  "case": "workflow",
+  "iterations": 600,
+  "warmup_iterations": 30,
+  "size": 128,
+  "python": "3.13.15 (main, Aug 31 2026, 23:47:22) [GCC 14.2.0]",
+  "store_sha256": "ea0db72bee5c8869b864cfcb5b7add0fd7f2af3f50c3cca7e224e64d46b11de4"
+}

@@ -3,7 +3,7 @@ import { OtelSpan } from '../traces/schemas/schemas'
 import { SpanIconConstructor } from '../junjo-data/span-lists/determine-span-icon'
 import { Link } from 'react-router'
 import { wrapSpan } from './utils/span-accessor'
-import { workflowPath } from '../../util/telemetry-paths'
+import { agentPath, workflowPath } from '../../util/telemetry-paths'
 import { SpanKindChip } from '../junjo-data/span-lists/SpanKindChip'
 import { SpanFixtureChip } from '../junjo-data/span-lists/SpanFixtureChip'
 import { spanPresentation } from '../junjo-data/span-lists/span-presentation'
@@ -27,6 +27,11 @@ export default function SpanRow(props: SpanRowProps) {
 
   // Is Junjo Workflow Span
   const isJunjoWorkflowSpan = wrapSpan(span).isWorkflow
+  const executablePath = isJunjoWorkflowSpan
+    ? workflowPath(span.service_name, span.trace_id, span.span_id, span.span_id)
+    : span.attributes_json['junjo.span_type'] === 'agent'
+      ? agentPath(span.trace_id, span.span_id)
+      : null
 
   return (
     <div className="p-1">
@@ -40,15 +45,15 @@ export default function SpanRow(props: SpanRowProps) {
             <SpanKindChip kind={presentation.kind} />
             <SpanFixtureChip fixture={presentation.fixture === true} />
             <div>{presentation.name}</div>
-            {isJunjoWorkflowSpan && (
+            {executablePath !== null && (
               <Link
                 className={
                   'mt-[1px] cursor-pointer text-white bg-zinc-700 hover:bg-zinc-600 rounded-lg px-1.5 text-xs'
                 }
-                to={workflowPath(span.service_name, span.trace_id, span.span_id, span.span_id)}
+                to={executablePath}
                 onClick={(event) => event.stopPropagation()}
               >
-                Workflow Explorer &rarr;
+                {isJunjoWorkflowSpan ? 'Workflow Explorer' : 'Agent diagnostics'} &rarr;
               </Link>
             )}
             {hasFailures && (

@@ -111,13 +111,14 @@ still owns:
 
 - the Pydantic input contract;
 - the OpenAI function-tool name and description;
-- construction of fresh invocation state and dependencies;
+- choice of factory-owned or explicitly borrowed application state and dependencies;
 - projection of the Junjo execution result into the tool response; and
 - invocation-scoped cleanup.
 
-These adapters deliberately do not create a generic executable protocol,
-share Stores between runtimes, hide domain dependencies, or change failure and
-cancellation ownership. The OpenAI runner sees an ordinary framework-native
+Both `WorkflowToolInvocation` and `AgentToolInvocation` accept `store=` to borrow
+a Junjo application Store; omitting it uses the native definition's factory.
+Input and output mapping, dependencies, and failure ownership remain explicit.
+See [Store composition](/docs/python/agents/composition/). The OpenAI runner sees an ordinary framework-native
 function tool. The nested Junjo execution remains a complete native execution.
 
 An OpenAI Agent may call both a Junjo Workflow and a Junjo Agent. Junjo Agent

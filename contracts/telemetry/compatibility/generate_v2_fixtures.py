@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deterministic telemetry-v2 fixtures from compact scenario builders."""
+"""Generate deterministic active telemetry fixtures from compact scenario builders."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ AGENT_PRODUCER_SCENARIOS = (
     "multi_tool_first_failure",
     "multi_tool_first_cancellation",
     "tool_invokes_nested_workflow",
+    "shared_application_store",
     "agent_inside_workflow_node",
     "nested_workflow_failure",
     "agent_failure_inside_workflow_node",
@@ -109,10 +110,10 @@ def _apply_patch(document: Any, operations: list[dict[str, Any]]) -> Any:
 
 
 def migrate_workflow_fixtures() -> None:
-    """Upgrade the six accepted Workflow fixtures to the v2 evidence envelope."""
+    """Upgrade the six accepted Workflow fixtures to the v3 evidence envelope."""
     for path in sorted(WORKFLOW_ROOT.glob("*.json")):
         fixture = json.loads(path.read_text(encoding="utf-8"))
-        fixture["contract_version"] = 2
+        fixture["contract_version"] = 3
 
         for span in fixture["spans"]:
             span["resource_attributes_json"] = {
@@ -126,7 +127,7 @@ def migrate_workflow_fixtures() -> None:
             span["dropped_links_count"] = 0
             attributes = span["attributes_json"]
             if "junjo.telemetry.contract_version" in attributes:
-                attributes["junjo.telemetry.contract_version"] = 2
+                attributes["junjo.telemetry.contract_version"] = 3
             for event in span["events_json"]:
                 event["timeUnixNano"] = str(event["timeUnixNano"])
                 event["droppedAttributesCount"] = 0
@@ -187,6 +188,8 @@ def migrate_workflow_fixtures() -> None:
                     "junjo.workflow.state.end.policy": FULL_POLICY,
                     "junjo.store.revision.start": 0,
                     "junjo.store.revision.end": revision,
+                    "junjo.store.transition.start": 0,
+                    "junjo.store.transition.end": len(transitions),
                     "junjo.store.transition.count": len(transitions),
                     "junjo.store.reconstructable": True,
                 }
@@ -454,7 +457,7 @@ def _base_agent_case(
         else {"v": 1, "type": "final_output", "output": {"answer": "done"}, "usage": {"v": 1, "inputTokens": 10, "outputTokens": 4, "totalTokens": 14}}
     )
     model_attributes: dict[str, Any] = {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": agent_key,
         "junjo.agent.runtime_id": run_id,
@@ -483,7 +486,7 @@ def _base_agent_case(
         tool_ordinal += 1
         material = _tool_material(call["name"] if call["name"] != "missing" else "lookup")
         tool_attributes: dict[str, Any] = {
-            "junjo.telemetry.contract_version": 2,
+            "junjo.telemetry.contract_version": 3,
             "junjo.agent.operation_type": "tool",
             "junjo.agent.key": agent_key,
             "junjo.agent.runtime_id": run_id,
@@ -523,7 +526,7 @@ def _base_agent_case(
             "usage": {"v": 1, "inputTokens": 10, "outputTokens": 4, "totalTokens": 14},
         }
         attributes: dict[str, Any] = {
-            "junjo.telemetry.contract_version": 2,
+            "junjo.telemetry.contract_version": 3,
             "junjo.agent.operation_type": "model_request",
             "junjo.agent.key": agent_key,
             "junjo.agent.runtime_id": run_id,
@@ -552,7 +555,7 @@ def _base_agent_case(
     started_count = admitted_count
     completed_count = admitted_count
     owner_attributes: dict[str, Any] = {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": definition_id,
         "junjo.executable_runtime_id": run_id,
@@ -601,7 +604,7 @@ def _base_agent_case(
     )
     spans.extend(operation_spans)
     return {
-        "contract_version": 2,
+        "contract_version": 3,
         "scenario": scenario,
         "trace_id": trace_id,
         "service_name": service_name,
@@ -972,7 +975,7 @@ def _workflow_fragment(case: dict[str, Any], parent_span_id: str, *, failed: boo
         "edges": [],
     }
     workflow_attributes: dict[str, Any] = {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": f"workflow-definition-{_hex(scenario, 10)}",
         "junjo.executable_runtime_id": f"workflow-run-{_hex(scenario, 10)}",
@@ -1012,7 +1015,7 @@ def _workflow_fragment(case: dict[str, Any], parent_span_id: str, *, failed: boo
         status_message="nested failure" if failed else "",
     )
     node_attributes = {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": f"node-definition-{_hex(scenario, 10)}",
         "junjo.executable_runtime_id": f"node-run-{_hex(scenario, 10)}",
@@ -1052,7 +1055,7 @@ def _wrap_agent_in_workflow(case: dict[str, Any]) -> None:
     node_id = _hex(f"{scenario}:span:201", 16)
     graph_id = f"graph-{_hex(scenario, 16)}"
     workflow_attributes = {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": f"workflow-definition-{_hex(scenario, 10)}",
         "junjo.executable_runtime_id": f"workflow-run-{_hex(scenario, 10)}",
@@ -1090,7 +1093,7 @@ def _wrap_agent_in_workflow(case: dict[str, Any]) -> None:
     _payload(workflow_attributes, "junjo.workflow.state.end", outer_state)
     workflow = _span(scenario, 200, service_name, trace_id, "outer workflow", None, workflow_attributes)
     node_attributes = {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": f"node-definition-{_hex(scenario, 10)}",
         "junjo.executable_runtime_id": f"node-run-{_hex(scenario, 10)}",
@@ -1187,7 +1190,7 @@ def _configure_case(scenario: str) -> dict[str, Any]:
             _set_failure(tool, "AgentToolError", "first Tool failed")
             _set_failure(owner, "AgentToolError", "first Tool failed")
         return case
-    if scenario in {"tool_invokes_nested_workflow", "nested_workflow_failure", "cancelled_workflow_tool"}:
+    if scenario in {"tool_invokes_nested_workflow", "shared_application_store", "nested_workflow_failure", "cancelled_workflow_tool"}:
         outcome = "completed"
         reason = "final_output"
         if scenario == "nested_workflow_failure":
@@ -1875,12 +1878,14 @@ def _make_invalid_derivatives(valid_cases: dict[str, dict[str, Any]]) -> None:
     duplicate_span, duplicate_source = store_events(case)[0]
     duplicate_span["events_json"].append(copy.deepcopy(duplicate_source))
     _agent_owner(case)["attributes_json"]["junjo.store.transition.count"] += 1
+    _agent_owner(case)["attributes_json"]["junjo.store.transition.end"] += 1
     derivatives.append(("duplicate_transition_sequence", "transition_sequence_duplicate", case))
 
     case = derived("direct_typed_completion")
     _gap_span, gap_event = store_events(case)[-1]
     gap_event["attributes"]["junjo.store.transition.sequence"] += 1
     _agent_owner(case)["attributes_json"]["junjo.store.transition.count"] += 1
+    _agent_owner(case)["attributes_json"]["junjo.store.transition.end"] += 1
     derivatives.append(("gapped_transition_sequence", "transition_sequence_gap", case))
 
     case = derived("direct_typed_completion")
@@ -2214,7 +2219,7 @@ def _make_invalid_derivatives(valid_cases: dict[str, dict[str, Any]]) -> None:
     unrelated["span_id"] = _hex("out-of-scope-store-event", 16)
     unrelated["parent_span_id"] = owner["span_id"]
     unrelated["name"] = "unrelated"
-    unrelated["attributes_json"] = {"junjo.telemetry.contract_version": 2}
+    unrelated["attributes_json"] = {"junjo.telemetry.contract_version": 3}
     unrelated["events_json"] = [response_event]
     case["spans"].append(unrelated)
     derivatives.append(
@@ -2654,6 +2659,44 @@ def _write_store_patch_vectors() -> None:
     )
 
 
+
+def _add_execution_store_intervals(case: dict[str, Any]) -> None:
+    for span in case["spans"]:
+        attributes = span["attributes_json"]
+        if attributes.get("junjo.span_type") == "agent":
+            attributes["junjo.agent.application_state.available"] = False
+        if "junjo.store.transition.count" in attributes:
+            attributes["junjo.store.transition.start"] = 0
+            attributes["junjo.store.transition.end"] = attributes["junjo.store.transition.count"]
+
+
+def _add_shared_application_store(case: dict[str, Any]) -> None:
+    owner = _agent_owner(case)
+    tool = next(span for span in _operation_spans(case)
+                if span["attributes_json"].get("junjo.agent.operation_type") == "tool")
+    workflow = next(span for span in case["spans"] if span["attributes_json"].get("junjo.span_type") == "workflow")
+    node = next(span for span in case["spans"] if span["attributes_json"].get("junjo.span_type") == "node")
+    store_id = workflow["attributes_json"]["junjo.workflow.store.id"]
+    for span, prefix, state_root, start, end, before, after in (
+        (owner, "junjo.agent.application_store", "junjo.agent.application_state", 2, 5, "prepared", "after"),
+        (workflow, "junjo.store", "junjo.workflow.state", 3, 4, "tool", "result-1"),
+    ):
+        attrs = span["attributes_json"]
+        attrs.update({f"{prefix}.revision.start": start - 1, f"{prefix}.revision.end": end - 1,
+                      f"{prefix}.transition.start": start, f"{prefix}.transition.end": end,
+                      f"{prefix}.transition.count": end - start, f"{prefix}.reconstructable": True})
+        _payload(attrs, f"{state_root}.start", {"value": before})
+        _payload(attrs, f"{state_root}.end", {"value": after})
+    owner["attributes_json"]["junjo.agent.application_store.id"] = store_id
+    owner["attributes_json"]["junjo.agent.application_state.available"] = True
+    for sequence, span, value in ((3, tool, "tool"), (4, node, "result-1"), (5, tool, "after")):
+        attrs = {"id": f"event-shared-{sequence}", "junjo.store.name": "NestedStore", "junjo.store.id": store_id,
+                 "junjo.store.action": "write_value", "junjo.store.transition.sequence": sequence,
+                 "junjo.store.revision.before": sequence - 2, "junjo.store.revision.after": sequence - 1}
+        _payload(attrs, "junjo.state_json_patch", [{"op": "replace", "path": "/value", "value": value}])
+        span["events_json"].append({"name": "set_state", "timeUnixNano": str(1783944000000001000 + sequence),
+                                    "attributes": attrs, "droppedAttributesCount": 0})
+
 def generate_agent_fixtures() -> None:
     for root in (AGENT_PRODUCER_ROOT, AGENT_CONSUMER_ROOT):
         for path in root.glob("*.json"):
@@ -2662,10 +2705,14 @@ def generate_agent_fixtures() -> None:
     for scenario in AGENT_PRODUCER_SCENARIOS:
         case = _configure_case(scenario)
         _apply_agent_state_evidence(case)
+        _add_execution_store_intervals(case)
+        if scenario == "shared_application_store":
+            _add_shared_application_store(case)
         valid_cases[scenario] = case
         _write(AGENT_PRODUCER_ROOT / f"{scenario}.json", case)
     for scenario in AGENT_CONSUMER_SCENARIOS:
         case = _configure_consumer_case(scenario)
+        _add_execution_store_intervals(case)
         valid_cases[scenario] = case
         _write(AGENT_CONSUMER_ROOT / f"{scenario}.json", case)
     _make_invalid_derivatives(valid_cases)

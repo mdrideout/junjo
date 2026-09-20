@@ -208,7 +208,7 @@ function ToolOperationInspector({
             Child executables invoked by this Tool
           </div>
           <p className="mt-1 text-sm text-[var(--studio-text-muted)]">
-            Each child owns its own state and diagnostics. The Tool span is its physical parent.
+            Each child records its own execution boundaries and diagnostics. It may share the application Store or use a separate Store. The Tool span is its physical parent.
           </p>
           <ul className="mt-3 list-none space-y-2 p-0">
             {nestedExecutables.map((executable) => (

@@ -20,7 +20,9 @@ from app.features.store_diagnostics.schemas import (
     EvidenceDiagnostic,
     EvidenceIntegrity,
     PayloadEvidence,
+    StoreBoundaryDetail,
     StoreDetail,
+    StoreTransition,
 )
 
 TraceId = Annotated[str, Field(pattern="^[0-9a-f]{32}$")]
@@ -62,8 +64,7 @@ class AgentExecutableAnnotation(BaseModel):
     executable_type: Literal["agent"]
     owner_span_id: str
     runtime_id: str
-    store_id: str | None
-    unavailable_store: StoreDetail | None = None
+    stores: dict[Literal["application", "runtime"], StoreBoundaryDetail]
     summary: AgentExecutionSummary
     definition: PayloadEvidence
     input: PayloadEvidence | None = None
@@ -86,8 +87,7 @@ class WorkflowExecutableAnnotation(BaseModel):
     definition_id: str | None = None
     runtime_id: str | None = None
     structural_id: str | None = None
-    store_id: str | None = None
-    unavailable_store: StoreDetail | None = None
+    stores: dict[Literal["application", "runtime"], StoreBoundaryDetail]
     integrity: EvidenceIntegrity
 
 
@@ -98,16 +98,22 @@ ExecutableAnnotation = Annotated[
 
 
 class StoreAnnotation(BaseModel):
-    """One independently verified executable Store, keyed by its Store ID."""
+    """One shared transition log, keyed by the physical Store identity."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
     store_id: str
+    transitions: list[StoreTransition]
+
+
+class StoreExecutionDetail(BaseModel):
+    """One selected execution's Store role and independently verified interval."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
     owner_span_id: str
-    owner_runtime_id: str | None = None
-    owner_executable_type: Literal["workflow", "subflow", "agent"]
+    role: Literal["application", "runtime"]
     detail: StoreDetail
-    integrity: EvidenceIntegrity
 
 
 class ExecutableRelationships(BaseModel):
@@ -224,7 +230,7 @@ class ExecutableManifestEntry(BaseModel):
     executable_type: Literal["workflow", "subflow", "agent"]
     name: str
     runtime_id: str | None
-    store_id: str | None
+    store_ids: dict[Literal["application", "runtime"], str | None]
     outcome: Literal["completed", "failed", "cancelled"] | None
     status_code: str
     failed: bool
@@ -256,6 +262,9 @@ class StoreManifestEntry(BaseModel):
     owner_span_id: SpanId
     owner_runtime_id: str | None
     owner_executable_type: Literal["workflow", "subflow", "agent"]
+    role: Literal["application", "runtime"]
+    sequence_start: int | None = Field(ge=0)
+    sequence_end: int | None = Field(ge=0)
     available: bool
     transition_count: int = Field(ge=0)
     reconstructable: bool
@@ -306,7 +315,7 @@ class SelectedSpanEvidence(BaseModel):
     span: NormalizedSpanEvidence
     executable: ExecutableAnnotation | None
     operation: AgentOperation | None
-    stores: list[StoreAnnotation]
+    stores: list[StoreExecutionDetail]
     relationships: ExecutableRelationships | None
     diagnostics: list[TraceEvidenceDiagnostic]
 

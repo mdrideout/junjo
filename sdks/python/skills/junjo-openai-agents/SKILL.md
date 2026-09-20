@@ -46,7 +46,9 @@ framework-specific adapter that matches it. Map:
 
 - one Pydantic input contract;
 - one stable function-tool name and useful description;
-- construction of fresh invocation state for each call;
+- choice of factory-owned or explicitly borrowed Junjo application Stores;
+  read [Store composition](https://junjo.ai/docs/python/agents/composition/) and
+  use the invocation's `store` field when borrowing;
 - projection of the native execution result into the tool result; and
 - invocation-scoped cleanup when application resources require it.
 

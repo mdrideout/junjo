@@ -74,7 +74,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.14"]
+        python-version: ["3.11.9", "3.11", "3.12.3", "3.12", "3.14"]
     defaults:
       run:
         working-directory: sdks/python

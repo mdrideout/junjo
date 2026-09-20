@@ -73,8 +73,12 @@ class CreateBioNode(Node[ContactWorkflowStore]):
         state = await store.get_state()
         if state.personality is None or state.city is None or state.state is None or state.age is None:
             raise RuntimeError("Initial contact facts must exist before biography creation.")
+        if state.first_name is None or state.last_name is None:
+            raise RuntimeError("Contact name must exist before biography creation.")
         bio = await self._language.generate_text(
             prompt=biography_prompt(
+                first_name=state.first_name,
+                last_name=state.last_name,
                 personality=state.personality,
                 city=state.city,
                 state=state.state,

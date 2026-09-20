@@ -47,8 +47,11 @@ from app.features.agent_diagnostics.schemas import (
 from app.features.store_diagnostics.integrity import assemble_evidence_integrity
 from app.features.store_diagnostics.payloads import parse_payload_slot
 from app.features.store_diagnostics.reconstruction import (
+    AGENT_APPLICATION_STORE_BOUNDARY,
     AGENT_STORE_BOUNDARY,
+    index_store_spans,
     reconstruct_store,
+    store_evidence_spans,
 )
 from app.features.store_diagnostics.schemas import EvidenceDiagnostic
 from app.features.telemetry_contract.scalars import (
@@ -1798,7 +1801,10 @@ def _parent_executable(
 
 
 def assemble_agent_detail(
-    owner_span: dict[str, Any], trace_spans: list[dict[str, Any]]
+    owner_span: dict[str, Any],
+    trace_spans: list[dict[str, Any]],
+    *,
+    store_index: dict[str, list[dict[str, Any]]] | None = None,
 ) -> AgentExecutionDetail:
     """Assemble one owner-scoped semantic detail from a complete trace."""
     summary = assemble_agent_summary(owner_span)
@@ -1886,6 +1892,17 @@ def assemble_agent_detail(
         AGENT_STORE_BOUNDARY,
     )
     diagnostics.extend(store_result.diagnostics)
+    application_spans, application_issues = store_evidence_spans(
+        owner_span,
+        attributes.get(AGENT_APPLICATION_STORE_BOUNDARY.store_id_attribute),
+        store_index if store_index is not None else index_store_spans(trace_spans),
+    )
+    application_result = reconstruct_store(
+        attributes, application_spans, AGENT_APPLICATION_STORE_BOUNDARY
+    )
+    diagnostics.extend(application_issues)
+    diagnostics.extend(application_result.diagnostics)
+
     if (
         summary.termination_reason == "internal_error"
         and attributes.get("error.type") == "AgentInternalError"
@@ -2000,7 +2017,11 @@ def assemble_agent_detail(
     )
     terminal_error = execution_error(owner_span, attributes, diagnostics)
     terminal_cancellation = cancellation_evidence(attributes, diagnostics)
-    evidence_spans = [owner_span, *raw_operations]
+    evidence_spans = list(
+        {
+            span["span_id"]: span for span in [owner_span, *raw_operations, *application_spans]
+        }.values()
+    )
     integrity = assemble_evidence_integrity(evidence_spans, diagnostics)
     return AgentExecutionDetail(
         summary=summary,
@@ -2011,6 +2032,7 @@ def assemble_agent_detail(
         history_candidate=history_candidate,
         operations=operations,
         state=store_result.detail,
+        application_state=application_result.detail,
         parent_executable=parent_executable,
         nested_executables=nested_executables,
         error=terminal_error,

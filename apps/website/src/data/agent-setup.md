@@ -6,12 +6,15 @@ Help me add Junjo to this application so we can use execution evidence to diagno
 
 Read our repository instructions and these Junjo references before proposing changes:
 
-- Minimal build: https://github.com/mdrideout/junjo-ai-studio-minimal-build
+- Studio deployment and minimal build: https://junjo.ai/docs/studio/deployment/
 - Getting started: https://junjo.ai/docs/
-- OpenTelemetry: https://junjo.ai/docs/observability/opentelemetry/
+- Examples and integrations: https://junjo.ai/docs/examples-and-integrations/
+- OpenTelemetry and native provider SDK instrumentation: https://junjo.ai/docs/observability/opentelemetry/
+- If using native Junjo Agents, read all three: https://junjo.ai/docs/python/agents/, https://junjo.ai/docs/python/agents/composition/, and https://junjo.ai/docs/python/agents/model-drivers/
+- If using the external OpenAI Agents SDK: https://junjo.ai/docs/python/integrations/openai-agents/
 - Python evaluation tooling and coding-agent skills, if applicable: https://junjo.ai/docs/python/evaluation/
 
-Understand how our application is built and run, what telemetry it already produces, and which Junjo integrations apply.
+Understand how our application is built and run, what telemetry it already produces, and which Junjo integrations apply. Read the selected example README, configuration, and initialization before writing integration code. Identify the Agent runtime, provider SDK, instrumentor, and Studio exporter separately. Choose explicitly where application Stores are created or shared and how inputs, tool results, and final outputs are mapped. Reuse the same initialization path for the application and diagnostic probes.
 
 ## 2. Create a project-specific implementation plan
 

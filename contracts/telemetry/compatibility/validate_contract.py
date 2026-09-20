@@ -830,7 +830,7 @@ def _validate_common_fixture(fixture: Any, name: str, contract_version: int) -> 
 
 def _validate_workflow_fixture(fixture: dict[str, Any], name: str) -> None:
     graph_snapshot_count = 0
-    owners: dict[str, dict[str, Any]] = {}
+    owners: list[tuple[str, dict[str, Any]]] = []
     events_by_store: dict[str, list[dict[str, Any]]] = {}
     children_by_parent: dict[str, list[dict[str, Any]]] = {}
     for span in fixture["spans"]:
@@ -875,7 +875,7 @@ def _validate_workflow_fixture(fixture: dict[str, Any], name: str) -> None:
             )
         store_id = attributes.get("junjo.workflow.store.id")
         if store_id:
-            owners[store_id] = span
+            owners.append((store_id, span))
         for event in span["events_json"]:
             if event["name"] == "set_state":
                 event_store_id = event["attributes"].get("junjo.store.id")
@@ -883,7 +883,7 @@ def _validate_workflow_fixture(fixture: dict[str, Any], name: str) -> None:
                 events_by_store.setdefault(event_store_id, []).append(event)
     _require(graph_snapshot_count >= 1, "missing_graph_snapshot", name)
 
-    for store_id, owner in owners.items():
+    for store_id, owner in owners:
         attributes = owner["attributes_json"]
         start = _validate_payload_slot(attributes, "junjo.workflow.state.start", name)
         end = _validate_payload_slot(attributes, "junjo.workflow.state.end", name)
@@ -891,15 +891,21 @@ def _validate_workflow_fixture(fixture: dict[str, Any], name: str) -> None:
         revision_start = attributes.get("junjo.store.revision.start")
         revision_end = attributes.get("junjo.store.revision.end")
         count = attributes.get("junjo.store.transition.count")
-        _require(revision_start == 0, "invalid_revision_start", name)
+        _require(type(revision_start) is int and revision_start >= 0, "invalid_revision_start", name)
+        sequence_start = attributes.get("junjo.store.transition.start")
+        sequence_end = attributes.get("junjo.store.transition.end")
+        _require(type(sequence_start) is int and type(sequence_end) is int
+                 and 0 <= sequence_start <= sequence_end
+                 and sequence_end - sequence_start == count, "invalid_store_interval", name)
         _require(type(revision_end) is int and revision_end >= 0, "invalid_revision_end", name)
         _require(type(count) is int and count >= 0, "invalid_transition_count", name)
         events = sorted(
-            events_by_store.get(store_id, []),
+            [event for event in events_by_store.get(store_id, [])
+             if sequence_start < event["attributes"].get("junjo.store.transition.sequence", -1) <= sequence_end],
             key=lambda event: event["attributes"].get("junjo.store.transition.sequence", -1),
         )
         sequences = [event["attributes"].get("junjo.store.transition.sequence") for event in events]
-        _require(sequences == list(range(1, count + 1)), "transition_sequence_mismatch", name)
+        _require(sequences == list(range(sequence_start + 1, sequence_end + 1)), "transition_sequence_mismatch", name)
         state = start
         revision = revision_start
         for event in events:
@@ -960,6 +966,9 @@ def _validate_agent_store(
     events = _store_events(fixture, store_id)
     sequences = [event["attributes"].get("junjo.store.transition.sequence") for event in events]
     _validate_contiguous_sequence(sequences, count, "transition", fixture_name)
+    _require(owner_attributes.get("junjo.store.transition.start") == 0
+             and owner_attributes.get("junjo.store.transition.end") == count,
+             "invalid_store_interval", fixture_name)
 
     reconstructable_claim = owner_attributes.get("junjo.store.reconstructable")
     _require(isinstance(reconstructable_claim, bool), "reconstructable_mismatch", fixture_name)
@@ -1007,6 +1016,58 @@ def _validate_agent_store(
         _require(state == end, "patch_replay_mismatch", fixture_name)
     return start, end
 
+
+
+def _validate_agent_application_store(fixture: dict[str, Any], attributes: dict[str, Any], name: str) -> None:
+    prefix = "junjo.agent.application_store"
+    state_root = "junjo.agent.application_state"
+    available = attributes.get(f"{state_root}.available")
+    _require(type(available) is bool, "invalid_application_state_availability", name)
+    if not available:
+        _require(not any(key.startswith(prefix + ".") or key.startswith(state_root + ".start")
+                         or key.startswith(state_root + ".end") for key in attributes),
+                 "fabricated_application_store", name)
+        return
+    store_id = attributes.get(f"{prefix}.id")
+    _require(_is_portable_text(store_id, nonempty=True), "missing_store_id", name)
+    start = _validate_payload_slot(attributes, f"{state_root}.start", name)
+    end = _validate_payload_slot(attributes, f"{state_root}.end", name)
+    sequence_start = attributes.get(f"{prefix}.transition.start")
+    sequence_end = attributes.get(f"{prefix}.transition.end")
+    revision = attributes.get(f"{prefix}.revision.start")
+    revision_end = attributes.get(f"{prefix}.revision.end")
+    count = attributes.get(f"{prefix}.transition.count")
+    _require(all(type(value) is int and 0 <= value <= _SAFE_INTEGER_MAX
+                 for value in (sequence_start, sequence_end, revision, revision_end, count)),
+             "invalid_store_owner_fact", name)
+    _require(sequence_end - sequence_start == count, "invalid_store_interval", name)
+    events = sorted((event for event in _store_events(fixture, store_id)
+                     if sequence_start < event["attributes"]["junjo.store.transition.sequence"] <= sequence_end),
+                    key=lambda event: event["attributes"]["junjo.store.transition.sequence"])
+    _require(len(events) == count and all(event["attributes"]["junjo.store.transition.sequence"] == sequence_start + index
+                                         for index, event in enumerate(events, 1)), "transition_sequence_gap", name)
+    mode = attributes.get(f"{state_root}.start.mode")
+    policy = attributes.get(f"{state_root}.start.policy")
+    _require(mode == attributes.get(f"{state_root}.end.mode")
+             and policy == attributes.get(f"{state_root}.end.policy"), "payload_policy_mismatch", name)
+    inline = mode in {"full", "redacted"}
+    claimed = attributes.get(f"{prefix}.reconstructable")
+    _require(type(claimed) is bool and (not claimed or inline), "reconstructable_mismatch", name)
+    state = copy.deepcopy(start)
+    for event in events:
+        attrs = event["attributes"]
+        _require(attrs.get("junjo.store.revision.before") == revision, "revision_discontinuity", name)
+        after = attrs.get("junjo.store.revision.after")
+        _require(after in {revision, revision + 1}, "revision_discontinuity", name)
+        patch = _validate_payload_slot(attrs, "junjo.state_json_patch", name)
+        _require(attrs.get("junjo.state_json_patch.mode") == mode and attrs.get("junjo.state_json_patch.policy") == policy,
+                 "payload_policy_mismatch", name)
+        if inline:
+            state = _apply_patch(state, patch, name)
+        revision = after
+    _require(revision == revision_end, "terminal_revision_mismatch", name)
+    if inline:
+        _require(state == end, "patch_replay_mismatch", name)
 
 def _validate_definition_snapshot(
     definition: Any,
@@ -1815,6 +1876,7 @@ def _validate_agent_fixture(fixture: dict[str, Any], fixture_name: str) -> None:
     _require(bool(owners), "missing_agent_span", fixture_name)
     for owner in owners:
         attributes = owner["attributes_json"]
+        _validate_agent_application_store(fixture, attributes, fixture_name)
         for key in (
             "junjo.executable_definition_id",
             "junjo.executable_runtime_id",
@@ -2766,7 +2828,7 @@ def _contains_object_key(value: object, key: str) -> bool:
 
 def main() -> None:
     contract_version = int((CONTRACT_ROOT / "VERSION").read_text(encoding="utf-8").strip())
-    _require(contract_version == 2, "wrong_contract_version", "active VERSION must be 2")
+    _require(contract_version == 3, "wrong_contract_version", "active VERSION must be 3")
     schema_count = _validate_schema_versions(contract_version)
 
     workflow_paths = sorted((FIXTURE_ROOT / "workflow").glob("*.json"))

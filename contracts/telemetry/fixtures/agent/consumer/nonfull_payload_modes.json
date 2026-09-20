@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "nonfull_payload_modes",
   "trace_id": "9f881a30792edc17992ddf5ed808695e",
   "service_name": "svc-agent-nonfull-payload-modes",
@@ -22,7 +22,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-461ca742af89562d",
         "junjo.executable_runtime_id": "run-461ca742af89562d3619",
@@ -60,7 +60,10 @@
         "junjo.agent.input.policy": "fixture.excluded.v1",
         "junjo.agent.output.mode": "reference",
         "junjo.agent.output.policy": "fixture.reference.v1",
-        "junjo.agent.output.reference": "fixture://agent-output"
+        "junjo.agent.output.reference": "fixture://agent-output",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 3
       },
       "events_json": [
         {
@@ -106,7 +109,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-461ca742af89562d3619",

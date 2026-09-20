@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "malformed_tool_arguments",
   "trace_id": "6878b4e267ba87a7277114d8f2196f4e",
   "service_name": "svc-agent-malformed-tool-arguments",
@@ -22,7 +22,7 @@
       "status_code": "2",
       "status_message": "invalid arguments",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-aafb9ce655e22368",
         "junjo.executable_runtime_id": "run-aafb9ce655e223684076",
@@ -59,7 +59,10 @@
         "junjo.agent.state.end.mode": "full",
         "junjo.agent.state.end.policy": "junjo.full.v1",
         "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"wrong\":true}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":\"tool_input_validation_error\"}",
-        "error.type": "AgentToolInputValidationError"
+        "error.type": "AgentToolInputValidationError",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 3
       },
       "events_json": [
         {
@@ -115,7 +118,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-aafb9ce655e223684076",
@@ -200,7 +203,7 @@
       "status_code": "2",
       "status_message": "invalid arguments",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "tool",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-aafb9ce655e223684076",

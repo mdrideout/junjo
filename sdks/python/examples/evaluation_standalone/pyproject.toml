@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "junjo-evaluation-standalone"
 version = "0.1.0"
 description = "Standalone Junjo Evaluation harness declaration"
-requires-python = ">=3.11"
+requires-python = ">=3.11.9,!=3.12.0,!=3.12.1,!=3.12.2"
 dependencies = [
     "junjo",
     "opentelemetry-sdk>=1.37.0",

@@ -1,4 +1,4 @@
-"""Built-in telemetry payload-slot encoding for contract version 2."""
+"""Built-in telemetry payload-slot encoding for the active telemetry contract."""
 
 from __future__ import annotations
 

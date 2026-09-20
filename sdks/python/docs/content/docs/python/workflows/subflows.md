@@ -10,6 +10,11 @@ Junjo's `Subflow` allows you to encapsulate a sequence of operations into a reus
 
 This page will guide you through implementing Subflows and integrating them into larger workflows using Junjo's `Graph` class.
 
+Subflows keep isolated Stores and explicit `pre_run_actions` / `post_run_actions`
+even when a Workflow or Agent borrows an application Store. An Agent invoked by
+a Subflow Node can borrow that Subflow's Store; parent data still crosses the
+Subflow boundary through its actions. See [Store composition](/docs/python/agents/composition/).
+
 ## What is a Subflow?
 
 A Subflow in Junjo is a specialized workflow that:

@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "nested_workflow_failure",
   "trace_id": "a9c3e10152e11beddda43db1f0230f81",
   "service_name": "svc-agent-nested-workflow-failure",
@@ -22,7 +22,7 @@
       "status_code": "2",
       "status_message": "nested failure",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-ac4f405481596b71",
         "junjo.executable_runtime_id": "run-ac4f405481596b711262",
@@ -59,7 +59,10 @@
         "junjo.agent.state.end.mode": "full",
         "junjo.agent.state.end.policy": "junjo.full.v1",
         "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[\"call-1\"],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":\"tool_error\"}",
-        "error.type": "AgentToolError"
+        "error.type": "AgentToolError",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 5
       },
       "events_json": [
         {
@@ -132,7 +135,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-ac4f405481596b711262",
@@ -217,7 +220,7 @@
       "status_code": "2",
       "status_message": "nested failure",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "tool",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-ac4f405481596b711262",
@@ -291,7 +294,7 @@
       "status_code": "2",
       "status_message": "nested failure",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow-definition-ac4f405481",
         "junjo.executable_runtime_id": "workflow-run-ac4f405481",
@@ -314,7 +317,9 @@
         "junjo.workflow.state.end.mode": "full",
         "junjo.workflow.state.end.policy": "junjo.full.v1",
         "junjo.workflow.state.end": "{\"value\":\"result-1\"}",
-        "error.type": "RuntimeError"
+        "error.type": "RuntimeError",
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 0
       },
       "events_json": [
         {
@@ -353,7 +358,7 @@
       "status_code": "2",
       "status_message": "nested failure",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node-definition-ac4f405481",
         "junjo.executable_runtime_id": "node-run-ac4f405481",

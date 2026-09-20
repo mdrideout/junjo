@@ -279,9 +279,15 @@ metrics to another destination independently.
 
 For direct model-client calls, use appropriate instrumentation in your
 application's trace pipeline. Model prompts, responses, usage, and parameters
-appear only when the source emits them. The [OpenTelemetry guide](/docs/observability/opentelemetry/)
-owns provider configuration and examples. Avoid adding a second model
-instrumentor over an already translated OpenAI Agents SDK operation.
+appear only when the source emits them. The
+[native model SDKs with OpenInference guide](/docs/observability/opentelemetry/#native-model-sdks-with-openinference)
+owns package installation, shared-provider initialization, capture controls,
+and trace verification. Its runnable
+[junjo_openai_sdk example](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/junjo_openai_sdk)
+combines an OpenAI client with a native Junjo Agent, direct Node tool, conditional
+Workflow tool, and shared application Store. Use the guide's instrumentation
+ownership guidance when combining this with the separate OpenAI Agents SDK
+tracing bridge.
 
 ## Junjo-Specific Telemetry Attributes
 

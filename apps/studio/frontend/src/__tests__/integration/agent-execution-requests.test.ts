@@ -112,7 +112,7 @@ describe('Agent semantic API requests', () => {
       issue: {
         code: 'unsupported_contract_version',
         path: 'resource.contract_version',
-        message: 'Expected contract version 2.',
+        message: 'Expected contract version 3.',
       },
     })
     server.use(

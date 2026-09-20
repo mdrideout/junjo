@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router'
 import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { loadJunjoTransportFixtureCase } from '../../../test-utils/junjo-fixture-loader'
 import FlatStateEventsList from '../span-lists/FlatStateEventsList'
 import {
@@ -30,8 +30,16 @@ import {
   type StateEventSelection,
 } from './state-event-identity'
 import { WorkflowDetailRouteProvider } from './workflow-detail-route'
+import { selectWorkflowStoreViewOwner } from '../../traces/store/selectors'
+import type { RootState } from '../../../root-store/store'
 
 const testDirectory = path.dirname(fileURLToPath(import.meta.url))
+const originalScrollIntoView = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView')
+beforeAll(() => { HTMLElement.prototype.scrollIntoView = vi.fn() })
+afterAll(() => {
+  if (originalScrollIntoView) Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', originalScrollIntoView)
+  else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+})
 const workflowProjectionPath = path.resolve(
   testDirectory,
   '../../workflow-executions/testing/workflow-store-projections.json',
@@ -271,4 +279,65 @@ describe('Workflow Store transition navigation', () => {
       }
     }
   })
+})
+
+it.each(['next', 'row'])('keeps a sibling Store writer outside the Workflow when selected by %s', async (control) => {
+  const { spans, diagnostic } = loadCase()
+  const ordered = [...diagnostic.state.transitions].sort((a, b) => a.sequence - b.sequence)
+  const sibling = spans.find((span) => span.span_id === ordered[1].span_id)!
+  sibling.parent_span_id = null
+  const store = makeStore(spans)
+  const before = store.getState().workflowDetailState.activeSpanIdentity
+  render(
+    <Provider store={store}>
+      <WorkflowRoute diagnostic={diagnostic}>
+        <WorkflowStateEventNavButtons traceId={diagnostic.trace_id}
+          ownerSpanId={diagnostic.workflow_span_id} storeId={diagnostic.state.store_id}
+          transitions={diagnostic.state.transitions} />
+        <FlatStateEventsList traceId={diagnostic.trace_id} workflowSpanId={diagnostic.workflow_span_id}
+          storeDiagnosticRequest={{ data: diagnostic, loading: false, error: null }} />
+      </WorkflowRoute>
+    </Provider>,
+  )
+  const target = control === 'next'
+    ? screen.getByRole('button', { name: 'Next Store transition' })
+    : screen.getByRole('button', { name: new RegExp(ordered[1].event_id) })
+  expect(target).toBeEnabled()
+  await userEvent.click(target)
+  expect(store.getState().workflowDetailState.activeSpanIdentity).toEqual(before)
+  const selected = store.getState().workflowDetailState.activeStateEvent!
+  expect(selected.spanId).toBe(sibling.span_id)
+  expect(selected.viewOwnerSpanId).toBe(diagnostic.workflow_span_id)
+})
+
+it('keeps the same execution interval when a nested mutation is reached by row or Next', async () => {
+  const { spans, diagnostic } = loadCase()
+  const writer = spans.find((span) => span.span_id === '1111111111111113')!
+  const nested = structuredClone(spans.find((span) => span.span_id === diagnostic.workflow_span_id)!)
+  nested.span_id = '2222222222222222'
+  nested.parent_span_id = diagnostic.workflow_span_id
+  writer.parent_span_id = nested.span_id
+  spans.push(nested)
+  const store = makeStore(spans)
+  render(
+    <Provider store={store}>
+      <WorkflowRoute diagnostic={diagnostic}>
+        <FlatStateEventsList traceId={diagnostic.trace_id} workflowSpanId={diagnostic.workflow_span_id}
+          storeDiagnosticRequest={{ data: diagnostic, loading: false, error: null }} />
+        <WorkflowStateEventNavButtons traceId={diagnostic.trace_id}
+          ownerSpanId={diagnostic.workflow_span_id} storeId={diagnostic.state.store_id}
+          transitions={diagnostic.state.transitions} />
+      </WorkflowRoute>
+    </Provider>,
+  )
+  await userEvent.click(screen.getByRole('button', { name: /state-event-basic-02/ }))
+  const directSelection = store.getState().workflowDetailState.activeStateEvent
+  expect(selectWorkflowStoreViewOwner(store.getState() as RootState, { traceId: diagnostic.trace_id })?.span_id)
+    .toBe(diagnostic.workflow_span_id)
+  expect(screen.getByText('(2 / 2)')).toBeVisible()
+  await userEvent.click(screen.getByRole('button', { name: 'Previous Store transition' }))
+  expect(screen.getByText('(1 / 2)')).toBeVisible()
+  await userEvent.click(screen.getByRole('button', { name: 'Next Store transition' }))
+  expect(store.getState().workflowDetailState.activeStateEvent).toEqual(directSelection)
+  expect(store.getState().workflowDetailState.activeSpanIdentity?.spanId).toBe(writer.span_id)
 })

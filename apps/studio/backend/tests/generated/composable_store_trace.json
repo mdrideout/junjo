@@ -1,0 +1,2984 @@
+{
+  "trace_id": "9c741615a324c2c0ccae725f59524801",
+  "spans": [
+    {
+      "trace_id": "9c741615a324c2c0ccae725f59524801",
+      "span_id": "0301fb3badc52d94",
+      "parent_span_id": null,
+      "service_name": "svc-agent-shared-application-store",
+      "name": "Fixture Agent",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.000000+00:00",
+      "end_time": "2026-07-13T12:00:00.000500+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 3,
+        "junjo.span_type": "agent",
+        "junjo.executable_definition_id": "definition-ed398b285cc38561",
+        "junjo.executable_runtime_id": "run-ed398b285cc38561d7eb",
+        "junjo.executable_structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
+        "junjo.agent.key": "fixture_agent",
+        "junjo.agent.name": "Fixture Agent",
+        "junjo.agent.runtime_id": "run-ed398b285cc38561d7eb",
+        "junjo.agent.state.available": true,
+        "junjo.agent.store.id": "store-ed398b285cc38561",
+        "junjo.agent.limit.model_requests": 4,
+        "junjo.agent.limit.tool_calls": 4,
+        "junjo.agent.operation.count": 3,
+        "junjo.agent.model_request.count": 2,
+        "junjo.agent.tool_call.requested_count": 1,
+        "junjo.agent.tool_call.admitted_count": 1,
+        "junjo.agent.tool_call.started_count": 1,
+        "junjo.agent.tool_call.completed_count": 1,
+        "junjo.agent.usage": "{\"v\":1,\"modelResponses\":2,\"fields\":{\"inputTokens\":{\"sum\":20,\"observations\":2},\"outputTokens\":{\"sum\":8,\"observations\":2},\"totalTokens\":{\"sum\":28,\"observations\":2}}}",
+        "junjo.agent.outcome": "completed",
+        "junjo.agent.termination_reason": "final_output",
+        "junjo.store.revision.start": 0,
+        "junjo.store.revision.end": 8,
+        "junjo.store.transition.count": 8,
+        "junjo.store.reconstructable": true,
+        "junjo.agent.definition_snapshot.mode": "full",
+        "junjo.agent.definition_snapshot.policy": "junjo.full.v1",
+        "junjo.agent.definition_snapshot": "{\"v\":1,\"agentKey\":\"fixture_agent\",\"name\":\"Fixture Agent\",\"instructions\":\"Answer with deterministic fixture evidence.\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"question\"],\"properties\":{\"question\":{\"type\":\"string\"}}},\"model\":{\"driverKey\":\"scripted\",\"provider\":\"junjo\",\"model\":\"scripted-v1\",\"fixture\":true,\"settings\":{}},\"tools\":[{\"name\":\"lookup\",\"description\":\"Run lookup\",\"structuralId\":\"tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"string\"}}}}],\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"answer\"],\"properties\":{\"answer\":{\"type\":\"string\"}}},\"limits\":{\"modelRequests\":4,\"toolCalls\":4},\"structuralId\":\"agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456\"}",
+        "junjo.agent.input.mode": "full",
+        "junjo.agent.input.policy": "junjo.full.v1",
+        "junjo.agent.input": "{\"question\":\"fixture?\"}",
+        "junjo.agent.state.start.mode": "full",
+        "junjo.agent.state.start.policy": "junjo.full.v1",
+        "junjo.agent.state.start": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"model_iteration\":0,\"model_request_count\":0,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":0,\"fields\":{}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}",
+        "junjo.agent.state.end.mode": "full",
+        "junjo.agent.state.end.policy": "junjo.full.v1",
+        "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}},{\"type\":\"assistant_output\",\"output\":{\"answer\":\"done\"}}],\"model_iteration\":2,\"model_request_count\":2,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":2,\"fields\":{\"inputTokens\":{\"sum\":20,\"observations\":2},\"outputTokens\":{\"sum\":8,\"observations\":2},\"totalTokens\":{\"sum\":28,\"observations\":2}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":true,\"final_output\":{\"answer\":\"done\"},\"terminal_reason\":\"final_output\"}",
+        "junjo.agent.output.mode": "full",
+        "junjo.agent.output.policy": "junjo.full.v1",
+        "junjo.agent.output": "{\"answer\":\"done\"}",
+        "junjo.agent.application_state.available": true,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 8,
+        "junjo.agent.application_store.revision.start": 1,
+        "junjo.agent.application_store.revision.end": 4,
+        "junjo.agent.application_store.transition.start": 2,
+        "junjo.agent.application_store.transition.end": 5,
+        "junjo.agent.application_store.transition.count": 3,
+        "junjo.agent.application_store.reconstructable": true,
+        "junjo.agent.application_state.start.mode": "full",
+        "junjo.agent.application_state.start.policy": "junjo.full.v1",
+        "junjo.agent.application_state.start": "{\"value\":\"prepared\"}",
+        "junjo.agent.application_state.end.mode": "full",
+        "junjo.agent.application_state.end.policy": "junjo.full.v1",
+        "junjo.agent.application_state.end": "{\"value\":\"after\"}",
+        "junjo.agent.application_store.id": "workflow-store-ed398b285c"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000003",
+          "attributes": {
+            "id": "event-fdf6e13cf571",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-ed398b285cc38561",
+            "junjo.store.action": "admit_tool_batch",
+            "junjo.store.transition.sequence": 3,
+            "junjo.store.revision.before": 2,
+            "junjo.store.revision.after": 3,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[\"call-1\"],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000008",
+          "attributes": {
+            "id": "event-7b3cc7e19cff",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-ed398b285cc38561",
+            "junjo.store.action": "commit_success",
+            "junjo.store.transition.sequence": 8,
+            "junjo.store.revision.before": 7,
+            "junjo.store.revision.after": 8,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}},{\"type\":\"assistant_output\",\"output\":{\"answer\":\"done\"}}],\"model_iteration\":2,\"model_request_count\":2,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":2,\"fields\":{\"inputTokens\":{\"sum\":20,\"observations\":2},\"outputTokens\":{\"sum\":8,\"observations\":2},\"totalTokens\":{\"sum\":28,\"observations\":2}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":true,\"final_output\":{\"answer\":\"done\"},\"terminal_reason\":\"final_output\"}}]"
+          },
+          "droppedAttributesCount": 0
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 3,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0,
+      "resource_attributes_json": {
+        "service.name": "svc-agent-shared-application-store",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0
+    },
+    {
+      "trace_id": "9c741615a324c2c0ccae725f59524801",
+      "span_id": "0228ba656f80ac6f",
+      "parent_span_id": "0301fb3badc52d94",
+      "service_name": "svc-agent-shared-application-store",
+      "name": "model request 1",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.001000+00:00",
+      "end_time": "2026-07-13T12:00:00.001500+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 3,
+        "junjo.agent.operation_type": "model_request",
+        "junjo.agent.key": "fixture_agent",
+        "junjo.agent.runtime_id": "run-ed398b285cc38561d7eb",
+        "junjo.agent.operation.sequence": 1,
+        "junjo.agent.model_request.ordinal": 1,
+        "junjo.agent.model_request.state_revision": 1,
+        "junjo.agent.model.driver_key": "scripted",
+        "junjo.agent.model.provider": "junjo",
+        "junjo.agent.model.name": "scripted-v1",
+        "junjo.model.fixture": true,
+        "junjo.agent.model.response_candidate.available": true,
+        "junjo.agent.model.response_type": "tool_calls",
+        "junjo.agent.model.usage": "{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}",
+        "junjo.agent.model.request.mode": "full",
+        "junjo.agent.model.request.policy": "junjo.full.v1",
+        "junjo.agent.model.request": "{\"v\":1,\"agentKey\":\"fixture_agent\",\"runId\":\"run-ed398b285cc38561d7eb\",\"ordinal\":1,\"instructions\":\"Answer with deterministic fixture evidence.\",\"messages\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"tools\":[{\"name\":\"lookup\",\"description\":\"Run lookup\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"string\"}}}}],\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"answer\"],\"properties\":{\"answer\":{\"type\":\"string\"}}}}",
+        "junjo.agent.model.response_candidate.mode": "full",
+        "junjo.agent.model.response_candidate.policy": "junjo.full.v1",
+        "junjo.agent.model.response_candidate": "{\"v\":1,\"type\":\"tool_calls\",\"assistantText\":\"Using tools\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"usage\":{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}}",
+        "junjo.agent.model.response.mode": "full",
+        "junjo.agent.model.response.policy": "junjo.full.v1",
+        "junjo.agent.model.response": "{\"v\":1,\"type\":\"tool_calls\",\"assistantText\":\"Using tools\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"usage\":{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}}"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000001",
+          "attributes": {
+            "id": "event-8b1c7f7d710c",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-ed398b285cc38561",
+            "junjo.store.action": "record_model_start",
+            "junjo.store.transition.sequence": 1,
+            "junjo.store.revision.before": 0,
+            "junjo.store.revision.after": 1,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":0,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":0,\"fields\":{}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000002",
+          "attributes": {
+            "id": "event-edc903434f76",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-ed398b285cc38561",
+            "junjo.store.action": "record_model_response",
+            "junjo.store.transition.sequence": 2,
+            "junjo.store.revision.before": 1,
+            "junjo.store.revision.after": 2,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 3,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0,
+      "resource_attributes_json": {
+        "service.name": "svc-agent-shared-application-store",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0
+    },
+    {
+      "trace_id": "9c741615a324c2c0ccae725f59524801",
+      "span_id": "1b47233a2ec714f1",
+      "parent_span_id": "0301fb3badc52d94",
+      "service_name": "svc-agent-shared-application-store",
+      "name": "tool lookup",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.002000+00:00",
+      "end_time": "2026-07-13T12:00:00.002500+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 3,
+        "junjo.agent.operation_type": "tool",
+        "junjo.agent.key": "fixture_agent",
+        "junjo.agent.runtime_id": "run-ed398b285cc38561d7eb",
+        "junjo.agent.operation.sequence": 2,
+        "junjo.agent.tool_call.id": "call-1",
+        "junjo.agent.tool_call.ordinal": 1,
+        "junjo.agent.tool.name": "lookup",
+        "junjo.agent.tool.structural_id": "tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab",
+        "junjo.agent.tool.state_revision.before": 3,
+        "junjo.agent.tool.state_revision.after": 5,
+        "junjo.agent.tool.result_candidate.available": true,
+        "junjo.agent.tool.requested_arguments.mode": "full",
+        "junjo.agent.tool.requested_arguments.policy": "junjo.full.v1",
+        "junjo.agent.tool.requested_arguments": "{\"query\":\"q1\"}",
+        "junjo.agent.tool.arguments.mode": "full",
+        "junjo.agent.tool.arguments.policy": "junjo.full.v1",
+        "junjo.agent.tool.arguments": "{\"query\":\"q1\"}",
+        "junjo.agent.tool.result_candidate.mode": "full",
+        "junjo.agent.tool.result_candidate.policy": "junjo.full.v1",
+        "junjo.agent.tool.result_candidate": "{\"value\":\"result-1\"}",
+        "junjo.agent.tool.result.mode": "full",
+        "junjo.agent.tool.result.policy": "junjo.full.v1",
+        "junjo.agent.tool.result": "{\"value\":\"result-1\"}"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000004",
+          "attributes": {
+            "id": "event-41bf02198891",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-ed398b285cc38561",
+            "junjo.store.action": "record_tool_started",
+            "junjo.store.transition.sequence": 4,
+            "junjo.store.revision.before": 3,
+            "junjo.store.revision.after": 4,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[\"call-1\"],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000005",
+          "attributes": {
+            "id": "event-60ff298ea68a",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-ed398b285cc38561",
+            "junjo.store.action": "record_tool_result",
+            "junjo.store.transition.sequence": 5,
+            "junjo.store.revision.before": 4,
+            "junjo.store.revision.after": 5,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000001003",
+          "attributes": {
+            "id": "event-shared-3",
+            "junjo.store.name": "NestedStore",
+            "junjo.store.id": "workflow-store-ed398b285c",
+            "junjo.store.action": "write_value",
+            "junjo.store.transition.sequence": 3,
+            "junjo.store.revision.before": 1,
+            "junjo.store.revision.after": 2,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/value\",\"value\":\"tool\"}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000001005",
+          "attributes": {
+            "id": "event-shared-5",
+            "junjo.store.name": "NestedStore",
+            "junjo.store.id": "workflow-store-ed398b285c",
+            "junjo.store.action": "write_value",
+            "junjo.store.transition.sequence": 5,
+            "junjo.store.revision.before": 3,
+            "junjo.store.revision.after": 4,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/value\",\"value\":\"after\"}]"
+          },
+          "droppedAttributesCount": 0
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 3,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0,
+      "resource_attributes_json": {
+        "service.name": "svc-agent-shared-application-store",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0
+    },
+    {
+      "trace_id": "9c741615a324c2c0ccae725f59524801",
+      "span_id": "e6d98e6b749e4065",
+      "parent_span_id": "0301fb3badc52d94",
+      "service_name": "svc-agent-shared-application-store",
+      "name": "model request 2",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.003000+00:00",
+      "end_time": "2026-07-13T12:00:00.003500+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 3,
+        "junjo.agent.operation_type": "model_request",
+        "junjo.agent.key": "fixture_agent",
+        "junjo.agent.runtime_id": "run-ed398b285cc38561d7eb",
+        "junjo.agent.operation.sequence": 3,
+        "junjo.agent.model_request.ordinal": 2,
+        "junjo.agent.model_request.state_revision": 6,
+        "junjo.agent.model.driver_key": "scripted",
+        "junjo.agent.model.provider": "junjo",
+        "junjo.agent.model.name": "scripted-v1",
+        "junjo.model.fixture": true,
+        "junjo.agent.model.response_candidate.available": true,
+        "junjo.agent.model.response_type": "final_output",
+        "junjo.agent.model.usage": "{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}",
+        "junjo.agent.model.request.mode": "full",
+        "junjo.agent.model.request.policy": "junjo.full.v1",
+        "junjo.agent.model.request": "{\"v\":1,\"agentKey\":\"fixture_agent\",\"runId\":\"run-ed398b285cc38561d7eb\",\"ordinal\":2,\"instructions\":\"Answer with deterministic fixture evidence.\",\"messages\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}}],\"tools\":[{\"name\":\"lookup\",\"description\":\"Run lookup\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\"}}},\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"value\"],\"properties\":{\"value\":{\"type\":\"string\"}}}}],\"outputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"answer\"],\"properties\":{\"answer\":{\"type\":\"string\"}}}}",
+        "junjo.agent.model.response_candidate.mode": "full",
+        "junjo.agent.model.response_candidate.policy": "junjo.full.v1",
+        "junjo.agent.model.response_candidate": "{\"v\":1,\"type\":\"final_output\",\"output\":{\"answer\":\"done\"},\"usage\":{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}}",
+        "junjo.agent.model.response.mode": "full",
+        "junjo.agent.model.response.policy": "junjo.full.v1",
+        "junjo.agent.model.response": "{\"v\":1,\"type\":\"final_output\",\"output\":{\"answer\":\"done\"},\"usage\":{\"v\":1,\"inputTokens\":10,\"outputTokens\":4,\"totalTokens\":14}}"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000006",
+          "attributes": {
+            "id": "event-5a1ca6e95786",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-ed398b285cc38561",
+            "junjo.store.action": "record_model_start",
+            "junjo.store.transition.sequence": 6,
+            "junjo.store.revision.before": 5,
+            "junjo.store.revision.after": 6,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}}],\"model_iteration\":2,\"model_request_count\":2,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        },
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000000007",
+          "attributes": {
+            "id": "event-bcec255d335c",
+            "junjo.store.name": "AgentStore",
+            "junjo.store.id": "store-ed398b285cc38561",
+            "junjo.store.action": "record_model_response",
+            "junjo.store.transition.sequence": 7,
+            "junjo.store.revision.before": 6,
+            "junjo.store.revision.after": 7,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"\",\"value\":{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}}],\"model_iteration\":2,\"model_request_count\":2,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":2,\"fields\":{\"inputTokens\":{\"sum\":20,\"observations\":2},\"outputTokens\":{\"sum\":8,\"observations\":2},\"totalTokens\":{\"sum\":28,\"observations\":2}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":null}}]"
+          },
+          "droppedAttributesCount": 0
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 3,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0,
+      "resource_attributes_json": {
+        "service.name": "svc-agent-shared-application-store",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0
+    },
+    {
+      "trace_id": "9c741615a324c2c0ccae725f59524801",
+      "span_id": "cafbeea4998ba018",
+      "parent_span_id": "1b47233a2ec714f1",
+      "service_name": "svc-agent-shared-application-store",
+      "name": "nested workflow",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.100000+00:00",
+      "end_time": "2026-07-13T12:00:00.100500+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 3,
+        "junjo.span_type": "workflow",
+        "junjo.executable_definition_id": "workflow-definition-ed398b285c",
+        "junjo.executable_runtime_id": "workflow-run-ed398b285c",
+        "junjo.executable_structural_id": "graph-ed398b285cc38561",
+        "junjo.enclosing_graph_structural_id": "graph-ed398b285cc38561",
+        "junjo.parent_executable_definition_id": "definition-ed398b285cc38561",
+        "junjo.parent_executable_runtime_id": "run-ed398b285cc38561d7eb",
+        "junjo.parent_executable_structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
+        "junjo.parent_executable_type": "agent",
+        "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-ed398b285cc38561\",\"nodes\":[{\"nodeRuntimeId\":\"node-ed398b285c\",\"nodeStructuralId\":\"node-struct-ed398b285c\",\"nodeType\":\"NestedNode\",\"nodeLabel\":\"nested node\"}],\"edges\":[]}",
+        "junjo.workflow.store.id": "workflow-store-ed398b285c",
+        "junjo.store.revision.start": 2,
+        "junjo.store.revision.end": 3,
+        "junjo.store.transition.count": 1,
+        "junjo.store.reconstructable": true,
+        "junjo.workflow.node.count": 1,
+        "junjo.workflow.state.start.mode": "full",
+        "junjo.workflow.state.start.policy": "junjo.full.v1",
+        "junjo.workflow.state.start": "{\"value\":\"tool\"}",
+        "junjo.workflow.state.end.mode": "full",
+        "junjo.workflow.state.end.policy": "junjo.full.v1",
+        "junjo.workflow.state.end": "{\"value\":\"result-1\"}",
+        "junjo.store.transition.start": 3,
+        "junjo.store.transition.end": 4
+      },
+      "events_json": [],
+      "links_json": [],
+      "trace_flags": 3,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0,
+      "resource_attributes_json": {
+        "service.name": "svc-agent-shared-application-store",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0
+    },
+    {
+      "trace_id": "9c741615a324c2c0ccae725f59524801",
+      "span_id": "8ea8648968a16aa4",
+      "parent_span_id": "cafbeea4998ba018",
+      "service_name": "svc-agent-shared-application-store",
+      "name": "nested node",
+      "kind": "INTERNAL",
+      "start_time": "2026-07-13T12:00:00.101000+00:00",
+      "end_time": "2026-07-13T12:00:00.101500+00:00",
+      "status_code": "0",
+      "status_message": "",
+      "attributes_json": {
+        "junjo.telemetry.contract_version": 3,
+        "junjo.span_type": "node",
+        "junjo.executable_definition_id": "node-definition-ed398b285c",
+        "junjo.executable_runtime_id": "node-run-ed398b285c",
+        "junjo.executable_structural_id": "node-struct-ed398b285c",
+        "junjo.enclosing_graph_structural_id": "graph-ed398b285cc38561",
+        "junjo.parent_executable_definition_id": "workflow-definition-ed398b285c",
+        "junjo.parent_executable_runtime_id": "workflow-run-ed398b285c",
+        "junjo.parent_executable_structural_id": "graph-ed398b285cc38561"
+      },
+      "events_json": [
+        {
+          "name": "set_state",
+          "timeUnixNano": "1783944000000001004",
+          "attributes": {
+            "id": "event-shared-4",
+            "junjo.store.name": "NestedStore",
+            "junjo.store.id": "workflow-store-ed398b285c",
+            "junjo.store.action": "write_value",
+            "junjo.store.transition.sequence": 4,
+            "junjo.store.revision.before": 2,
+            "junjo.store.revision.after": 3,
+            "junjo.state_json_patch.mode": "full",
+            "junjo.state_json_patch.policy": "junjo.full.v1",
+            "junjo.state_json_patch": "[{\"op\":\"replace\",\"path\":\"/value\",\"value\":\"result-1\"}]"
+          },
+          "droppedAttributesCount": 0
+        }
+      ],
+      "links_json": [],
+      "trace_flags": 3,
+      "trace_state": "junjo=fixture",
+      "dropped_attributes_count": 0,
+      "dropped_events_count": 0,
+      "dropped_links_count": 0,
+      "resource_attributes_json": {
+        "service.name": "svc-agent-shared-application-store",
+        "service.namespace": "junjo.contract",
+        "service.version": "2.0.0"
+      },
+      "resource_dropped_attributes_count": 0
+    }
+  ],
+  "executables_by_span_id": {
+    "0301fb3badc52d94": {
+      "executable_type": "agent",
+      "owner_span_id": "0301fb3badc52d94",
+      "runtime_id": "run-ed398b285cc38561d7eb",
+      "stores": {
+        "runtime": {
+          "available": true,
+          "store_id": "store-ed398b285cc38561",
+          "sequence_start": 0,
+          "sequence_end": 8,
+          "revision_start": 0,
+          "revision_end": 8,
+          "transition_count": 8,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "input": {
+                "question": "fixture?"
+              },
+              "history": [],
+              "transcript": [
+                {
+                  "type": "agent_input",
+                  "input": {
+                    "question": "fixture?"
+                  }
+                }
+              ],
+              "model_iteration": 0,
+              "model_request_count": 0,
+              "tool_call_requested_count": 0,
+              "tool_call_admitted_count": 0,
+              "tool_call_started_count": 0,
+              "tool_call_completed_count": 0,
+              "usage": {
+                "v": 1,
+                "modelResponses": 0,
+                "fields": {}
+              },
+              "admitted_tool_call_ids": [],
+              "pending_tool_call_ids": [],
+              "completed_tool_call_ids": [],
+              "final_output_available": false,
+              "final_output": null,
+              "terminal_reason": null
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "input": {
+                "question": "fixture?"
+              },
+              "history": [],
+              "transcript": [
+                {
+                  "type": "agent_input",
+                  "input": {
+                    "question": "fixture?"
+                  }
+                },
+                {
+                  "type": "assistant_tool_calls",
+                  "calls": [
+                    {
+                      "id": "call-1",
+                      "name": "lookup",
+                      "arguments": {
+                        "query": "q1"
+                      }
+                    }
+                  ],
+                  "assistantText": "Using tools"
+                },
+                {
+                  "type": "tool_result",
+                  "callId": "call-1",
+                  "toolName": "lookup",
+                  "result": {
+                    "value": "result-1"
+                  }
+                },
+                {
+                  "type": "assistant_output",
+                  "output": {
+                    "answer": "done"
+                  }
+                }
+              ],
+              "model_iteration": 2,
+              "model_request_count": 2,
+              "tool_call_requested_count": 1,
+              "tool_call_admitted_count": 1,
+              "tool_call_started_count": 1,
+              "tool_call_completed_count": 1,
+              "usage": {
+                "v": 1,
+                "modelResponses": 2,
+                "fields": {
+                  "inputTokens": {
+                    "sum": 20,
+                    "observations": 2
+                  },
+                  "outputTokens": {
+                    "sum": 8,
+                    "observations": 2
+                  },
+                  "totalTokens": {
+                    "sum": 28,
+                    "observations": 2
+                  }
+                }
+              },
+              "admitted_tool_call_ids": [
+                "call-1"
+              ],
+              "pending_tool_call_ids": [],
+              "completed_tool_call_ids": [
+                "call-1"
+              ],
+              "final_output_available": true,
+              "final_output": {
+                "answer": "done"
+              },
+              "terminal_reason": "final_output"
+            },
+            "reference": null,
+            "reason": null
+          }
+        },
+        "application": {
+          "available": true,
+          "store_id": "workflow-store-ed398b285c",
+          "sequence_start": 2,
+          "sequence_end": 5,
+          "revision_start": 1,
+          "revision_end": 4,
+          "transition_count": 3,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "value": "prepared"
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "value": "after"
+            },
+            "reference": null,
+            "reason": null
+          }
+        }
+      },
+      "summary": {
+        "trace_id": "9c741615a324c2c0ccae725f59524801",
+        "agent_span_id": "0301fb3badc52d94",
+        "service": {
+          "namespace": "junjo.contract",
+          "name": "svc-agent-shared-application-store",
+          "version": "2.0.0"
+        },
+        "agent_key": "fixture_agent",
+        "agent_name": "Fixture Agent",
+        "structural_id": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456",
+        "definition_id": "definition-ed398b285cc38561",
+        "runtime_id": "run-ed398b285cc38561d7eb",
+        "start_time": "2026-07-13T12:00:00Z",
+        "end_time": "2026-07-13T12:00:00.000500Z",
+        "duration_ns": 500000,
+        "outcome": "completed",
+        "termination_reason": "final_output",
+        "limits": {
+          "model_requests": 4,
+          "tool_calls": 4
+        },
+        "counts": {
+          "operations": 3,
+          "model_requests": 2,
+          "tool_calls": {
+            "requested": 1,
+            "admitted": 1,
+            "started": 1,
+            "completed": 1
+          }
+        },
+        "usage": {
+          "model_responses": 2,
+          "fields": {
+            "inputTokens": {
+              "sum": 20,
+              "observations": 2
+            },
+            "outputTokens": {
+              "sum": 8,
+              "observations": 2
+            },
+            "totalTokens": {
+              "sum": 28,
+              "observations": 2
+            }
+          }
+        }
+      },
+      "definition": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "value": {
+          "v": 1,
+          "agentKey": "fixture_agent",
+          "name": "Fixture Agent",
+          "instructions": "Answer with deterministic fixture evidence.",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "question"
+            ],
+            "properties": {
+              "question": {
+                "type": "string"
+              }
+            }
+          },
+          "model": {
+            "driverKey": "scripted",
+            "provider": "junjo",
+            "model": "scripted-v1",
+            "fixture": true,
+            "settings": {}
+          },
+          "tools": [
+            {
+              "name": "lookup",
+              "description": "Run lookup",
+              "structuralId": "tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab",
+              "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                }
+              },
+              "outputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ],
+          "outputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "answer"
+            ],
+            "properties": {
+              "answer": {
+                "type": "string"
+              }
+            }
+          },
+          "limits": {
+            "modelRequests": 4,
+            "toolCalls": 4
+          },
+          "structuralId": "agent_sha256:378b3e2c3a073be2ae92038fa377917ea92ea9d329b899b72a6e3aaf0eb9e456"
+        },
+        "reference": null,
+        "reason": null
+      },
+      "input": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "value": {
+          "question": "fixture?"
+        },
+        "reference": null,
+        "reason": null
+      },
+      "output": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "value": {
+          "answer": "done"
+        },
+        "reference": null,
+        "reason": null
+      },
+      "input_candidate": null,
+      "history_candidate": null,
+      "error": null,
+      "cancellation": null,
+      "integrity": {
+        "status": "complete",
+        "diagnostics": [],
+        "loss_counts": {
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0,
+          "event_dropped_attributes": 0
+        }
+      }
+    },
+    "cafbeea4998ba018": {
+      "executable_type": "workflow",
+      "owner_span_id": "cafbeea4998ba018",
+      "name": "nested workflow",
+      "definition_id": "workflow-definition-ed398b285c",
+      "runtime_id": "workflow-run-ed398b285c",
+      "structural_id": "graph-ed398b285cc38561",
+      "stores": {
+        "application": {
+          "available": true,
+          "store_id": "workflow-store-ed398b285c",
+          "sequence_start": 3,
+          "sequence_end": 4,
+          "revision_start": 2,
+          "revision_end": 3,
+          "transition_count": 1,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "value": "tool"
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "value": "result-1"
+            },
+            "reference": null,
+            "reason": null
+          }
+        }
+      },
+      "integrity": {
+        "status": "complete",
+        "diagnostics": [],
+        "loss_counts": {
+          "resource_dropped_attributes": 0,
+          "span_dropped_attributes": 0,
+          "span_dropped_events": 0,
+          "span_dropped_links": 0,
+          "event_dropped_attributes": 0
+        }
+      }
+    }
+  },
+  "operations_by_owner_runtime_id": {
+    "run-ed398b285cc38561d7eb": {
+      "0228ba656f80ac6f": {
+        "operation_type": "model_request",
+        "sequence": 1,
+        "span_id": "0228ba656f80ac6f",
+        "start_time": "2026-07-13T12:00:00.001000Z",
+        "end_time": "2026-07-13T12:00:00.001500Z",
+        "duration_ns": 500000,
+        "ordinal": 1,
+        "state_revision": 1,
+        "driver_key": "scripted",
+        "provider": "junjo",
+        "model_name": "scripted-v1",
+        "request": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "value": {
+            "v": 1,
+            "agentKey": "fixture_agent",
+            "runId": "run-ed398b285cc38561d7eb",
+            "ordinal": 1,
+            "instructions": "Answer with deterministic fixture evidence.",
+            "messages": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "lookup",
+                "description": "Run lookup",
+                "inputSchema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "outputSchema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ],
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "answer"
+              ],
+              "properties": {
+                "answer": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "reference": null,
+          "reason": null
+        },
+        "response_candidate": {
+          "available": true,
+          "payload": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "v": 1,
+              "type": "tool_calls",
+              "assistantText": "Using tools",
+              "calls": [
+                {
+                  "id": "call-1",
+                  "name": "lookup",
+                  "arguments": {
+                    "query": "q1"
+                  }
+                }
+              ],
+              "usage": {
+                "v": 1,
+                "inputTokens": 10,
+                "outputTokens": 4,
+                "totalTokens": 14
+              }
+            },
+            "reference": null,
+            "reason": null
+          },
+          "unavailable_reason": null
+        },
+        "response_type": "tool_calls",
+        "response": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "value": {
+            "v": 1,
+            "type": "tool_calls",
+            "assistantText": "Using tools",
+            "calls": [
+              {
+                "id": "call-1",
+                "name": "lookup",
+                "arguments": {
+                  "query": "q1"
+                }
+              }
+            ],
+            "usage": {
+              "v": 1,
+              "inputTokens": 10,
+              "outputTokens": 4,
+              "totalTokens": 14
+            }
+          },
+          "reference": null,
+          "reason": null
+        },
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 4,
+          "cached_input_tokens": null,
+          "reasoning_tokens": null,
+          "total_tokens": 14
+        },
+        "requested_tool_calls": [
+          {
+            "call_id": "call-1",
+            "ordinal": 1,
+            "tool_name": "lookup",
+            "observed_tool_operation": true,
+            "admission": "admitted",
+            "reason": null
+          }
+        ],
+        "outcome": "completed",
+        "error": null,
+        "cancellation": null
+      },
+      "1b47233a2ec714f1": {
+        "operation_type": "tool",
+        "sequence": 2,
+        "span_id": "1b47233a2ec714f1",
+        "start_time": "2026-07-13T12:00:00.002000Z",
+        "end_time": "2026-07-13T12:00:00.002500Z",
+        "duration_ns": 500000,
+        "call_id": "call-1",
+        "ordinal": 1,
+        "tool_name": "lookup",
+        "tool_structural_id": "tool_sha256:f91fa44631d1118448929ece22b5b6fabc718a6c045b9534c89cf561786e17ab",
+        "state_revision_before": 3,
+        "state_revision_after": 5,
+        "requested_arguments": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "value": {
+            "query": "q1"
+          },
+          "reference": null,
+          "reason": null
+        },
+        "arguments": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "value": {
+            "query": "q1"
+          },
+          "reference": null,
+          "reason": null
+        },
+        "result_candidate": {
+          "available": true,
+          "payload": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "value": "result-1"
+            },
+            "reference": null,
+            "reason": null
+          },
+          "unavailable_reason": null
+        },
+        "result": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "value": {
+            "value": "result-1"
+          },
+          "reference": null,
+          "reason": null
+        },
+        "outcome": "completed",
+        "error": null,
+        "cancellation": null
+      },
+      "e6d98e6b749e4065": {
+        "operation_type": "model_request",
+        "sequence": 3,
+        "span_id": "e6d98e6b749e4065",
+        "start_time": "2026-07-13T12:00:00.003000Z",
+        "end_time": "2026-07-13T12:00:00.003500Z",
+        "duration_ns": 500000,
+        "ordinal": 2,
+        "state_revision": 6,
+        "driver_key": "scripted",
+        "provider": "junjo",
+        "model_name": "scripted-v1",
+        "request": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "value": {
+            "v": 1,
+            "agentKey": "fixture_agent",
+            "runId": "run-ed398b285cc38561d7eb",
+            "ordinal": 2,
+            "instructions": "Answer with deterministic fixture evidence.",
+            "messages": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              },
+              {
+                "type": "tool_result",
+                "callId": "call-1",
+                "toolName": "lookup",
+                "result": {
+                  "value": "result-1"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "lookup",
+                "description": "Run lookup",
+                "inputSchema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "query"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "outputSchema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ],
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "answer"
+              ],
+              "properties": {
+                "answer": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "reference": null,
+          "reason": null
+        },
+        "response_candidate": {
+          "available": true,
+          "payload": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "v": 1,
+              "type": "final_output",
+              "output": {
+                "answer": "done"
+              },
+              "usage": {
+                "v": 1,
+                "inputTokens": 10,
+                "outputTokens": 4,
+                "totalTokens": 14
+              }
+            },
+            "reference": null,
+            "reason": null
+          },
+          "unavailable_reason": null
+        },
+        "response_type": "final_output",
+        "response": {
+          "mode": "full",
+          "policy": "junjo.full.v1",
+          "value": {
+            "v": 1,
+            "type": "final_output",
+            "output": {
+              "answer": "done"
+            },
+            "usage": {
+              "v": 1,
+              "inputTokens": 10,
+              "outputTokens": 4,
+              "totalTokens": 14
+            }
+          },
+          "reference": null,
+          "reason": null
+        },
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 4,
+          "cached_input_tokens": null,
+          "reasoning_tokens": null,
+          "total_tokens": 14
+        },
+        "requested_tool_calls": [],
+        "outcome": "completed",
+        "error": null,
+        "cancellation": null
+      }
+    }
+  },
+  "stores_by_id": {
+    "store-ed398b285cc38561": {
+      "store_id": "store-ed398b285cc38561",
+      "transitions": [
+        {
+          "sequence": 1,
+          "revision_before": 0,
+          "revision_after": 1,
+          "span_id": "0228ba656f80ac6f",
+          "event_id": "event-8b1c7f7d710c",
+          "action": "record_model_start",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "",
+                "value": {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "history": [],
+                  "transcript": [
+                    {
+                      "type": "agent_input",
+                      "input": {
+                        "question": "fixture?"
+                      }
+                    }
+                  ],
+                  "model_iteration": 1,
+                  "model_request_count": 1,
+                  "tool_call_requested_count": 0,
+                  "tool_call_admitted_count": 0,
+                  "tool_call_started_count": 0,
+                  "tool_call_completed_count": 0,
+                  "usage": {
+                    "v": 1,
+                    "modelResponses": 0,
+                    "fields": {}
+                  },
+                  "admitted_tool_call_ids": [],
+                  "pending_tool_call_ids": [],
+                  "completed_tool_call_ids": [],
+                  "final_output_available": false,
+                  "final_output": null,
+                  "terminal_reason": null
+                }
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              }
+            ],
+            "model_iteration": 0,
+            "model_request_count": 0,
+            "tool_call_requested_count": 0,
+            "tool_call_admitted_count": 0,
+            "tool_call_started_count": 0,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 0,
+              "fields": {}
+            },
+            "admitted_tool_call_ids": [],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          },
+          "after": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 0,
+            "tool_call_admitted_count": 0,
+            "tool_call_started_count": 0,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 0,
+              "fields": {}
+            },
+            "admitted_tool_call_ids": [],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          }
+        },
+        {
+          "sequence": 2,
+          "revision_before": 1,
+          "revision_after": 2,
+          "span_id": "0228ba656f80ac6f",
+          "event_id": "event-edc903434f76",
+          "action": "record_model_response",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "",
+                "value": {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "history": [],
+                  "transcript": [
+                    {
+                      "type": "agent_input",
+                      "input": {
+                        "question": "fixture?"
+                      }
+                    },
+                    {
+                      "type": "assistant_tool_calls",
+                      "calls": [
+                        {
+                          "id": "call-1",
+                          "name": "lookup",
+                          "arguments": {
+                            "query": "q1"
+                          }
+                        }
+                      ],
+                      "assistantText": "Using tools"
+                    }
+                  ],
+                  "model_iteration": 1,
+                  "model_request_count": 1,
+                  "tool_call_requested_count": 1,
+                  "tool_call_admitted_count": 0,
+                  "tool_call_started_count": 0,
+                  "tool_call_completed_count": 0,
+                  "usage": {
+                    "v": 1,
+                    "modelResponses": 1,
+                    "fields": {
+                      "inputTokens": {
+                        "sum": 10,
+                        "observations": 1
+                      },
+                      "outputTokens": {
+                        "sum": 4,
+                        "observations": 1
+                      },
+                      "totalTokens": {
+                        "sum": 14,
+                        "observations": 1
+                      }
+                    }
+                  },
+                  "admitted_tool_call_ids": [],
+                  "pending_tool_call_ids": [],
+                  "completed_tool_call_ids": [],
+                  "final_output_available": false,
+                  "final_output": null,
+                  "terminal_reason": null
+                }
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 0,
+            "tool_call_admitted_count": 0,
+            "tool_call_started_count": 0,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 0,
+              "fields": {}
+            },
+            "admitted_tool_call_ids": [],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          },
+          "after": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 0,
+            "tool_call_started_count": 0,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          }
+        },
+        {
+          "sequence": 3,
+          "revision_before": 2,
+          "revision_after": 3,
+          "span_id": "0301fb3badc52d94",
+          "event_id": "event-fdf6e13cf571",
+          "action": "admit_tool_batch",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "",
+                "value": {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "history": [],
+                  "transcript": [
+                    {
+                      "type": "agent_input",
+                      "input": {
+                        "question": "fixture?"
+                      }
+                    },
+                    {
+                      "type": "assistant_tool_calls",
+                      "calls": [
+                        {
+                          "id": "call-1",
+                          "name": "lookup",
+                          "arguments": {
+                            "query": "q1"
+                          }
+                        }
+                      ],
+                      "assistantText": "Using tools"
+                    }
+                  ],
+                  "model_iteration": 1,
+                  "model_request_count": 1,
+                  "tool_call_requested_count": 1,
+                  "tool_call_admitted_count": 1,
+                  "tool_call_started_count": 0,
+                  "tool_call_completed_count": 0,
+                  "usage": {
+                    "v": 1,
+                    "modelResponses": 1,
+                    "fields": {
+                      "inputTokens": {
+                        "sum": 10,
+                        "observations": 1
+                      },
+                      "outputTokens": {
+                        "sum": 4,
+                        "observations": 1
+                      },
+                      "totalTokens": {
+                        "sum": 14,
+                        "observations": 1
+                      }
+                    }
+                  },
+                  "admitted_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "pending_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "completed_tool_call_ids": [],
+                  "final_output_available": false,
+                  "final_output": null,
+                  "terminal_reason": null
+                }
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 0,
+            "tool_call_started_count": 0,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          },
+          "after": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 0,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [
+              "call-1"
+            ],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          }
+        },
+        {
+          "sequence": 4,
+          "revision_before": 3,
+          "revision_after": 4,
+          "span_id": "1b47233a2ec714f1",
+          "event_id": "event-41bf02198891",
+          "action": "record_tool_started",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "",
+                "value": {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "history": [],
+                  "transcript": [
+                    {
+                      "type": "agent_input",
+                      "input": {
+                        "question": "fixture?"
+                      }
+                    },
+                    {
+                      "type": "assistant_tool_calls",
+                      "calls": [
+                        {
+                          "id": "call-1",
+                          "name": "lookup",
+                          "arguments": {
+                            "query": "q1"
+                          }
+                        }
+                      ],
+                      "assistantText": "Using tools"
+                    }
+                  ],
+                  "model_iteration": 1,
+                  "model_request_count": 1,
+                  "tool_call_requested_count": 1,
+                  "tool_call_admitted_count": 1,
+                  "tool_call_started_count": 1,
+                  "tool_call_completed_count": 0,
+                  "usage": {
+                    "v": 1,
+                    "modelResponses": 1,
+                    "fields": {
+                      "inputTokens": {
+                        "sum": 10,
+                        "observations": 1
+                      },
+                      "outputTokens": {
+                        "sum": 4,
+                        "observations": 1
+                      },
+                      "totalTokens": {
+                        "sum": 14,
+                        "observations": 1
+                      }
+                    }
+                  },
+                  "admitted_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "pending_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "completed_tool_call_ids": [],
+                  "final_output_available": false,
+                  "final_output": null,
+                  "terminal_reason": null
+                }
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 0,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [
+              "call-1"
+            ],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          },
+          "after": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [
+              "call-1"
+            ],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          }
+        },
+        {
+          "sequence": 5,
+          "revision_before": 4,
+          "revision_after": 5,
+          "span_id": "1b47233a2ec714f1",
+          "event_id": "event-60ff298ea68a",
+          "action": "record_tool_result",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "",
+                "value": {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "history": [],
+                  "transcript": [
+                    {
+                      "type": "agent_input",
+                      "input": {
+                        "question": "fixture?"
+                      }
+                    },
+                    {
+                      "type": "assistant_tool_calls",
+                      "calls": [
+                        {
+                          "id": "call-1",
+                          "name": "lookup",
+                          "arguments": {
+                            "query": "q1"
+                          }
+                        }
+                      ],
+                      "assistantText": "Using tools"
+                    },
+                    {
+                      "type": "tool_result",
+                      "callId": "call-1",
+                      "toolName": "lookup",
+                      "result": {
+                        "value": "result-1"
+                      }
+                    }
+                  ],
+                  "model_iteration": 1,
+                  "model_request_count": 1,
+                  "tool_call_requested_count": 1,
+                  "tool_call_admitted_count": 1,
+                  "tool_call_started_count": 1,
+                  "tool_call_completed_count": 1,
+                  "usage": {
+                    "v": 1,
+                    "modelResponses": 1,
+                    "fields": {
+                      "inputTokens": {
+                        "sum": 10,
+                        "observations": 1
+                      },
+                      "outputTokens": {
+                        "sum": 4,
+                        "observations": 1
+                      },
+                      "totalTokens": {
+                        "sum": 14,
+                        "observations": 1
+                      }
+                    }
+                  },
+                  "admitted_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "pending_tool_call_ids": [],
+                  "completed_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "final_output_available": false,
+                  "final_output": null,
+                  "terminal_reason": null
+                }
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 0,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [
+              "call-1"
+            ],
+            "completed_tool_call_ids": [],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          },
+          "after": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              },
+              {
+                "type": "tool_result",
+                "callId": "call-1",
+                "toolName": "lookup",
+                "result": {
+                  "value": "result-1"
+                }
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 1,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [
+              "call-1"
+            ],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          }
+        },
+        {
+          "sequence": 6,
+          "revision_before": 5,
+          "revision_after": 6,
+          "span_id": "e6d98e6b749e4065",
+          "event_id": "event-5a1ca6e95786",
+          "action": "record_model_start",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "",
+                "value": {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "history": [],
+                  "transcript": [
+                    {
+                      "type": "agent_input",
+                      "input": {
+                        "question": "fixture?"
+                      }
+                    },
+                    {
+                      "type": "assistant_tool_calls",
+                      "calls": [
+                        {
+                          "id": "call-1",
+                          "name": "lookup",
+                          "arguments": {
+                            "query": "q1"
+                          }
+                        }
+                      ],
+                      "assistantText": "Using tools"
+                    },
+                    {
+                      "type": "tool_result",
+                      "callId": "call-1",
+                      "toolName": "lookup",
+                      "result": {
+                        "value": "result-1"
+                      }
+                    }
+                  ],
+                  "model_iteration": 2,
+                  "model_request_count": 2,
+                  "tool_call_requested_count": 1,
+                  "tool_call_admitted_count": 1,
+                  "tool_call_started_count": 1,
+                  "tool_call_completed_count": 1,
+                  "usage": {
+                    "v": 1,
+                    "modelResponses": 1,
+                    "fields": {
+                      "inputTokens": {
+                        "sum": 10,
+                        "observations": 1
+                      },
+                      "outputTokens": {
+                        "sum": 4,
+                        "observations": 1
+                      },
+                      "totalTokens": {
+                        "sum": 14,
+                        "observations": 1
+                      }
+                    }
+                  },
+                  "admitted_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "pending_tool_call_ids": [],
+                  "completed_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "final_output_available": false,
+                  "final_output": null,
+                  "terminal_reason": null
+                }
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              },
+              {
+                "type": "tool_result",
+                "callId": "call-1",
+                "toolName": "lookup",
+                "result": {
+                  "value": "result-1"
+                }
+              }
+            ],
+            "model_iteration": 1,
+            "model_request_count": 1,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 1,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [
+              "call-1"
+            ],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          },
+          "after": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              },
+              {
+                "type": "tool_result",
+                "callId": "call-1",
+                "toolName": "lookup",
+                "result": {
+                  "value": "result-1"
+                }
+              }
+            ],
+            "model_iteration": 2,
+            "model_request_count": 2,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 1,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [
+              "call-1"
+            ],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          }
+        },
+        {
+          "sequence": 7,
+          "revision_before": 6,
+          "revision_after": 7,
+          "span_id": "e6d98e6b749e4065",
+          "event_id": "event-bcec255d335c",
+          "action": "record_model_response",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "",
+                "value": {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "history": [],
+                  "transcript": [
+                    {
+                      "type": "agent_input",
+                      "input": {
+                        "question": "fixture?"
+                      }
+                    },
+                    {
+                      "type": "assistant_tool_calls",
+                      "calls": [
+                        {
+                          "id": "call-1",
+                          "name": "lookup",
+                          "arguments": {
+                            "query": "q1"
+                          }
+                        }
+                      ],
+                      "assistantText": "Using tools"
+                    },
+                    {
+                      "type": "tool_result",
+                      "callId": "call-1",
+                      "toolName": "lookup",
+                      "result": {
+                        "value": "result-1"
+                      }
+                    }
+                  ],
+                  "model_iteration": 2,
+                  "model_request_count": 2,
+                  "tool_call_requested_count": 1,
+                  "tool_call_admitted_count": 1,
+                  "tool_call_started_count": 1,
+                  "tool_call_completed_count": 1,
+                  "usage": {
+                    "v": 1,
+                    "modelResponses": 2,
+                    "fields": {
+                      "inputTokens": {
+                        "sum": 20,
+                        "observations": 2
+                      },
+                      "outputTokens": {
+                        "sum": 8,
+                        "observations": 2
+                      },
+                      "totalTokens": {
+                        "sum": 28,
+                        "observations": 2
+                      }
+                    }
+                  },
+                  "admitted_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "pending_tool_call_ids": [],
+                  "completed_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "final_output_available": false,
+                  "final_output": null,
+                  "terminal_reason": null
+                }
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              },
+              {
+                "type": "tool_result",
+                "callId": "call-1",
+                "toolName": "lookup",
+                "result": {
+                  "value": "result-1"
+                }
+              }
+            ],
+            "model_iteration": 2,
+            "model_request_count": 2,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 1,
+            "usage": {
+              "v": 1,
+              "modelResponses": 1,
+              "fields": {
+                "inputTokens": {
+                  "sum": 10,
+                  "observations": 1
+                },
+                "outputTokens": {
+                  "sum": 4,
+                  "observations": 1
+                },
+                "totalTokens": {
+                  "sum": 14,
+                  "observations": 1
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [
+              "call-1"
+            ],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          },
+          "after": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              },
+              {
+                "type": "tool_result",
+                "callId": "call-1",
+                "toolName": "lookup",
+                "result": {
+                  "value": "result-1"
+                }
+              }
+            ],
+            "model_iteration": 2,
+            "model_request_count": 2,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 1,
+            "usage": {
+              "v": 1,
+              "modelResponses": 2,
+              "fields": {
+                "inputTokens": {
+                  "sum": 20,
+                  "observations": 2
+                },
+                "outputTokens": {
+                  "sum": 8,
+                  "observations": 2
+                },
+                "totalTokens": {
+                  "sum": 28,
+                  "observations": 2
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [
+              "call-1"
+            ],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          }
+        },
+        {
+          "sequence": 8,
+          "revision_before": 7,
+          "revision_after": 8,
+          "span_id": "0301fb3badc52d94",
+          "event_id": "event-7b3cc7e19cff",
+          "action": "commit_success",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "",
+                "value": {
+                  "input": {
+                    "question": "fixture?"
+                  },
+                  "history": [],
+                  "transcript": [
+                    {
+                      "type": "agent_input",
+                      "input": {
+                        "question": "fixture?"
+                      }
+                    },
+                    {
+                      "type": "assistant_tool_calls",
+                      "calls": [
+                        {
+                          "id": "call-1",
+                          "name": "lookup",
+                          "arguments": {
+                            "query": "q1"
+                          }
+                        }
+                      ],
+                      "assistantText": "Using tools"
+                    },
+                    {
+                      "type": "tool_result",
+                      "callId": "call-1",
+                      "toolName": "lookup",
+                      "result": {
+                        "value": "result-1"
+                      }
+                    },
+                    {
+                      "type": "assistant_output",
+                      "output": {
+                        "answer": "done"
+                      }
+                    }
+                  ],
+                  "model_iteration": 2,
+                  "model_request_count": 2,
+                  "tool_call_requested_count": 1,
+                  "tool_call_admitted_count": 1,
+                  "tool_call_started_count": 1,
+                  "tool_call_completed_count": 1,
+                  "usage": {
+                    "v": 1,
+                    "modelResponses": 2,
+                    "fields": {
+                      "inputTokens": {
+                        "sum": 20,
+                        "observations": 2
+                      },
+                      "outputTokens": {
+                        "sum": 8,
+                        "observations": 2
+                      },
+                      "totalTokens": {
+                        "sum": 28,
+                        "observations": 2
+                      }
+                    }
+                  },
+                  "admitted_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "pending_tool_call_ids": [],
+                  "completed_tool_call_ids": [
+                    "call-1"
+                  ],
+                  "final_output_available": true,
+                  "final_output": {
+                    "answer": "done"
+                  },
+                  "terminal_reason": "final_output"
+                }
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              },
+              {
+                "type": "tool_result",
+                "callId": "call-1",
+                "toolName": "lookup",
+                "result": {
+                  "value": "result-1"
+                }
+              }
+            ],
+            "model_iteration": 2,
+            "model_request_count": 2,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 1,
+            "usage": {
+              "v": 1,
+              "modelResponses": 2,
+              "fields": {
+                "inputTokens": {
+                  "sum": 20,
+                  "observations": 2
+                },
+                "outputTokens": {
+                  "sum": 8,
+                  "observations": 2
+                },
+                "totalTokens": {
+                  "sum": 28,
+                  "observations": 2
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [
+              "call-1"
+            ],
+            "final_output_available": false,
+            "final_output": null,
+            "terminal_reason": null
+          },
+          "after": {
+            "input": {
+              "question": "fixture?"
+            },
+            "history": [],
+            "transcript": [
+              {
+                "type": "agent_input",
+                "input": {
+                  "question": "fixture?"
+                }
+              },
+              {
+                "type": "assistant_tool_calls",
+                "calls": [
+                  {
+                    "id": "call-1",
+                    "name": "lookup",
+                    "arguments": {
+                      "query": "q1"
+                    }
+                  }
+                ],
+                "assistantText": "Using tools"
+              },
+              {
+                "type": "tool_result",
+                "callId": "call-1",
+                "toolName": "lookup",
+                "result": {
+                  "value": "result-1"
+                }
+              },
+              {
+                "type": "assistant_output",
+                "output": {
+                  "answer": "done"
+                }
+              }
+            ],
+            "model_iteration": 2,
+            "model_request_count": 2,
+            "tool_call_requested_count": 1,
+            "tool_call_admitted_count": 1,
+            "tool_call_started_count": 1,
+            "tool_call_completed_count": 1,
+            "usage": {
+              "v": 1,
+              "modelResponses": 2,
+              "fields": {
+                "inputTokens": {
+                  "sum": 20,
+                  "observations": 2
+                },
+                "outputTokens": {
+                  "sum": 8,
+                  "observations": 2
+                },
+                "totalTokens": {
+                  "sum": 28,
+                  "observations": 2
+                }
+              }
+            },
+            "admitted_tool_call_ids": [
+              "call-1"
+            ],
+            "pending_tool_call_ids": [],
+            "completed_tool_call_ids": [
+              "call-1"
+            ],
+            "final_output_available": true,
+            "final_output": {
+              "answer": "done"
+            },
+            "terminal_reason": "final_output"
+          }
+        }
+      ]
+    },
+    "workflow-store-ed398b285c": {
+      "store_id": "workflow-store-ed398b285c",
+      "transitions": [
+        {
+          "sequence": 3,
+          "revision_before": 1,
+          "revision_after": 2,
+          "span_id": "1b47233a2ec714f1",
+          "event_id": "event-shared-3",
+          "action": "write_value",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "/value",
+                "value": "tool"
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "value": "prepared"
+          },
+          "after": {
+            "value": "tool"
+          }
+        },
+        {
+          "sequence": 4,
+          "revision_before": 2,
+          "revision_after": 3,
+          "span_id": "8ea8648968a16aa4",
+          "event_id": "event-shared-4",
+          "action": "write_value",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "/value",
+                "value": "result-1"
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "value": "tool"
+          },
+          "after": {
+            "value": "result-1"
+          }
+        },
+        {
+          "sequence": 5,
+          "revision_before": 3,
+          "revision_after": 4,
+          "span_id": "1b47233a2ec714f1",
+          "event_id": "event-shared-5",
+          "action": "write_value",
+          "patch": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": [
+              {
+                "op": "replace",
+                "path": "/value",
+                "value": "after"
+              }
+            ],
+            "reference": null,
+            "reason": null
+          },
+          "before": {
+            "value": "result-1"
+          },
+          "after": {
+            "value": "after"
+          }
+        }
+      ]
+    }
+  },
+  "relationships_by_owner_span_id": {
+    "0301fb3badc52d94": {
+      "parent": null,
+      "nested": [
+        {
+          "executable_type": "workflow",
+          "parent_operation_sequence": 2,
+          "parent_operation_span_id": "1b47233a2ec714f1",
+          "trace_id": "9c741615a324c2c0ccae725f59524801",
+          "span_id": "cafbeea4998ba018",
+          "service": {
+            "namespace": "junjo.contract",
+            "name": "svc-agent-shared-application-store",
+            "version": "2.0.0"
+          },
+          "definition_id": "workflow-definition-ed398b285c",
+          "runtime_id": "workflow-run-ed398b285c",
+          "structural_id": "graph-ed398b285cc38561",
+          "name": "nested workflow"
+        }
+      ]
+    }
+  },
+  "diagnostics": []
+}

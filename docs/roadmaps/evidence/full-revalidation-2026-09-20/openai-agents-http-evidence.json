@@ -1,0 +1,145 @@
+{
+  "trace_id": "6a3b0b0080ad11c583deed5c95fb43dd",
+  "span_count": 27,
+  "root_name": "POST /recommendations",
+  "root_kind": "SERVER",
+  "all_parents_present": true,
+  "native_stores_verified": true,
+  "spans": [
+    {
+      "name": "POST /recommendations http send",
+      "id": "b6944a5af71a3e86",
+      "parent_id": "216cb4af7430f72b"
+    },
+    {
+      "name": "POST /recommendations http send",
+      "id": "24dfc3c1ec919144",
+      "parent_id": "216cb4af7430f72b"
+    },
+    {
+      "name": "guardrail local place realism",
+      "id": "78eb72c83cf1845d",
+      "parent_id": "50db0855b01f6fd2"
+    },
+    {
+      "name": "chat deterministic-coordinator-v1",
+      "id": "75df5a012542b78b",
+      "parent_id": "a6ae807bd84f58fa"
+    },
+    {
+      "name": "turn 4 Local place coordinator",
+      "id": "a6ae807bd84f58fa",
+      "parent_id": "50db0855b01f6fd2"
+    },
+    {
+      "name": "model request 1",
+      "id": "e6ce18aff1bceffb",
+      "parent_id": "05ca0ce6ccd18150"
+    },
+    {
+      "name": "Local place specialist",
+      "id": "05ca0ce6ccd18150",
+      "parent_id": "fffad427a7ac086f"
+    },
+    {
+      "name": "execute_tool run_local_place_agent",
+      "id": "fffad427a7ac086f",
+      "parent_id": "6e924294f50337ba"
+    },
+    {
+      "name": "chat deterministic-coordinator-v1",
+      "id": "7fbd6a88caaad03f",
+      "parent_id": "6e924294f50337ba"
+    },
+    {
+      "name": "turn 3 Local place coordinator",
+      "id": "6e924294f50337ba",
+      "parent_id": "50db0855b01f6fd2"
+    },
+    {
+      "name": "chat deterministic-reviewer-v1",
+      "id": "4093de3a2f035891",
+      "parent_id": "f5520c9d099d1c4b"
+    },
+    {
+      "name": "turn 1 Local place reviewer",
+      "id": "f5520c9d099d1c4b",
+      "parent_id": "4c7b1eb11396ec72"
+    },
+    {
+      "name": "invoke_agent Local place reviewer",
+      "id": "4c7b1eb11396ec72",
+      "parent_id": "35c7408408a2806e"
+    },
+    {
+      "name": "task Local place realism review",
+      "id": "35c7408408a2806e",
+      "parent_id": "2347998f2ff053b6"
+    },
+    {
+      "name": "execute_tool review_local_place_options",
+      "id": "2347998f2ff053b6",
+      "parent_id": "f0d68b06feecbebe"
+    },
+    {
+      "name": "chat deterministic-coordinator-v1",
+      "id": "07ebe1769bb2bff8",
+      "parent_id": "f0d68b06feecbebe"
+    },
+    {
+      "name": "turn 2 Local place coordinator",
+      "id": "f0d68b06feecbebe",
+      "parent_id": "50db0855b01f6fd2"
+    },
+    {
+      "name": "ChooseLocalPlaceNode",
+      "id": "89523f46ff4240d3",
+      "parent_id": "47767a6da53353ab"
+    },
+    {
+      "name": "Local place workflow",
+      "id": "47767a6da53353ab",
+      "parent_id": "c63a75a7030e9259"
+    },
+    {
+      "name": "execute_tool run_local_place_workflow",
+      "id": "c63a75a7030e9259",
+      "parent_id": "237105abd1b69a55"
+    },
+    {
+      "name": "chat deterministic-coordinator-v1",
+      "id": "7c34b3ee479789cd",
+      "parent_id": "237105abd1b69a55"
+    },
+    {
+      "name": "turn 1 Local place coordinator",
+      "id": "237105abd1b69a55",
+      "parent_id": "50db0855b01f6fd2"
+    },
+    {
+      "name": "invoke_agent Local place coordinator",
+      "id": "50db0855b01f6fd2",
+      "parent_id": "c58dc97ff1b70023"
+    },
+    {
+      "name": "task Authentic local place recommendation",
+      "id": "c58dc97ff1b70023",
+      "parent_id": "a80452ef30777f73"
+    },
+    {
+      "name": "invoke_workflow Authentic local place recommendation",
+      "id": "a80452ef30777f73",
+      "parent_id": "216cb4af7430f72b"
+    },
+    {
+      "name": "POST /recommendations http receive",
+      "id": "70bb5082081109f4",
+      "parent_id": "216cb4af7430f72b"
+    },
+    {
+      "name": "POST /recommendations",
+      "id": "216cb4af7430f72b",
+      "parent_id": null
+    }
+  ]
+}

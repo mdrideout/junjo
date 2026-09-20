@@ -30,7 +30,7 @@ def _owner(
         "trace_id": TRACE_ID,
         "span_id": span_id,
         "attributes_json": {
-            "junjo.telemetry.contract_version": 2,
+            "junjo.telemetry.contract_version": 3,
             "junjo.span_type": executable_type,
             "junjo.executable_runtime_id": runtime_id,
         },
@@ -95,7 +95,7 @@ async def test_service_selects_the_real_node_in_a_one_node_workflow() -> None:
             "span_id": node_span_id,
             "parent_span_id": SPAN_ID,
             "attributes_json": {
-                "junjo.telemetry.contract_version": 2,
+                "junjo.telemetry.contract_version": 3,
                 "junjo.span_type": "node",
                 "junjo.executable_runtime_id": node_runtime_id,
             },
@@ -136,7 +136,7 @@ async def test_service_selects_the_single_failed_node_inside_a_workflow() -> Non
             "span_id": failed_node_span_id,
             "parent_span_id": SPAN_ID,
             "attributes_json": {
-                "junjo.telemetry.contract_version": 2,
+                "junjo.telemetry.contract_version": 3,
                 "junjo.span_type": "node",
                 "error.type": "AgentError",
             },
@@ -147,7 +147,7 @@ async def test_service_selects_the_single_failed_node_inside_a_workflow() -> Non
             "span_id": agent_span_id,
             "parent_span_id": failed_node_span_id,
             "attributes_json": {
-                "junjo.telemetry.contract_version": 2,
+                "junjo.telemetry.contract_version": 3,
                 "junjo.span_type": "agent",
                 "error.type": "AgentError",
             },

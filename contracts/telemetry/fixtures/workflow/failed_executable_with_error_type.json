@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "failed_executable_with_error_type",
   "trace_id": "44444444444444444444444444444444",
   "service_name": "svc-junjo-phase0-failure",
@@ -20,7 +20,7 @@
         "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-failure-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.failure.validate\",\"nodeStructuralId\":\"struct-failure-validate\",\"nodeType\":\"Node\",\"nodeLabel\":\"validate\"},{\"nodeRuntimeId\":\"node.failure.persist\",\"nodeStructuralId\":\"struct-failure-persist\",\"nodeType\":\"Node\",\"nodeLabel\":\"persist\"}],\"edges\":[{\"edgeStructuralId\":\"edge-failure-validate-persist\",\"tailNodeRuntimeId\":\"node.failure.validate\",\"tailNodeStructuralId\":\"struct-failure-validate\",\"headNodeRuntimeId\":\"node.failure.persist\",\"headNodeStructuralId\":\"struct-failure-persist\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null}]}",
         "junjo.workflow.store.id": "store-failure-01",
         "junjo.workflow.node.count": 1,
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow.failure",
         "junjo.executable_runtime_id": "run-failure-01",
@@ -34,7 +34,9 @@
         "junjo.store.revision.start": 0,
         "junjo.store.revision.end": 0,
         "junjo.store.transition.count": 0,
-        "junjo.store.reconstructable": true
+        "junjo.store.reconstructable": true,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 0
       },
       "events_json": [],
       "links_json": [],
@@ -62,7 +64,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.failure.validate",
         "junjo.parent_executable_definition_id": "workflow.failure",
@@ -98,7 +100,7 @@
       "status_code": "2",
       "status_message": "validation failed",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.failure.persist",
         "junjo.parent_executable_definition_id": "workflow.failure",

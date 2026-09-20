@@ -11,6 +11,7 @@ from ._identity import (
     active_executable_identity,
     get_active_executable_identity,
 )
+from ._lifecycle import get_graph_context
 from .correlation import (
     _get_active_execution_correlation,
     _set_correlation_span_attributes,
@@ -124,7 +125,7 @@ class Node(Generic[StoreT], ABC):
             This becomes the parent id recorded on the node span.
         :type parent_id: str
         """
-        lifecycle_context = store._lifecycle_context
+        lifecycle_context = get_graph_context(store.id)
         prepared_terminal_event = None
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None

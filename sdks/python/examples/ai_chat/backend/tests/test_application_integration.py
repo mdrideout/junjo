@@ -28,7 +28,10 @@ async def test_contact_workflow_moves_live_capability_results_into_versioned_per
     assert loaded.bio.startswith("I coordinate community arts programs")
     assert loaded.avatar.url.endswith("rendered-image.png")
     assert len(harness.images.calls) == 1
-    assert any("dating profile biography" in prompt for prompt in harness.language.text_prompts)
+    biography_prompt = next(
+        prompt for prompt in harness.language.text_prompts if "dating profile biography" in prompt
+    )
+    assert f"Name: {loaded.display_name}" in biography_prompt
     assert any("Create one realistic name" in prompt for prompt in harness.language.structured_prompts)
 
 

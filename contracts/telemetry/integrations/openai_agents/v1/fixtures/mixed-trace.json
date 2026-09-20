@@ -34,7 +34,7 @@
       "attributes": {
         "junjo.executable_runtime_id": "native_workflow_runtime",
         "junjo.span_type": "workflow",
-        "junjo.telemetry.contract_version": 2
+        "junjo.telemetry.contract_version": 3
       },
       "name": "Local place workflow",
       "parent_span_id": "2222222222222222",

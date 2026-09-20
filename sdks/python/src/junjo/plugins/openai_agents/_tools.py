@@ -14,8 +14,10 @@ from typing_extensions import TypeForm
 
 from ...agent import Agent
 from ...agent.messages import AgentMessage
-from ...agent.result import AgentExecutionResult
+from ...agent.result import AgentExecutionResult, StateT
+from ...agent.tool import StoreT
 from ...correlation import ExecutionCorrelation
+from ...store import BaseStore
 from ...workflow import ExecutionResult, Workflow
 
 InputT = TypeVar("InputT")
@@ -30,29 +32,32 @@ Cleanup = Callable[[], None | Awaitable[None]]
 class WorkflowToolInvocation:
     """Fresh Workflow and application-owned lifecycle for one tool call.
 
-    ``workflow`` must be a fresh invocation definition whose Store state is
-    isolated from other tool calls. ``correlation`` is passed through to the
+    ``store`` can explicitly borrow an application Store. Omitting it uses
+    the Workflow factory. ``correlation`` is passed through to the
     native execution. ``cleanup`` releases only invocation-scoped application
     resources after success, failure, or cancellation.
     """
 
     workflow: Workflow
+    store: BaseStore[Any] | None = None
     correlation: ExecutionCorrelation | None = None
     cleanup: Cleanup | None = None
 
 
 @dataclass(frozen=True, slots=True)
-class AgentToolInvocation(Generic[AgentInputT, AgentOutputT, DependenciesT]):
+class AgentToolInvocation(Generic[AgentInputT, AgentOutputT, DependenciesT, StateT, StoreT]):
     """Fresh native Junjo Agent invocation for one OpenAI function-tool call.
 
     The application supplies the typed input, dependencies, optional history,
     correlation, and invocation-scoped cleanup. The adapter does not share
-    Agent state or dependencies between OpenAI tool calls.
+    private Agent runtime state between OpenAI tool calls. The application
+    chooses whether to borrow a Store or use the Agent factory.
     """
 
-    agent: Agent[AgentInputT, AgentOutputT, DependenciesT]
+    agent: Agent[AgentInputT, AgentOutputT, DependenciesT, StateT, StoreT]
     input: AgentInputT
     dependencies: DependenciesT
+    store: StoreT | None = None
     history: tuple[AgentMessage, ...] = ()
     correlation: ExecutionCorrelation | None = None
     cleanup: Cleanup | None = None
@@ -96,7 +101,7 @@ def workflow_as_tool(
             raise TypeError("workflow_factory must return WorkflowToolInvocation.")
 
         async def execute() -> object:
-            result = await invocation.workflow.execute(correlation=invocation.correlation)
+            result = await invocation.workflow.execute(store=invocation.store, correlation=invocation.correlation)
             return await _resolve(output_projector(result, input_value))
 
         return await _run_with_cleanup(invocation.cleanup, execute)
@@ -117,11 +122,11 @@ def agent_as_tool(
     input_type: TypeForm[InputT],  # ty: ignore[invalid-type-form]
     agent_factory: Callable[
         [InputT],
-        AgentToolInvocation[AgentInputT, AgentOutputT, DependenciesT]
-        | Awaitable[AgentToolInvocation[AgentInputT, AgentOutputT, DependenciesT]],
+        AgentToolInvocation[AgentInputT, AgentOutputT, DependenciesT, StateT, StoreT]
+        | Awaitable[AgentToolInvocation[AgentInputT, AgentOutputT, DependenciesT, StateT, StoreT]],
     ],
     output_projector: Callable[
-        [AgentExecutionResult[AgentOutputT], InputT],
+        [AgentExecutionResult[AgentOutputT, StateT], InputT],
         object | Awaitable[object],
     ],
 ) -> FunctionTool:
@@ -156,6 +161,7 @@ def agent_as_tool(
             result = await invocation.agent.execute(
                 invocation.input,
                 dependencies=invocation.dependencies,
+                store=invocation.store,
                 history=invocation.history,
                 correlation=invocation.correlation,
             )

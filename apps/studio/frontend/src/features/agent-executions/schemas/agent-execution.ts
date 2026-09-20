@@ -502,6 +502,7 @@ export const AgentExecutionDetailSchema = z
     history_candidate: CandidateEvidenceSchema.nullable(),
     operations: z.array(AgentOperationSchema),
     state: StoreDetailSchema,
+    application_state: StoreDetailSchema,
     parent_executable: ParentExecutableReferenceSchema.nullable(),
     nested_executables: z.array(NestedExecutableReferenceSchema),
     error: ExecutionErrorSchema.nullable(),

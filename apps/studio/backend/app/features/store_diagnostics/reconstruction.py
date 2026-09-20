@@ -15,10 +15,12 @@ from app.features.store_diagnostics.schemas import (
     StoreTransition,
 )
 from app.features.telemetry_contract.scalars import (
+    is_active_contract_version,
     is_contract_int,
     is_lower_hex,
     is_portable_text,
     portable_diagnostic_text,
+    span_evidence_path,
 )
 
 
@@ -38,6 +40,7 @@ class StoreOwnerBoundary:
     store_id_attribute: str
     state_start_root: str
     state_end_root: str
+    metadata_prefix: str = "junjo.store"
     availability_attribute: str | None = None
     unavailable_owner_prefixes: tuple[str, ...] = ()
     runtime_id_attribute: str | None = None
@@ -55,6 +58,19 @@ AGENT_STORE_BOUNDARY = StoreOwnerBoundary(
         "junjo.store.",
     ),
     runtime_id_attribute="junjo.agent.runtime_id",
+)
+
+AGENT_APPLICATION_STORE_BOUNDARY = StoreOwnerBoundary(
+    store_id_attribute="junjo.agent.application_store.id",
+    state_start_root="junjo.agent.application_state.start",
+    state_end_root="junjo.agent.application_state.end",
+    metadata_prefix="junjo.agent.application_store",
+    availability_attribute="junjo.agent.application_state.available",
+    unavailable_owner_prefixes=(
+        "junjo.agent.application_store.",
+        "junjo.agent.application_state.start",
+        "junjo.agent.application_state.end",
+    ),
 )
 
 WORKFLOW_STORE_BOUNDARY = StoreOwnerBoundary(
@@ -114,7 +130,7 @@ def reconstruct_store(
     spans: list[dict[str, Any]],
     boundary: StoreOwnerBoundary,
 ) -> StoreReconstructionResult:
-    """Reconstruct one executable-owned Store from generic v2 evidence."""
+    """Reconstruct one executable-owned Store from contract v3 evidence."""
     state_available = (
         owner_attributes.get(boundary.availability_attribute)
         if boundary.availability_attribute is not None
@@ -211,14 +227,18 @@ def reconstruct_store(
         required=True,
     )
     diagnostics.extend(issues)
-    revision_start = owner_attributes.get("junjo.store.revision.start")
-    revision_end = owner_attributes.get("junjo.store.revision.end")
-    transition_count = owner_attributes.get("junjo.store.transition.count")
-    reconstructable_claimed = owner_attributes.get("junjo.store.reconstructable")
+    sequence_start = owner_attributes.get(f"{boundary.metadata_prefix}.transition.start")
+    sequence_end = owner_attributes.get(f"{boundary.metadata_prefix}.transition.end")
+    revision_start = owner_attributes.get(f"{boundary.metadata_prefix}.revision.start")
+    revision_end = owner_attributes.get(f"{boundary.metadata_prefix}.revision.end")
+    transition_count = owner_attributes.get(f"{boundary.metadata_prefix}.transition.count")
+    reconstructable_claimed = owner_attributes.get(f"{boundary.metadata_prefix}.reconstructable")
     for key, value in (
-        ("junjo.store.revision.start", revision_start),
-        ("junjo.store.revision.end", revision_end),
-        ("junjo.store.transition.count", transition_count),
+        (f"{boundary.metadata_prefix}.transition.start", sequence_start),
+        (f"{boundary.metadata_prefix}.transition.end", sequence_end),
+        (f"{boundary.metadata_prefix}.revision.start", revision_start),
+        (f"{boundary.metadata_prefix}.revision.end", revision_end),
+        (f"{boundary.metadata_prefix}.transition.count", transition_count),
     ):
         if not _is_nonnegative_int(value):
             diagnostics.append(_diagnostic("invalid_store_owner_fact", key, f"{key} is invalid."))
@@ -226,11 +246,23 @@ def reconstruct_store(
         diagnostics.append(
             _diagnostic(
                 "invalid_store_owner_fact",
-                "junjo.store.reconstructable",
+                f"{boundary.metadata_prefix}.reconstructable",
                 "Reconstructability claim is invalid.",
             )
         )
         reconstructable_claimed = None
+
+    valid_interval = _is_nonnegative_int(sequence_start) and _is_nonnegative_int(sequence_end)
+    if valid_interval and (
+        sequence_end < sequence_start or sequence_end - sequence_start != transition_count
+    ):
+        diagnostics.append(
+            _diagnostic(
+                "invalid_store_interval",
+                f"{boundary.metadata_prefix}.transition",
+                "Transition bounds must be ordered and agree with the transition count.",
+            )
+        )
 
     raw_events: list[tuple[str, dict[str, Any]]] = []
     observed_store_name: str | None = None
@@ -262,6 +294,13 @@ def reconstruct_store(
                 and isinstance(attributes, dict)
                 and attributes.get("junjo.store.id") == store_id
             ):
+                sequence = attributes.get("junjo.store.transition.sequence")
+                if (
+                    valid_interval
+                    and _is_nonnegative_int(sequence)
+                    and not (sequence_start < sequence <= sequence_end)
+                ):
+                    continue
                 if not valid_span_id:
                     if not invalid_span_id_diagnosed:
                         diagnostics.append(
@@ -311,14 +350,12 @@ def reconstruct_store(
                 "transition_sequence_duplicate", "events", "Transition sequences are duplicated."
             )
         )
-    if _is_nonnegative_int(transition_count):
-        expected = list(range(1, transition_count + 1))
+    if valid_interval and sequence_end >= sequence_start:
         observed = sorted(integer_sequences)
-        if observed != expected:
+        contiguous = all(value == sequence_start + index for index, value in enumerate(observed, 1))
+        if len(observed) != sequence_end - sequence_start or not contiguous:
             code = (
-                "transition_sequence_missing_trailing"
-                if observed == list(range(1, len(observed) + 1))
-                else "transition_sequence_gap"
+                "transition_sequence_missing_trailing" if contiguous else "transition_sequence_gap"
             )
             diagnostics.append(_diagnostic(code, "events", "Transition sequence is incomplete."))
 
@@ -472,7 +509,7 @@ def reconstruct_store(
         diagnostics.append(
             _diagnostic(
                 "terminal_revision_mismatch",
-                "junjo.store.revision.end",
+                f"{boundary.metadata_prefix}.revision.end",
                 "Terminal revision does not match the transition chain.",
             )
         )
@@ -492,7 +529,7 @@ def reconstruct_store(
         diagnostics.append(
             _diagnostic(
                 "reconstructable_claim_mismatch",
-                "junjo.store.reconstructable",
+                f"{boundary.metadata_prefix}.reconstructable",
                 "Producer claimed reconstructability but independent replay failed.",
             )
         )
@@ -511,6 +548,8 @@ def reconstruct_store(
         detail=StoreDetail(
             available=True,
             store_id=store_id,
+            sequence_start=sequence_start if _is_nonnegative_int(sequence_start) else None,
+            sequence_end=sequence_end if _is_nonnegative_int(sequence_end) else None,
             revision_start=revision_start if _is_nonnegative_int(revision_start) else None,
             revision_end=revision_end if _is_nonnegative_int(revision_end) else None,
             transition_count=transition_count if _is_nonnegative_int(transition_count) else 0,
@@ -525,3 +564,51 @@ def reconstruct_store(
         diagnostics=diagnostics,
         replay_verified=replay_verified,
     )
+
+
+def index_store_spans(spans: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """Index carrier spans once for traces containing multiple Store borrowers."""
+    index: dict[str, list[dict[str, Any]]] = {}
+    for span in spans:
+        events = span.get("events_json")
+        if not isinstance(events, list):
+            continue
+        store_ids = {
+            event["attributes"]["junjo.store.id"]
+            for event in events
+            if isinstance(event, dict)
+            and event.get("name") == "set_state"
+            and isinstance(event.get("attributes"), dict)
+            and is_portable_text(event["attributes"].get("junjo.store.id"), nonempty=True)
+        }
+        for store_id in store_ids:
+            index.setdefault(store_id, []).append(span)
+    return index
+
+
+def store_evidence_spans(
+    owner_span: dict[str, Any],
+    store_id: Any,
+    index: dict[str, list[dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], list[EvidenceDiagnostic]]:
+    """Select same-trace Store carriers without inventing execution ownership."""
+    selected = [owner_span]
+    diagnostics: list[EvidenceDiagnostic] = []
+    if not isinstance(store_id, str):
+        return selected, diagnostics
+    for span in index.get(store_id, []):
+        if span is owner_span:
+            continue
+        attributes = span.get("attributes_json", {})
+        version = attributes.get("junjo.telemetry.contract_version")
+        if not is_active_contract_version(version):
+            diagnostics.append(
+                _diagnostic(
+                    "missing_contract_version" if version is None else "unsupported_contract",
+                    span_evidence_path(span, "junjo.telemetry.contract_version"),
+                    "Store event evidence requires the active telemetry contract version.",
+                )
+            )
+            continue
+        selected.append(span)
+    return selected, diagnostics

@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "hook_failure_on_surrounding_span",
   "trace_id": "66666666666666666666666666666666",
   "service_name": "svc-junjo-phase0-hook-failure",
@@ -20,7 +20,7 @@
         "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-hook-failure-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.hook.failure\",\"nodeStructuralId\":\"struct-hook-failure\",\"nodeType\":\"Node\",\"nodeLabel\":\"hook_target\"}],\"edges\":[]}",
         "junjo.workflow.store.id": "store-hook-failure-01",
         "junjo.workflow.node.count": 1,
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow.hook_failure",
         "junjo.executable_runtime_id": "run-hook-failure-01",
@@ -34,7 +34,9 @@
         "junjo.store.revision.start": 0,
         "junjo.store.revision.end": 0,
         "junjo.store.transition.count": 0,
-        "junjo.store.reconstructable": true
+        "junjo.store.reconstructable": true,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 0
       },
       "events_json": [],
       "links_json": [],
@@ -62,7 +64,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.hook.failure",
         "junjo.parent_executable_definition_id": "workflow.hook_failure",

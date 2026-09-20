@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "junjo-base-openai-agents-example"
 version = "0.1.0"
 description = "OpenAI Agents SDK composition, telemetry, and evaluation example for Junjo"
-requires-python = ">=3.11"
+requires-python = ">=3.11.9,!=3.12.0,!=3.12.1,!=3.12.2"
 dependencies = [
     "fastapi[standard]>=0.115.10",
     "junjo[openai-agents]",

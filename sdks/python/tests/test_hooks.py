@@ -248,20 +248,20 @@ async def test_workflow_terminal_evidence_drains_under_repeated_cancellation(
     release_terminal = asyncio.Event()
     body_entered = asyncio.Event()
     evidence_calls = 0
-    original_evidence = HookStore._get_store_owner_evidence
+    original_evidence = HookStore._capture_store_end
 
-    async def blocked_terminal_evidence(self):
+    async def blocked_terminal_evidence(self, boundary):
         nonlocal evidence_calls
         evidence_calls += 1
-        evidence = await original_evidence(self)
-        if evidence_calls == 2:
+        evidence = await original_evidence(self, boundary)
+        if evidence_calls == 1:
             terminal_entered.set()
             await release_terminal.wait()
         return evidence
 
     monkeypatch.setattr(
         HookStore,
-        "_get_store_owner_evidence",
+        "_capture_store_end",
         blocked_terminal_evidence,
     )
     hooks = Hooks()
@@ -614,8 +614,8 @@ async def test_spans_emit_explicit_runtime_and_structural_identity_attributes(
     assert "junjo.parent_id" not in node_span.attributes
     assert "junjo.workflow.graph_structure" not in workflow_span.attributes
     assert "junjo.workflow.execution_graph_snapshot" in workflow_span.attributes
-    assert workflow_span.attributes["junjo.telemetry.contract_version"] == 2
-    assert node_span.attributes["junjo.telemetry.contract_version"] == 2
+    assert workflow_span.attributes["junjo.telemetry.contract_version"] == 3
+    assert node_span.attributes["junjo.telemetry.contract_version"] == 3
 
     assert workflow_span.attributes["junjo.executable_runtime_id"] == result.run_id
     assert (

@@ -14,6 +14,7 @@ from ._identity import (
     get_active_executable_identity,
 )
 from ._json import require_ijson_text
+from ._lifecycle import get_graph_context
 from .correlation import (
     _get_active_execution_correlation,
     _set_correlation_span_attributes,
@@ -137,7 +138,7 @@ class RunConcurrent(Node):
         still-pending siblings are cancelled and the original failure is
         re-raised once the cancellations have been drained.
         """
-        lifecycle_context = store._lifecycle_context
+        lifecycle_context = get_graph_context(store.id)
         run_concurrent_log_extra = {
             "run_id": (
                 lifecycle_context.run_id
@@ -197,7 +198,7 @@ class RunConcurrent(Node):
         :param parent_id: The parent workflow or subflow identifier.
         :type parent_id: str
         """
-        lifecycle_context = store._lifecycle_context
+        lifecycle_context = get_graph_context(store.id)
         prepared_terminal_event = None
         failure: Exception | None = None
         cancellation: asyncio.CancelledError | None = None

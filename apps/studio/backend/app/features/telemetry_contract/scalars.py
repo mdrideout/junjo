@@ -6,7 +6,7 @@ import re
 from collections.abc import Collection
 from typing import Any
 
-ACTIVE_TELEMETRY_CONTRACT_VERSION = 2
+ACTIVE_TELEMETRY_CONTRACT_VERSION = 3
 MAX_IJSON_INTEGER = 9_007_199_254_740_991
 MAX_UINT64 = 18_446_744_073_709_551_615
 

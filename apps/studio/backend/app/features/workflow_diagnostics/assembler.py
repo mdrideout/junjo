@@ -7,7 +7,9 @@ from typing import Any, Literal
 from app.features.store_diagnostics.integrity import assemble_evidence_integrity
 from app.features.store_diagnostics.reconstruction import (
     WORKFLOW_STORE_BOUNDARY,
+    index_store_spans,
     reconstruct_store,
+    store_evidence_spans,
 )
 from app.features.store_diagnostics.schemas import EvidenceDiagnostic
 from app.features.telemetry_contract.scalars import (
@@ -16,7 +18,6 @@ from app.features.telemetry_contract.scalars import (
     is_portable_enum,
     is_portable_text,
     portable_diagnostic_text,
-    span_evidence_path,
 )
 from app.features.workflow_diagnostics.schemas import WorkflowStoreDiagnostic
 
@@ -52,52 +53,11 @@ def _attributes(span: dict[str, Any]) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
-def _store_evidence_spans(
-    owner_span: dict[str, Any],
-    trace_spans: list[dict[str, Any]],
-    store_id: Any,
-) -> tuple[list[dict[str, Any]], list[EvidenceDiagnostic]]:
-    """Select only the owner and spans carrying events for its Store ID."""
-    selected = [owner_span]
-    diagnostics: list[EvidenceDiagnostic] = []
-    for span in trace_spans:
-        if span is owner_span:
-            continue
-        events = span.get("events_json")
-        if not isinstance(events, list):
-            continue
-        carries_store_evidence = any(
-            isinstance(event, dict)
-            and event.get("name") == "set_state"
-            and isinstance(event.get("attributes"), dict)
-            and event["attributes"].get("junjo.store.id") == store_id
-            for event in events
-        )
-        if not carries_store_evidence:
-            continue
-        attributes = _attributes(span)
-        version = attributes.get("junjo.telemetry.contract_version")
-        if not is_active_contract_version(version):
-            code = "missing_contract_version" if version is None else "unsupported_contract"
-            diagnostics.append(
-                _diagnostic(
-                    code,
-                    span_evidence_path(span, "junjo.telemetry.contract_version"),
-                    (
-                        "Store event evidence is missing its telemetry contract version."
-                        if version is None
-                        else "Store event evidence uses an unsupported telemetry contract."
-                    ),
-                )
-            )
-            continue
-        selected.append(span)
-    return selected, diagnostics
-
-
 def assemble_workflow_store_diagnostic(
     owner_span: dict[str, Any],
     trace_spans: list[dict[str, Any]],
+    *,
+    store_index: dict[str, list[dict[str, Any]]] | None = None,
 ) -> WorkflowStoreDiagnostic:
     """Validate one Workflow owner and independently reconstruct its Store."""
     attributes = _attributes(owner_span)
@@ -134,10 +94,10 @@ def assemble_workflow_store_diagnostic(
         )
         raise WorkflowEvidenceError("unidentifiable_workflow", issue.message, [issue])
 
-    evidence_spans, diagnostics = _store_evidence_spans(
+    evidence_spans, diagnostics = store_evidence_spans(
         owner_span,
-        trace_spans,
         attributes.get(WORKFLOW_STORE_BOUNDARY.store_id_attribute),
+        store_index if store_index is not None else index_store_spans(trace_spans),
     )
     reconstruction = reconstruct_store(
         attributes,

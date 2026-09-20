@@ -96,6 +96,135 @@ finally:
     tracer_provider.shutdown()
 ```
 
+## Native model SDKs with OpenInference
+
+Junjo runs the Agent loop and records application state and normalized model/Tool
+operations. The OpenAI Python SDK sends requests. The OpenInference OpenAI
+instrumentor captures provider-specific request, response, and usage spans.
+Junjo AI Studio receives all of them through the application's OTel provider.
+
+### Install and initialize the provider instrumentor
+
+Install the client and instrumentor in the application; they are not core Junjo
+dependencies:
+
+```bash
+uv add openai openinference-instrumentation-openai
+```
+
+The [junjo_openai_sdk example](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/junjo_openai_sdk)
+provides a locked environment and the complete order-support application: a
+Responses driver, direct Node tool, conditional Workflow tool, and shared
+application Store. Its README covers Studio setup, credentials, both Store
+creation options, and runs that demonstrate each conditional path.
+
+In the application's shared `init_telemetry()`, add this after configuring the
+provider above and before returning it. Instrument once per process, before
+creating model work:
+
+```python
+from openinference.instrumentation.openai import OpenAIInstrumentor
+
+OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)
+```
+
+Use the **same provider** that is installed with `trace.set_tracer_provider()`
+and has the Junjo exporter attached. If the application already configures
+OpenTelemetry, extend that setup rather than creating another provider. Workers,
+application entrypoints, and provider diagnostics should call the same bootstrap.
+
+Use `async with AsyncOpenAI() as client` for the client lifetime and pass that
+client into the application-owned ModelDriver. Finish awaited Agent/Workflow
+work, close the client, then call `tracer_provider.shutdown()` in `finally` to
+drain queued spans. The example's
+[main.py](https://github.com/mdrideout/junjo/blob/master/sdks/python/examples/junjo_openai_sdk/main.py)
+shows that complete sequence. See the
+[OpenInference instrumentor documentation](https://arize-ai.github.io/openinference/python/instrumentation/openinference-instrumentation-openai/)
+for supported SDK versions and API operations.
+
+### Understand the captured evidence
+
+A representative native trace has both Junjo and provider evidence:
+
+```text
+Junjo Agent
+├── model request
+│   └── OpenInference LLM span (OpenAI SDK request)
+├── lookup Tool
+│   └── LookupOrderNode (application state update)
+├── eligibility Tool
+│   └── ReturnEligibilityWorkflow (conditional path and state updates)
+└── subsequent model requests and final answer
+```
+
+Junjo records normalized model/Tool exchanges, typed application state, and the
+Agent's separate private runtime state. OpenInference adds provider-level
+request/response information, model attributes, timing, and reported usage.
+Available fields depend on the API response, SDK and instrumentor versions,
+streaming behavior, and capture settings. Missing usage is not evidence of zero
+token consumption. Provider spans do not replace Junjo state transitions.
+
+### Configure OpenInference content capture
+
+OpenInference's `TraceConfig` controls its provider spans. To hide captured
+inputs and outputs, replace the instrumentation call above with:
+
+```python
+from openinference.instrumentation import TraceConfig
+from openinference.instrumentation.openai import OpenAIInstrumentor
+
+OpenAIInstrumentor().instrument(
+    tracer_provider=tracer_provider,
+    config=TraceConfig(hide_inputs=True, hide_outputs=True),
+)
+```
+
+Alternatively, set `OPENINFERENCE_HIDE_INPUTS=true` and
+`OPENINFERENCE_HIDE_OUTPUTS=true` before initialization. `TraceConfig` also
+supports finer controls for input/output messages, text, and input images; see
+the [OpenInference capture configuration](https://arize-ai.github.io/openinference/python/openinference-instrumentation/#tracing-configuration).
+The example leaves these at the instrumentor's defaults unless configured in
+the environment, so its synthetic sample content is inspectable.
+
+These controls do not redact Junjo's application Store snapshots, normalized
+Agent transcript, or Tool results, and do not change what is sent to OpenAI.
+Configure each capture surface according to
+[State serialization and telemetry](#state-serialization-and-telemetry).
+
+### Verify the trace in Studio
+
+1. Run a representative request using the common bootstrap and note its trace
+   ID. The example prints that ID and the configured Studio URL.
+2. Find the trace in Studio. Confirm OpenInference LLM spans are children of
+   Junjo model-request operations in that same trace.
+3. Inspect the Agent's application state separately from its private runtime
+   state, then open the Workflow's conditional path and state interval. A shared
+   Store retains its identity across these execution views.
+4. If evidence is absent, check initialization order and exporter errors, then
+   verify the OTLP endpoint, TLS setting, and Studio **telemetry API key**.
+   Successful model calls and local queue drains do not prove remote delivery.
+
+The example's deterministic HTTP tests verify actual client instrumentation
+and state evidence without credentials or paid calls. A live run followed by
+Studio inspection verifies delivery for a particular deployment. Keep explicit
+paid provider smoke tests in setup or diagnostics instead of repeating them on
+every application startup.
+
+### Distinguish the OpenAI client from the OpenAI Agents SDK
+
+This setup uses Junjo as the Agent runtime and instruments the OpenAI **client**.
+The [OpenAI Agents SDK integration](/docs/python/integrations/openai-agents/)
+bridges a different Agent runtime's tracing, including its model operations,
+into the application's provider. It is not required for native Junjo Agents.
+
+Instrument a client once through the shared bootstrap. When combining runtimes,
+identify which instrumentation already represents each model call before adding
+another instrumentor; overlapping provider capture can produce duplicate model
+evidence. Apply the external runtime's own content settings as well when using
+its tracing bridge.
+
+For other library choices, use the [examples and integrations index](/docs/examples-and-integrations/).
+
 ## How Junjo Uses OpenTelemetry
 
 **What Gets Traced Automatically:**
@@ -156,7 +285,10 @@ An Agent invoked by a Workflow Node is physically and semantically nested
 under that Node. A standalone Agent under a non-Junjo server span preserves the
 physical OpenTelemetry parent but does not fabricate Junjo semantic-parent
 attributes. Nested Agent owners each restart their own operation sequence,
-Store revisions, usage aggregate, limits, and terminal evidence.
+private runtime Store revisions, usage aggregate, limits, and terminal evidence.
+Application Store revisions continue across executions that share the same live
+Store; each execution records its own application-state interval. See
+[Store composition](/docs/python/agents/composition/).
 
 Owner spans distinguish definition, run, and structural identity:
 
@@ -212,7 +344,7 @@ across a network boundary.
 ### Agent evidence and Store replay
 
 The Agent owner contains its definition snapshot, normalized input, start/end
-state, aggregate usage, exact limits and counters, output when successful, and
+private runtime state and optional application state, aggregate usage, exact limits and counters, output when successful, and
 one terminal outcome. Model operation spans contain the immutable request,
 raw portable response candidate when available, validated normalized response,
 descriptor identity, usage, ordinal, operation sequence, and state revision.
@@ -220,13 +352,13 @@ Tool operation spans similarly distinguish requested arguments, admitted
 validated arguments, service result candidate, validated result, call identity,
 ordinal, sequence, and before/after revisions.
 
-Agent state transitions use the same observable Store protocol as Workflows.
+Agent runtime and application state transitions use the same observable Store protocol as Workflows.
 Each `set_state` event includes:
 
 - `junjo.store.action` and a contiguous transition sequence;
 - before/after revisions (no-op transitions do not advance revision);
 - a portable RFC 6902 patch and its payload mode/policy;
-- the owner Store identity.
+- the physical Store identity.
 
 Studio and conformance consumers collect events across the owner and its
 operation spans, order them by transition sequence, replay from
@@ -235,6 +367,22 @@ operation spans, order them by transition sequence, replay from
 response, whole-batch admission, Tool start/result, and one terminal commit.
 `junjo.store.reconstructable` is false only when complete replay cannot be
 claimed, such as a failed terminal Store commit.
+
+Application Store evidence is separate: `junjo.agent.application_store.id`
+identifies the live Store and `junjo.agent.application_state.start/end` hold the
+execution snapshots. Its revision and transition boundaries use the
+`junjo.agent.application_store.*` prefix. Model and Tool state-revision fields
+continue to refer to private Agent runtime state.
+
+Contract 3 adds `transition.start` and `transition.end` to each Store boundary.
+Studio reconstructs only events in `(start, end]`, even when another execution
+uses the same Store. The normalized trace indexes each physical Store's
+transitions once and attaches role-specific boundaries to each executable.
+Sharing does not change span parentage. Missing events, including writers in
+another trace, make the affected view incomplete. See
+[composition and concurrency](/docs/python/agents/composition/#concurrency-and-state-evidence).
+SDK and Studio must use the active telemetry contract together; older evidence
+remains available as raw spans, with unsupported semantic annotations diagnosed.
 
 All contract payload slots explicitly report `.mode` and `.policy`. The
 SDK's core policy is `full` / `junjo.full.v1`; absence is never silently
@@ -495,16 +643,19 @@ and accessed. Capture controls differ between execution types:
 
 | Execution surface | Capture control |
 | --- | --- |
-| Workflow state | State-model serialization controls the captured state representation, as described below. |
-| Native Junjo Agent | Instrumentation records full normalized payloads. The current public Agent API does not expose a selective capture policy; Workflow serialization guidance is not a general Agent redaction API. |
+| Application Store state (Workflow or Agent) | State-model serialization controls the captured state representation, as described below. |
+| Native Junjo Agent runtime and operations | Instrumentation records full normalized payloads. The current public Agent API does not expose a selective capture policy; application-state serialization is not a general Agent transcript redaction API. |
+| OpenInference provider spans | The instrumentor's `TraceConfig` or environment settings control provider content. See [OpenInference content capture](#configure-openinference-content-capture); these settings do not suppress native Junjo telemetry. |
 | OpenAI Agents integration | Source tracing settings govern what the bridge receives; they do not suppress nested native Junjo telemetry. See the [integration's capture guidance](/docs/python/integrations/openai-agents/#treat-content-capture-as-a-privacy-choice). |
 | Other application spans | Capture is governed by the application's instrumentation and exporters. |
 
-Workflow state telemetry is derived from your state model's normal Pydantic
+Application Store telemetry is derived from your state model's normal Pydantic
 serialization:
 
 - `junjo.workflow.state.start` and `junjo.workflow.state.end` use the
   serialized state JSON
+- `junjo.agent.application_state.start` and `junjo.agent.application_state.end`
+  use the Agent's application-state serialization
 - `junjo.state_json_patch` is built from serialized before/after state dumps
 
 This means your state model controls what appears in OpenTelemetry state

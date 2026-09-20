@@ -389,6 +389,7 @@ class AgentExecutionDetail(BaseModel):
     history_candidate: CandidateEvidence | None = None
     operations: list[AgentOperation]
     state: StoreDetail
+    application_state: StoreDetail
     parent_executable: ParentExecutableReference | None = None
     nested_executables: list[NestedExecutableReference]
     error: ExecutionError | None = None

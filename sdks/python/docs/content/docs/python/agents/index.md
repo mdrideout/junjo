@@ -24,10 +24,17 @@ The definition declares all behavior-affecting structure up front:
 - an ordered collection of explicitly typed `Tool` definitions;
 - positive model-request and Tool-call limits.
 
-Every `execute` call creates a fresh run identity, private Store, transcript,
+Every `execute` call creates a fresh run identity, private runtime Store, transcript,
 counters, usage aggregate, lifecycle snapshot, and per-run collaborator cache.
 The caller owns request dependencies, history selection, persistence, provider
 credentials, transactions, and product transport.
+
+An optional `store_factory` creates typed application state for each execution.
+Alternatively, pass `store=app_store` to borrow a live Store also used by other
+Agents or Workflows. Tools receive it through `context.store`, and successful
+results include detached `application_state` separately from the final output.
+Read [Store composition](/docs/python/agents/composition/) for both options and
+[runnable library integrations](/docs/examples-and-integrations/) for a complete setup.
 
 ## Minimal definition
 

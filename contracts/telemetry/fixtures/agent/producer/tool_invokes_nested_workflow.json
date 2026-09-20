@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "tool_invokes_nested_workflow",
   "trace_id": "20914bc415d35fcb78a88cdfda34fba9",
   "service_name": "svc-agent-tool-invokes-nested-workflow",
@@ -22,7 +22,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-463bcca262989930",
         "junjo.executable_runtime_id": "run-463bcca2629899303de5",
@@ -63,7 +63,10 @@
         "junjo.agent.output.policy": "junjo.full.v1",
         "junjo.agent.output": "{\"answer\":\"done\"}",
         "junjo.correlation.type": "ai_chat.turn",
-        "junjo.correlation.id": "turn-fixture-001"
+        "junjo.correlation.id": "turn-fixture-001",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 8
       },
       "events_json": [
         {
@@ -126,7 +129,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-463bcca2629899303de5",
@@ -211,7 +214,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "tool",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-463bcca2629899303de5",
@@ -297,7 +300,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-463bcca2629899303de5",
@@ -382,7 +385,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow-definition-463bcca262",
         "junjo.executable_runtime_id": "workflow-run-463bcca262",
@@ -406,7 +409,9 @@
         "junjo.workflow.state.end.policy": "junjo.full.v1",
         "junjo.workflow.state.end": "{\"value\":\"result-1\"}",
         "junjo.correlation.type": "ai_chat.turn",
-        "junjo.correlation.id": "turn-fixture-001"
+        "junjo.correlation.id": "turn-fixture-001",
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 0
       },
       "events_json": [],
       "links_json": [],
@@ -434,7 +439,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node-definition-463bcca262",
         "junjo.executable_runtime_id": "node-run-463bcca262",

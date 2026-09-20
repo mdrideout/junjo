@@ -96,12 +96,12 @@ External target spans remain ordinary descendants of the bounded subject role
 span. Evaluation context is not copied onto those descendants, and they do not
 receive fabricated Junjo executable identity.
 
-### Contract version 2 remains active
+### Evaluation context remains an optional contract extension
 
-This is an optional governed extension of telemetry contract version 2.
-Existing version 2 evidence remains valid without evaluation spans, and no
-existing executable, operation, Store, payload, or service-identity semantics
-change.
+This extension was introduced with telemetry contract version 2 and remains
+optional under version 3 (ADR 0016). Evidence need not contain evaluation spans.
+The extension itself does not change executable, operation, Store, payload, or
+service-identity semantics.
 
 SDK producer tests must prove exact attribute presence, omission, parentage,
 and application service identity for evaluation and generated-case execution.

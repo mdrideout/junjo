@@ -1,0 +1,26 @@
+{
+  "execution_id": "ed3afa7a280a0e4c850a6930c3ba4f29",
+  "trace_id": "ec30632f141a27ad11b762d39b2975d7",
+  "workflow_runs": 2,
+  "accepted_steps": 4,
+  "model_spans": 4,
+  "native_worker_sessions": [
+    "01a0bfe8-797e-7bc3-81b9-b374230efc32",
+    "01a0bfe8-9307-7031-a264-c0788a4f096b"
+  ],
+  "host_versions": ["0.144.3"],
+  "span_count": 13,
+  "result": "passed",
+  "studio": {
+    "retrieved_through": "GET /api/v1/trace-evidence/{trace_id}",
+    "exported_span_ids_and_attributes_preserved": true,
+    "source_links_preserved": 4,
+    "native_workflow_annotations": 2,
+    "stores": 2,
+    "transitions_per_store": [2, 2],
+    "workflow_integrity": ["complete", "complete"],
+    "diagnostics": [],
+    "trace_tree_and_workflow_state_visually_verified": true
+  },
+  "scope": "Accepted-step completion requests only; not complete host request coverage or token accounting."
+}

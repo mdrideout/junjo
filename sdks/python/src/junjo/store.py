@@ -13,10 +13,10 @@ from ._identity import (
     get_parent_active_executable_identity,
 )
 from ._json import JsonNestingDepthError, normalize_json, validate_json_nesting
-from ._lifecycle import GraphStoreLifecycleContext
+from ._lifecycle import get_graph_context
 from .state import BaseState
 from .telemetry.span_lifecycle import get_current_span_identifiers
-from .telemetry.store_evidence import StoreEvidenceTracker, StoreOwnerEvidence
+from .telemetry.store_evidence import StoreBoundary, StoreEvidenceTracker, StoreOwnerEvidence
 from .util import generate_safe_id
 
 # State / Store
@@ -73,14 +73,13 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         validate_json_nesting(raw_initial_state)
         try:
             owned_initial_state = initial_state.model_copy(deep=True)
-            initial_projection = normalize_json(owned_initial_state.model_dump(mode="json"))
+            normalize_json(owned_initial_state.model_dump(mode="json"))
         except RecursionError as exc:
             raise JsonNestingDepthError("Store state serialization exceeded the JSON nesting bound.") from exc
         self._lock = asyncio.Lock()
         self._id = generate_safe_id()
         self._state: StateT = owned_initial_state
-        self._lifecycle_context: GraphStoreLifecycleContext | None = None
-        self._telemetry_evidence = StoreEvidenceTracker(initial_projection)
+        self._telemetry_evidence = StoreEvidenceTracker()
 
     @property
     def id(self) -> str:
@@ -119,10 +118,6 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         async with self._lock:
             return self._state.model_dump_json()
 
-    def _set_lifecycle_context(self, context: GraphStoreLifecycleContext | None) -> None:
-        """Attach internal lifecycle dispatch context for this execution."""
-        self._lifecycle_context = context
-
     def _owned_candidate_state_data(self, update: dict) -> dict[str, object]:
         """
         Build an owned candidate from current fields and the incoming patch.
@@ -137,16 +132,33 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         current = {field_name: getattr(self._state, field_name) for field_name in type(self._state).model_fields}
         return deepcopy({**current, **update})
 
-    async def _get_store_owner_evidence(self) -> StoreOwnerEvidence:
-        """Return verified terminal evidence under the Store lock."""
-
+    async def _begin_store_execution(self) -> StoreBoundary:
+        """Capture the starting state and counter positions under the commit lock."""
         async with self._lock:
-            return self._telemetry_evidence.finalize(normalize_json(self._state.model_dump(mode="json")))
+            return self._telemetry_evidence.begin(normalize_json(self._state.model_dump(mode="json")))
+
+    def _release_store_execution(self, boundary: StoreBoundary) -> None:
+        """Drop execution-local replay retention without resetting live state."""
+        self._telemetry_evidence.release(boundary)
+
+    async def _capture_store_end(self, boundary: StoreBoundary) -> tuple[StateT, StoreOwnerEvidence]:
+        """Capture a detached result and matching telemetry checkpoint atomically."""
+        async with self._lock:
+            state = self._state.model_copy(deep=True)
+            evidence = self._telemetry_evidence.finalize(normalize_json(self._state.model_dump(mode="json")), boundary)
+            return state, evidence
+
+    async def _get_store_owner_evidence(self, boundary: StoreBoundary | None = None) -> StoreOwnerEvidence:
+        """Verify one retained execution interval, or inspect a current checkpoint."""
+        async with self._lock:
+            projection = normalize_json(self._state.model_dump(mode="json"))
+            if boundary is None:
+                return self._telemetry_evidence.checkpoint(projection)
+            return self._telemetry_evidence.finalize(projection, boundary)
 
     def _get_initial_store_owner_evidence(self) -> StoreOwnerEvidence:
-        """Return initial evidence before a newly created Store is published."""
-
-        return self._telemetry_evidence.finalize(normalize_json(self._state.model_dump(mode="json")))
+        """Inspect a newly constructed, unpublished Store without asynchronous work."""
+        return self._telemetry_evidence.checkpoint(normalize_json(self._state.model_dump(mode="json")))
 
     async def _get_store_revision(self) -> int:
         """Return the current live-state revision for semantic operation evidence."""
@@ -216,6 +228,7 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
         caller_function_name = caller_frame.f_code.co_name if caller_frame else "unknown action"
         store_name = type(self).__name__
 
+        lifecycle_context = get_graph_context(self.id)
         state_changed_payload: dict | None = None
         async with self._lock:
             validate_json_nesting(update)
@@ -252,24 +265,24 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     },
                 )
 
-            if live_state_changed and self._lifecycle_context is not None:
+            if live_state_changed and lifecycle_context is not None:
                 trace_id, span_id = get_current_span_identifiers()
                 active_identity = get_active_executable_identity()
                 parent_active_identity = get_parent_active_executable_identity()
                 state_changed_payload = {
-                    "run_id": self._lifecycle_context.run_id,
+                    "run_id": lifecycle_context.run_id,
                     "executable_definition_id": (
                         active_identity.executable_definition_id
                         if active_identity is not None
-                        else self._lifecycle_context.executable_definition_id
+                        else lifecycle_context.executable_definition_id
                     ),
                     "name": (
-                        active_identity.executable_name if active_identity is not None else self._lifecycle_context.name
+                        active_identity.executable_name if active_identity is not None else lifecycle_context.name
                     ),
                     "span_type": (
                         active_identity.executable_type
                         if active_identity is not None
-                        else self._lifecycle_context.executable_type
+                        else lifecycle_context.executable_type
                     ),
                     "store_id": self.id,
                     "store_name": store_name,
@@ -279,21 +292,21 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     "parent_executable_definition_id": (
                         parent_active_identity.executable_definition_id
                         if parent_active_identity is not None
-                        else self._lifecycle_context.executable_definition_id
+                        else lifecycle_context.executable_definition_id
                     ),
                     "trace_id": trace_id,
                     "span_id": span_id,
                     "executable_runtime_id": (
                         active_identity.executable_runtime_id
                         if active_identity is not None
-                        else self._lifecycle_context.executable_runtime_id
+                        else lifecycle_context.executable_runtime_id
                     ),
                     "executable_structural_id": (
                         active_identity.executable_structural_id
                         if active_identity is not None
-                        else self._lifecycle_context.executable_structural_id
+                        else lifecycle_context.executable_structural_id
                     ),
-                    "enclosing_graph_structural_id": (self._lifecycle_context.enclosing_graph_structural_id),
+                    "enclosing_graph_structural_id": (lifecycle_context.enclosing_graph_structural_id),
                     "parent_executable_runtime_id": (
                         parent_active_identity.executable_runtime_id if parent_active_identity is not None else None
                     ),
@@ -305,8 +318,8 @@ class BaseStore(Generic[StateT], metaclass=abc.ABCMeta):
                     ),
                 }
 
-        if state_changed_payload is not None and self._lifecycle_context is not None:
-            await self._lifecycle_context.dispatcher.state_changed(**state_changed_payload)
+        if state_changed_payload is not None and lifecycle_context is not None:
+            await lifecycle_context.dispatcher.state_changed(**state_changed_payload)
 
     async def _validate_state_update(self, update: dict) -> None:
         """Validate one prospective state and exact patch without committing it.

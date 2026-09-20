@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import inspect
 from collections.abc import Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from opentelemetry import trace
 
@@ -46,6 +48,7 @@ class AgentLifecycleIdentity:
     name: str
     agent_key: str
     store_id: str
+    application_store_id: str | None
     trace_id: str
     span_id: str
     executable_structural_id: str
@@ -57,6 +60,7 @@ class AgentLifecycleIdentity:
 
 @dataclass(slots=True)
 class GraphStoreLifecycleContext:
+    store_id: str
     dispatcher: LifecycleDispatcher
     run_id: str
     executable_definition_id: str
@@ -66,6 +70,27 @@ class GraphStoreLifecycleContext:
     executable_structural_id: str
     enclosing_graph_structural_id: str
     compiled_node_structural_ids_by_runtime_id: Mapping[str, str]
+
+
+_graph_contexts: ContextVar[tuple[GraphStoreLifecycleContext, ...]] = ContextVar(
+    "junjo_graph_lifecycle_contexts", default=()
+)
+
+
+@contextmanager
+def active_graph_context(context: GraphStoreLifecycleContext | None):
+    """Scope Graph dispatch to an execution task; Agents suspend Graph context."""
+    contexts = _graph_contexts.get()
+    token = _graph_contexts.set((*contexts, context) if context is not None else ())
+    try:
+        yield
+    finally:
+        _graph_contexts.reset(token)
+
+
+def get_graph_context(store_id: str) -> GraphStoreLifecycleContext | None:
+    """Find the active Graph using this Store, including Subflow parent writes."""
+    return next((item for item in reversed(_graph_contexts.get()) if item.store_id == store_id), None)
 
 
 class LifecycleDispatcher:
@@ -673,6 +698,7 @@ class LifecycleDispatcher:
                     parent_executable_type=identity.parent_executable_type,
                     agent_key=identity.agent_key,
                     store_id=identity.store_id,
+                    application_store_id=identity.application_store_id,
                 ),
             )
         )
@@ -681,7 +707,7 @@ class LifecycleDispatcher:
         self,
         *,
         identity: AgentLifecycleIdentity,
-        result: AgentExecutionResult,
+        result: AgentExecutionResult[Any, Any],
     ) -> PreparedHookEvent | None:
         if not self._callbacks:
             return None
@@ -702,6 +728,7 @@ class LifecycleDispatcher:
                 parent_executable_type=identity.parent_executable_type,
                 agent_key=identity.agent_key,
                 store_id=identity.store_id,
+                application_store_id=identity.application_store_id,
                 result=result,
             ),
         )
@@ -732,8 +759,12 @@ class LifecycleDispatcher:
                 parent_executable_type=identity.parent_executable_type,
                 agent_key=identity.agent_key,
                 store_id=identity.store_id,
+                application_store_id=identity.application_store_id,
                 error=error,
                 state=state,
+                application_state=error.application_state.model_copy(deep=True)
+                if error.application_state is not None
+                else None,
             ),
         )
 
@@ -743,6 +774,7 @@ class LifecycleDispatcher:
         identity: AgentLifecycleIdentity,
         reason: str,
         state: AgentStateSnapshot,
+        application_state: BaseState | None = None,
     ) -> PreparedHookEvent | None:
         if not self._callbacks:
             return None
@@ -763,8 +795,10 @@ class LifecycleDispatcher:
                 parent_executable_type=identity.parent_executable_type,
                 agent_key=identity.agent_key,
                 store_id=identity.store_id,
+                application_store_id=identity.application_store_id,
                 reason=reason,
                 state=state,
+                application_state=application_state.model_copy(deep=True) if application_state is not None else None,
             ),
         )
 

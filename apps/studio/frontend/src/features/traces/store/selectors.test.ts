@@ -10,7 +10,7 @@ import {
   identifySpanWorkflowChain,
   selectActiveStoreID,
   selectTraceFailureSpans,
-  selectWorkflowSpanByStoreId,
+  selectWorkflowStoreViewOwner,
 } from './selectors'
 import { makeTraceEvidence } from '../testing/make-trace-evidence'
 
@@ -110,13 +110,12 @@ describe('trace selectors', () => {
     expect(chain.map((span) => span.span_id)).toEqual(['2222222222222221', '2222222222222223'])
   })
 
-  it('finds workflow spans by current Junjo store.id fields', () => {
+  it('resolves the selected Workflow execution Store view', () => {
     const spans = loadFixtureSpans('subflow_with_parent_store')
-    const state = buildState({ spans })
+    const state = buildState({ spans, activeSpanId: '2222222222222223' })
 
-    const workflowSpan = selectWorkflowSpanByStoreId(state, {
+    const workflowSpan = selectWorkflowStoreViewOwner(state, {
       traceId: spans[0].trace_id,
-      storeId: 'store-subflow-child-01',
     })
 
     expect(workflowSpan?.span_id).toBe('2222222222222223')

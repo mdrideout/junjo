@@ -15,6 +15,14 @@ replacing that framework's model integration.
 
 ## Run an existing provider adapter
 
+For a plain native OpenAI Python SDK integration, run
+[junjo_openai_sdk](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/junjo_openai_sdk).
+It uses Responses function tools and a per-run driver that preserves complete
+provider output between requests, including reasoning items. OpenInference
+instruments the OpenAI client through the same OTel provider as Junjo.
+The [examples index](/docs/examples-and-integrations/) distinguishes this client
+integration from the external OpenAI Agents SDK runtime.
+
 The [AI Chat example](https://github.com/mdrideout/junjo/tree/master/sdks/python/examples/ai_chat)
 contains application-owned Gemini and Grok adapters. These are example files,
 not built-in imports from the `junjo` package.

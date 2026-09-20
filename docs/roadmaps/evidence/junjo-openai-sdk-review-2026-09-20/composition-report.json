@@ -1,0 +1,542 @@
+{
+  "trace_id": "f560669c9eaf9d1543e1c4a30234e6a4",
+  "views": {
+    "574d68d46177a2e6": {
+      "type": "workflow",
+      "stores": {
+        "application": {
+          "available": true,
+          "store_id": "3uBJTv8k50by82UvRrVpD",
+          "sequence_start": 1,
+          "sequence_end": 3,
+          "revision_start": 1,
+          "revision_end": 3,
+          "transition_count": 2,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "as_of": "2026-09-20",
+              "days_since_delivery": null,
+              "decision_reason": null,
+              "eligible": null,
+              "order": {
+                "delivered_on": "2026-09-10",
+                "item": "Desk lamp",
+                "order_id": "ORD-1001"
+              },
+              "return_window_days": 30,
+              "within_return_window": null
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "as_of": "2026-09-20",
+              "days_since_delivery": 10,
+              "decision_reason": "Delivered 10 days ago; within the 30-day return window.",
+              "eligible": true,
+              "order": {
+                "delivered_on": "2026-09-10",
+                "item": "Desk lamp",
+                "order_id": "ORD-1001"
+              },
+              "return_window_days": 30,
+              "within_return_window": true
+            },
+            "reference": null,
+            "reason": null
+          }
+        }
+      }
+    },
+    "72762e57f06e41e3": {
+      "type": "agent",
+      "stores": {
+        "runtime": {
+          "available": true,
+          "store_id": "RE1XNc1cogCNjUCtcQrg9",
+          "sequence_start": 0,
+          "sequence_end": 13,
+          "revision_start": 0,
+          "revision_end": 13,
+          "transition_count": 13,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "admitted_tool_call_ids": [],
+              "completed_tool_call_ids": [],
+              "final_output": null,
+              "final_output_available": false,
+              "history": [],
+              "input": {
+                "order_id": "ORD-1001",
+                "question": "Can I return this order?"
+              },
+              "model_iteration": 0,
+              "model_request_count": 0,
+              "pending_tool_call_ids": [],
+              "terminal_reason": null,
+              "tool_call_admitted_count": 0,
+              "tool_call_completed_count": 0,
+              "tool_call_requested_count": 0,
+              "tool_call_started_count": 0,
+              "transcript": [
+                {
+                  "input": {
+                    "order_id": "ORD-1001",
+                    "question": "Can I return this order?"
+                  },
+                  "type": "agent_input"
+                }
+              ],
+              "usage": {
+                "fields": {},
+                "modelResponses": 0,
+                "v": 1
+              }
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "admitted_tool_call_ids": [
+                "call_1",
+                "call_2"
+              ],
+              "completed_tool_call_ids": [
+                "call_1",
+                "call_2"
+              ],
+              "final_output": {
+                "eligible": true,
+                "explanation": "Delivered 10 days ago; within the 30-day return window.",
+                "order_id": "ORD-1001"
+              },
+              "final_output_available": true,
+              "history": [],
+              "input": {
+                "order_id": "ORD-1001",
+                "question": "Can I return this order?"
+              },
+              "model_iteration": 3,
+              "model_request_count": 3,
+              "pending_tool_call_ids": [],
+              "terminal_reason": "final_output",
+              "tool_call_admitted_count": 2,
+              "tool_call_completed_count": 2,
+              "tool_call_requested_count": 2,
+              "tool_call_started_count": 2,
+              "transcript": [
+                {
+                  "input": {
+                    "order_id": "ORD-1001",
+                    "question": "Can I return this order?"
+                  },
+                  "type": "agent_input"
+                },
+                {
+                  "calls": [
+                    {
+                      "arguments": {
+                        "order_id": "ORD-1001"
+                      },
+                      "id": "call_1",
+                      "name": "lookup_order"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call_1",
+                  "result": {
+                    "as_of": "2026-09-20",
+                    "order": {
+                      "delivered_on": "2026-09-10",
+                      "item": "Desk lamp",
+                      "order_id": "ORD-1001"
+                    },
+                    "return_window_days": 30
+                  },
+                  "toolName": "lookup_order",
+                  "type": "tool_result"
+                },
+                {
+                  "calls": [
+                    {
+                      "arguments": {},
+                      "id": "call_2",
+                      "name": "check_return_eligibility"
+                    }
+                  ],
+                  "type": "assistant_tool_calls"
+                },
+                {
+                  "callId": "call_2",
+                  "result": {
+                    "decision_reason": "Delivered 10 days ago; within the 30-day return window.",
+                    "eligible": true,
+                    "order_id": "ORD-1001"
+                  },
+                  "toolName": "check_return_eligibility",
+                  "type": "tool_result"
+                },
+                {
+                  "output": {
+                    "eligible": true,
+                    "explanation": "Delivered 10 days ago; within the 30-day return window.",
+                    "order_id": "ORD-1001"
+                  },
+                  "type": "assistant_output"
+                }
+              ],
+              "usage": {
+                "fields": {
+                  "cachedInputTokens": {
+                    "observations": 3,
+                    "sum": 0
+                  },
+                  "inputTokens": {
+                    "observations": 3,
+                    "sum": 30
+                  },
+                  "outputTokens": {
+                    "observations": 3,
+                    "sum": 15
+                  },
+                  "reasoningTokens": {
+                    "observations": 3,
+                    "sum": 0
+                  },
+                  "totalTokens": {
+                    "observations": 3,
+                    "sum": 45
+                  }
+                },
+                "modelResponses": 3,
+                "v": 1
+              }
+            },
+            "reference": null,
+            "reason": null
+          }
+        },
+        "application": {
+          "available": true,
+          "store_id": "3uBJTv8k50by82UvRrVpD",
+          "sequence_start": 0,
+          "sequence_end": 3,
+          "revision_start": 0,
+          "revision_end": 3,
+          "transition_count": 3,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "as_of": "2026-09-20",
+              "days_since_delivery": null,
+              "decision_reason": null,
+              "eligible": null,
+              "order": null,
+              "return_window_days": 30,
+              "within_return_window": null
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "as_of": "2026-09-20",
+              "days_since_delivery": 10,
+              "decision_reason": "Delivered 10 days ago; within the 30-day return window.",
+              "eligible": true,
+              "order": {
+                "delivered_on": "2026-09-10",
+                "item": "Desk lamp",
+                "order_id": "ORD-1001"
+              },
+              "return_window_days": 30,
+              "within_return_window": true
+            },
+            "reference": null,
+            "reason": null
+          }
+        }
+      }
+    },
+    "6593216b3c72388a": {
+      "type": "workflow",
+      "stores": {
+        "application": {
+          "available": true,
+          "store_id": "3uBJTv8k50by82UvRrVpD",
+          "sequence_start": 0,
+          "sequence_end": 4,
+          "revision_start": 0,
+          "revision_end": 4,
+          "transition_count": 4,
+          "reconstructable_claimed": true,
+          "reconstructable": true,
+          "reconstruction_status": "verified",
+          "reconstruction_reason": null,
+          "start": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "as_of": "2026-09-20",
+              "days_since_delivery": null,
+              "decision_reason": null,
+              "eligible": null,
+              "order": null,
+              "return_window_days": 30,
+              "within_return_window": null
+            },
+            "reference": null,
+            "reason": null
+          },
+          "end": {
+            "mode": "full",
+            "policy": "junjo.full.v1",
+            "value": {
+              "as_of": "2026-09-20",
+              "days_since_delivery": 10,
+              "decision_reason": "Delivered 10 days ago; within the 30-day return window. Reviewed by Workflow.",
+              "eligible": true,
+              "order": {
+                "delivered_on": "2026-09-10",
+                "item": "Desk lamp",
+                "order_id": "ORD-1001"
+              },
+              "return_window_days": 30,
+              "within_return_window": true
+            },
+            "reference": null,
+            "reason": null
+          }
+        }
+      }
+    }
+  },
+  "application_transitions": [
+    {
+      "sequence": 1,
+      "revision_before": 0,
+      "revision_after": 1,
+      "span_id": "ef82d81d8c0445eb",
+      "event_id": "OTzb6mdjlHS0eqPEchR8O",
+      "action": "record_order",
+      "patch": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "value": [
+          {
+            "op": "replace",
+            "path": "/order",
+            "value": {
+              "delivered_on": "2026-09-10",
+              "item": "Desk lamp",
+              "order_id": "ORD-1001"
+            }
+          }
+        ],
+        "reference": null,
+        "reason": null
+      },
+      "before": {
+        "as_of": "2026-09-20",
+        "days_since_delivery": null,
+        "decision_reason": null,
+        "eligible": null,
+        "order": null,
+        "return_window_days": 30,
+        "within_return_window": null
+      },
+      "after": {
+        "as_of": "2026-09-20",
+        "days_since_delivery": null,
+        "decision_reason": null,
+        "eligible": null,
+        "order": {
+          "delivered_on": "2026-09-10",
+          "item": "Desk lamp",
+          "order_id": "ORD-1001"
+        },
+        "return_window_days": 30,
+        "within_return_window": null
+      }
+    },
+    {
+      "sequence": 2,
+      "revision_before": 1,
+      "revision_after": 2,
+      "span_id": "b2fc72ed88ea6709",
+      "event_id": "4oYl4haXCOr9JNeH1Z2uA",
+      "action": "record_policy_evaluation",
+      "patch": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "value": [
+          {
+            "op": "replace",
+            "path": "/days_since_delivery",
+            "value": 10
+          },
+          {
+            "op": "replace",
+            "path": "/within_return_window",
+            "value": true
+          }
+        ],
+        "reference": null,
+        "reason": null
+      },
+      "before": {
+        "as_of": "2026-09-20",
+        "days_since_delivery": null,
+        "decision_reason": null,
+        "eligible": null,
+        "order": {
+          "delivered_on": "2026-09-10",
+          "item": "Desk lamp",
+          "order_id": "ORD-1001"
+        },
+        "return_window_days": 30,
+        "within_return_window": null
+      },
+      "after": {
+        "as_of": "2026-09-20",
+        "days_since_delivery": 10,
+        "decision_reason": null,
+        "eligible": null,
+        "order": {
+          "delivered_on": "2026-09-10",
+          "item": "Desk lamp",
+          "order_id": "ORD-1001"
+        },
+        "return_window_days": 30,
+        "within_return_window": true
+      }
+    },
+    {
+      "sequence": 3,
+      "revision_before": 2,
+      "revision_after": 3,
+      "span_id": "2e1bde8be76a5353",
+      "event_id": "SWg19c3Vzvyj3MLYFTnUz",
+      "action": "record_decision",
+      "patch": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "value": [
+          {
+            "op": "replace",
+            "path": "/eligible",
+            "value": true
+          },
+          {
+            "op": "replace",
+            "path": "/decision_reason",
+            "value": "Delivered 10 days ago; within the 30-day return window."
+          }
+        ],
+        "reference": null,
+        "reason": null
+      },
+      "before": {
+        "as_of": "2026-09-20",
+        "days_since_delivery": 10,
+        "decision_reason": null,
+        "eligible": null,
+        "order": {
+          "delivered_on": "2026-09-10",
+          "item": "Desk lamp",
+          "order_id": "ORD-1001"
+        },
+        "return_window_days": 30,
+        "within_return_window": true
+      },
+      "after": {
+        "as_of": "2026-09-20",
+        "days_since_delivery": 10,
+        "decision_reason": "Delivered 10 days ago; within the 30-day return window.",
+        "eligible": true,
+        "order": {
+          "delivered_on": "2026-09-10",
+          "item": "Desk lamp",
+          "order_id": "ORD-1001"
+        },
+        "return_window_days": 30,
+        "within_return_window": true
+      }
+    },
+    {
+      "sequence": 4,
+      "revision_before": 3,
+      "revision_after": 4,
+      "span_id": "aa62d9a9c2a8bfbb",
+      "event_id": "ozmfYfk5YHApYKE7IxVQs",
+      "action": "record_decision",
+      "patch": {
+        "mode": "full",
+        "policy": "junjo.full.v1",
+        "value": [
+          {
+            "op": "replace",
+            "path": "/decision_reason",
+            "value": "Delivered 10 days ago; within the 30-day return window. Reviewed by Workflow."
+          }
+        ],
+        "reference": null,
+        "reason": null
+      },
+      "before": {
+        "as_of": "2026-09-20",
+        "days_since_delivery": 10,
+        "decision_reason": "Delivered 10 days ago; within the 30-day return window.",
+        "eligible": true,
+        "order": {
+          "delivered_on": "2026-09-10",
+          "item": "Desk lamp",
+          "order_id": "ORD-1001"
+        },
+        "return_window_days": 30,
+        "within_return_window": true
+      },
+      "after": {
+        "as_of": "2026-09-20",
+        "days_since_delivery": 10,
+        "decision_reason": "Delivered 10 days ago; within the 30-day return window. Reviewed by Workflow.",
+        "eligible": true,
+        "order": {
+          "delivered_on": "2026-09-10",
+          "item": "Desk lamp",
+          "order_id": "ORD-1001"
+        },
+        "return_window_days": 30,
+        "within_return_window": true
+      }
+    }
+  ],
+  "diagnostics": []
+}

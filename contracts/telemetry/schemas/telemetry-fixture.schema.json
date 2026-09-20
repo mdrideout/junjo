@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://junjo.ai/contracts/telemetry/telemetry-fixture.v2.schema.json",
+  "$id": "https://junjo.ai/contracts/telemetry/telemetry-fixture.v3.schema.json",
   "title": "Junjo normalized telemetry fixture",
   "type": "object",
   "additionalProperties": false,
   "required": ["contract_version", "scenario", "trace_id", "service_name", "spans"],
   "properties": {
-    "contract_version": {"const": 2},
+    "contract_version": {"const": 3},
     "scenario": {"type": "string", "minLength": 1},
     "trace_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
     "service_name": {"type": "string", "minLength": 1},

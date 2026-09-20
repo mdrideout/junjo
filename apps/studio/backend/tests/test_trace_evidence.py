@@ -147,8 +147,8 @@ def test_trace_evidence_is_lossless_and_indexes_independent_owners() -> None:
             "tool",
         }
     }
-    assert agent.store_id in evidence.stores_by_id
-    assert evidence.stores_by_id[agent.store_id].owner_span_id == agent.owner_span_id
+    assert agent.stores["runtime"].store_id in evidence.stores_by_id
+    assert not agent.stores["application"].available
     assert evidence.relationships_by_owner_span_id[agent.owner_span_id].nested
 
 
@@ -361,10 +361,14 @@ def test_attempt_manifest_does_not_misattribute_duplicate_store_identity() -> No
     )
 
     assert any(
-        diagnostic.issue.code == "duplicate_store_identity" for diagnostic in manifest.diagnostics
+        diagnostic.issue.code == "runtime_store_identity_conflict" for diagnostic in manifest.diagnostics
     )
-    assert {store.owner_span_id for store in manifest.stores} == {agent_span["span_id"]}
-    assert workflow_span["span_id"] not in {store.owner_span_id for store in manifest.stores}
+    assert {store.owner_span_id for store in manifest.stores} == {
+        agent_span["span_id"], workflow_span["span_id"]
+    }
+    workflow_view = next(store for store in manifest.stores if store.owner_span_id == workflow_span["span_id"])
+    assert workflow_view.transition_count == 0
+    assert evidence.executables_by_span_id[workflow_span["span_id"]].stores["application"].start.value == {"value": "result-1"}
 
 
 @pytest.mark.asyncio

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from opentelemetry.trace import Span
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 def initialize_agent_span(
     span: Span,
     *,
-    agent: Agent,
+    agent: Agent[Any, Any, Any, Any, Any],
     run_id: str,
     parent: ParentExecutableIdentity | None,
 ) -> None:
@@ -39,6 +39,7 @@ def initialize_agent_span(
     span.set_attribute("junjo.agent.name", agent.name)
     span.set_attribute("junjo.agent.runtime_id", run_id)
     span.set_attribute("junjo.agent.state.available", False)
+    span.set_attribute("junjo.agent.application_state.available", False)
     span.set_attribute("junjo.agent.limit.model_requests", agent.limits.model_requests)
     span.set_attribute("junjo.agent.limit.tool_calls", agent.limits.tool_calls)
     set_full_payload(
@@ -65,7 +66,7 @@ def initialize_agent_span(
 def initialize_model_span(
     span: Span,
     *,
-    agent: Agent,
+    agent: Agent[Any, Any, Any, Any, Any],
     run_id: str,
     sequence: int,
     ordinal: int,

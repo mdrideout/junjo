@@ -1168,23 +1168,23 @@ async def test_agent_cancellation_during_workflow_tool_terminalization_preserves
     terminal_entered = asyncio.Event()
     release_terminal = asyncio.Event()
     evidence_calls = 0
-    original_evidence = ChildStore._get_store_owner_evidence
+    original_evidence = ChildStore._capture_store_end
     child_hooks = Hooks()
     child_lifecycle: list[str] = []
     child_hooks.on_workflow_completed(lambda event: child_lifecycle.append("completed"))
 
-    async def blocked_terminal_evidence(self):
+    async def blocked_terminal_evidence(self, boundary):
         nonlocal evidence_calls
         evidence_calls += 1
-        evidence = await original_evidence(self)
-        if evidence_calls == 2:
+        evidence = await original_evidence(self, boundary)
+        if evidence_calls == 1:
             terminal_entered.set()
             await release_terminal.wait()
         return evidence
 
     monkeypatch.setattr(
         ChildStore,
-        "_get_store_owner_evidence",
+        "_capture_store_end",
         blocked_terminal_evidence,
     )
 

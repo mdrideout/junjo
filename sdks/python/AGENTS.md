@@ -29,7 +29,7 @@ Public behavior, examples, and conceptual explanations live in:
 - Public APIs and docstrings are part of the product, not incidental comments. Maintain them properly for public doc consumption.
 - OpenTelemetry is a first-class runtime concern.
 - Hooks are optional observers, not the control plane for telemetry.
-- Workflow execution is isolated per run. A `Workflow` or `Subflow` object is a reusable definition, not a live mutable run container.
+- Workflow execution identity and Graphs are isolated per run. Application Stores may be factory-owned or explicitly shared with `execute(store=...)`; Subflows keep isolated Stores. A `Workflow` or `Subflow` object is a reusable definition, not a live mutable run container.
 - `Workflow.execute()` returns an `ExecutionResult`.
 - `BaseStore.get_state()` returns a detached deep snapshot.
 - `BaseStore.set_state()` is patch-oriented and validates atomically against the current locked state.

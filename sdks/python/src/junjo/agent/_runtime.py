@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypedDict, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, TypedDict, TypeVar, cast
 
 from opentelemetry import trace
 from opentelemetry.trace import Span
@@ -19,7 +19,7 @@ from .._identity import (
     get_active_executable_identity,
 )
 from .._json import freeze_json, thaw_json
-from .._lifecycle import AgentLifecycleIdentity, LifecycleDispatcher, PreparedHookEvent
+from .._lifecycle import AgentLifecycleIdentity, LifecycleDispatcher, PreparedHookEvent, active_graph_context
 from .._terminal import drain_terminal_work
 from ..correlation import (
     ExecutionCorrelation,
@@ -27,6 +27,8 @@ from ..correlation import (
     _resolve_execution_correlation,
     _set_correlation_span_attributes,
 )
+from ..state import BaseState
+from ..store import BaseStore
 from ..telemetry.diagnostics import (
     cancellation_reason,
     error_type,
@@ -40,6 +42,7 @@ from ..telemetry.span_lifecycle import (
     mark_span_failed,
     record_span_exception,
 )
+from ..telemetry.store_evidence import StoreBoundary
 from ..util import generate_safe_id
 from ._boundary import validate_and_detach
 from ._state import AgentState, AgentStore, initial_agent_state, snapshot_agent_state
@@ -96,6 +99,8 @@ if TYPE_CHECKING:
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
 DependenciesT = TypeVar("DependenciesT")
+StateT = TypeVar("StateT", bound=BaseState)
+StoreT = TypeVar("StoreT", bound=BaseStore[Any] | None)
 
 
 class _ErrorIdentity(TypedDict):
@@ -107,7 +112,7 @@ class _ErrorIdentity(TypedDict):
 
 @dataclass(frozen=True, slots=True)
 class _PreparedToolCall:
-    tool: Tool
+    tool: Tool[Any, Any, Any, Any]
     call: ToolCall
     ordinal: int
     typed_input: object
@@ -120,31 +125,38 @@ class _PreparedCompletion(Generic[OutputT]):
     normalized_output: JsonValue
 
 
-class _AgentRun(Generic[InputT, OutputT, DependenciesT]):
+class _AgentRun(Generic[InputT, OutputT, DependenciesT, StateT, StoreT]):
     """Mutable state local to exactly one admitted Agent execution."""
 
     def __init__(
         self,
         *,
-        agent: Agent[InputT, OutputT, DependenciesT],
+        agent: Agent[InputT, OutputT, DependenciesT, StateT, StoreT],
         run_id: str,
         dependencies: DependenciesT,
         transcript: Sequence[AgentMessage],
         store: AgentStore,
         dispatcher: LifecycleDispatcher,
         initial_state: AgentState,
+        store_boundary: StoreBoundary,
+        application_store: BaseStore[StateT] | None,
+        application_boundary: StoreBoundary | None,
     ) -> None:
         self.agent = agent
         self.run_id = run_id
         self.dependencies = dependencies
         self.transcript = list(transcript)
         self.store = store
+        self.store_boundary = store_boundary
+        self.application_store = application_store
+        self.application_boundary = application_boundary
+        self.application_state: StateT | None = None
         self.dispatcher = dispatcher
         self._last_known_state = initial_state.model_copy(deep=True)
         self.usage = AgentUsage()
         self.operation_count = 0
         self._driver: ModelDriver | None = None
-        self._tool_services: dict[str, ToolService] = {}
+        self._tool_services: dict[str, ToolService[Any, Any, Any, Any]] = {}
         self._tools_by_name = {tool.name: tool for tool in agent.tools}
         self._seen_call_ids = {
             call.id
@@ -388,7 +400,7 @@ class _AgentRun(Generic[InputT, OutputT, DependenciesT]):
     async def _record_invalid_tool_arguments(
         self,
         *,
-        tool: Tool,
+        tool: Tool[Any, Any, Any, Any],
         call: ToolCall,
         ordinal: int,
     ) -> AgentToolInputValidationError:
@@ -506,6 +518,7 @@ class _AgentRun(Generic[InputT, OutputT, DependenciesT]):
             ):
                 context = AgentRunContext(
                     dependencies=self.dependencies,
+                    store=self.application_store,
                     agent_key=self.agent.key,
                     definition_id=self.agent.definition_id,
                     run_id=self.run_id,
@@ -640,7 +653,7 @@ class _AgentRun(Generic[InputT, OutputT, DependenciesT]):
         )
         self.operation_count = sequence
 
-    def _get_tool_service(self, tool: Tool) -> ToolService:
+    def _get_tool_service(self, tool: Tool[Any, Any, Any, Any]) -> ToolService[Any, Any, Any, Any]:
         existing = self._tool_services.get(tool.name)
         if existing is not None:
             return existing
@@ -703,28 +716,29 @@ class _AgentRun(Generic[InputT, OutputT, DependenciesT]):
 
 
 @dataclass(frozen=True, slots=True)
-class _AdmittedRun(Generic[InputT, OutputT, DependenciesT]):
-    runtime: _AgentRun[InputT, OutputT, DependenciesT]
+class _AdmittedRun(Generic[InputT, OutputT, DependenciesT, StateT, StoreT]):
+    runtime: _AgentRun[InputT, OutputT, DependenciesT, StateT, StoreT]
     lifecycle_identity: AgentLifecycleIdentity
     active_identity: ActiveExecutableIdentity
 
 
 @dataclass(frozen=True, slots=True)
-class _ExecutionOutcome(Generic[OutputT]):
-    result: AgentExecutionResult[OutputT] | None = None
+class _ExecutionOutcome(Generic[OutputT, StateT]):
+    result: AgentExecutionResult[OutputT, StateT] | None = None
     error: AgentInvocationError | AgentExecutionError | None = None
     cancellation: asyncio.CancelledError | None = None
     terminal_delivery_cancellation: asyncio.CancelledError | None = None
 
 
 async def execute_agent(
-    agent: Agent[InputT, OutputT, DependenciesT],
+    agent: Agent[InputT, OutputT, DependenciesT, StateT, StoreT],
     *,
     input: object,
     dependencies: DependenciesT,
     history: Sequence[AgentMessage],
     correlation: ExecutionCorrelation | None,
-) -> AgentExecutionResult[OutputT]:
+    store: StoreT | None,
+) -> AgentExecutionResult[OutputT, StateT]:
     """Create identity first, admit typed boundaries, then run one isolated loop."""
 
     effective_correlation = _resolve_execution_correlation(correlation)
@@ -732,11 +746,14 @@ async def execute_agent(
     active_parent = get_active_executable_identity()
     parent = active_parent.as_parent() if active_parent is not None else None
     tracer = trace.get_tracer(JUNJO_OTEL_MODULE_NAME)
-    with _active_execution_correlation(effective_correlation), tracer.start_as_current_span(
-        agent.name,
-        record_exception=False,
-        set_status_on_exception=False,
-    ) as span:
+    with (
+        _active_execution_correlation(effective_correlation),
+        tracer.start_as_current_span(
+            agent.name,
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as span,
+    ):
         initialize_agent_span(span, agent=agent, run_id=run_id, parent=parent)
         _set_correlation_span_attributes(span, effective_correlation)
         try:
@@ -749,10 +766,10 @@ async def execute_agent(
             )
         except AgentInvocationError as error:
             _record_invocation_failure(span, error)
-            outcome: _ExecutionOutcome[OutputT] = _ExecutionOutcome(error=error)
+            outcome: _ExecutionOutcome[OutputT, StateT] = _ExecutionOutcome(error=error)
         else:
             try:
-                admitted = _admit_run(
+                admitted = await _admit_run(
                     agent=agent,
                     run_id=run_id,
                     parent=parent,
@@ -760,6 +777,7 @@ async def execute_agent(
                     dependencies=dependencies,
                     normalized_input=normalized_input,
                     detached_history=detached_history,
+                    application_store=store,
                 )
             except Exception as cause:
                 error = AgentAdmissionError(
@@ -773,13 +791,23 @@ async def execute_agent(
                 _record_invocation_failure(span, error)
                 outcome = _ExecutionOutcome(error=error)
             else:
-                outcome = await _execute_admitted(agent=agent, admitted=admitted, span=span)
+                try:
+                    outcome = await _execute_admitted(agent=agent, admitted=admitted, span=span)
+                finally:
+                    admitted.runtime.store._release_store_execution(admitted.runtime.store_boundary)
+                    if (
+                        admitted.runtime.application_store is not None
+                        and admitted.runtime.application_boundary is not None
+                    ):
+                        admitted.runtime.application_store._release_store_execution(
+                            admitted.runtime.application_boundary
+                        )
     return _propagate_outcome(outcome)
 
 
 def _validate_invocation(
     *,
-    agent: Agent,
+    agent: Agent[Any, Any, Any, Any, Any],
     run_id: str,
     span: Span,
     input: object,
@@ -831,16 +859,17 @@ def _require_agent_state_message_capacity(message: AgentMessage) -> None:
     freeze_json({"transcript": [message_to_json(message)]})
 
 
-def _admit_run(
+async def _admit_run(
     *,
-    agent: Agent[InputT, OutputT, DependenciesT],
+    agent: Agent[InputT, OutputT, DependenciesT, StateT, StoreT],
     run_id: str,
     parent: ParentExecutableIdentity | None,
     span: Span,
     dependencies: DependenciesT,
     normalized_input: JsonValue,
     detached_history: tuple[AgentMessage, ...],
-) -> _AdmittedRun[InputT, OutputT, DependenciesT]:
+    application_store: StoreT | None,
+) -> _AdmittedRun[InputT, OutputT, DependenciesT, StateT, StoreT]:
     current_input = AgentInputMessage(normalized_input)
     transcript = (*detached_history, current_input)
     initial_state = initial_agent_state(
@@ -850,51 +879,78 @@ def _admit_run(
     )
     store = AgentStore(initial_state)
     initial_evidence = store._get_initial_store_owner_evidence()
-    dispatcher = LifecycleDispatcher(agent.hooks)
-    runtime = _AgentRun(
-        agent=agent,
-        run_id=run_id,
-        dependencies=dependencies,
-        transcript=transcript,
-        store=store,
-        dispatcher=dispatcher,
-        initial_state=initial_state,
-    )
+    if application_store is None and agent.store_factory is not None:
+        application_store = agent.store_factory()
+    if application_store is not None and not isinstance(application_store, BaseStore):
+        raise TypeError("Agent application store must be a BaseStore.")
+    store_boundary = await store._begin_store_execution()
+    application_boundary = None
+    try:
+        if application_store is not None:
+            application_boundary = await application_store._begin_store_execution()
 
-    # Publish subordinate Store facts only after the complete admission package
-    # has been prepared.  Availability is the final publication boundary.
-    span.set_attribute("junjo.agent.store.id", store.id)
-    set_full_payload(span, "junjo.agent.input", normalized_input)
-    set_full_payload(span, "junjo.agent.state.start", initial_evidence.state_start)
-    span.set_attribute("junjo.store.revision.start", initial_evidence.revision_start)
-    span.set_attribute("junjo.agent.state.available", True)
-    return _AdmittedRun(
-        runtime=runtime,
-        lifecycle_identity=_lifecycle_identity(
+        dispatcher = LifecycleDispatcher(agent.hooks)
+        runtime = _AgentRun(
             agent=agent,
             run_id=run_id,
-            store_id=store.id,
-            span=span,
-            parent=parent,
-        ),
-        active_identity=ActiveExecutableIdentity(
-            executable_definition_id=agent.definition_id,
-            executable_name=agent.name,
-            executable_type=ExecutableType.AGENT,
-            executable_runtime_id=run_id,
-            executable_structural_id=agent.structural_id,
-        ),
-    )
+            dependencies=dependencies,
+            transcript=transcript,
+            store=store,
+            dispatcher=dispatcher,
+            initial_state=initial_state,
+            store_boundary=store_boundary,
+            application_store=application_store,
+            application_boundary=application_boundary,
+        )
+
+        # Publish subordinate Store facts only after the complete admission package
+        # has been prepared.  Availability is the final publication boundary.
+        span.set_attribute("junjo.agent.store.id", store.id)
+        set_full_payload(span, "junjo.agent.input", normalized_input)
+        set_full_payload(span, "junjo.agent.state.start", initial_evidence.state_start)
+        span.set_attribute("junjo.store.revision.start", initial_evidence.revision_start)
+        span.set_attribute("junjo.store.transition.start", store_boundary.sequence)
+        span.set_attribute("junjo.agent.state.available", True)
+        if application_store is not None and application_boundary is not None:
+            span.set_attribute("junjo.agent.application_store.id", application_store.id)
+            set_full_payload(span, "junjo.agent.application_state.start", application_boundary.state)
+            span.set_attribute("junjo.agent.application_store.revision.start", application_boundary.revision)
+            span.set_attribute("junjo.agent.application_store.transition.start", application_boundary.sequence)
+            span.set_attribute("junjo.agent.application_state.available", True)
+        return _AdmittedRun(
+            runtime=runtime,
+            lifecycle_identity=_lifecycle_identity(
+                agent=agent,
+                run_id=run_id,
+                store_id=store.id,
+                application_store_id=application_store.id if application_store is not None else None,
+                span=span,
+                parent=parent,
+            ),
+            active_identity=ActiveExecutableIdentity(
+                executable_definition_id=agent.definition_id,
+                executable_name=agent.name,
+                executable_type=ExecutableType.AGENT,
+                executable_runtime_id=run_id,
+                executable_structural_id=agent.structural_id,
+            ),
+        )
+
+    except BaseException:
+        store._release_store_execution(store_boundary)
+        if application_store is not None and application_boundary is not None:
+            application_store._release_store_execution(application_boundary)
+        raise
 
 
 async def _execute_admitted(
     *,
-    agent: Agent[InputT, OutputT, DependenciesT],
-    admitted: _AdmittedRun[InputT, OutputT, DependenciesT],
+    agent: Agent[InputT, OutputT, DependenciesT, StateT, StoreT],
+    admitted: _AdmittedRun[InputT, OutputT, DependenciesT, StateT, StoreT],
     span: Span,
-) -> _ExecutionOutcome[OutputT]:
+) -> _ExecutionOutcome[OutputT, StateT]:
     runtime = admitted.runtime
-    with active_executable_identity(admitted.active_identity):
+    with active_graph_context(None), active_executable_identity(admitted.active_identity):
         try:
             await runtime.dispatcher.agent_started(admitted.lifecycle_identity)
             completion = await runtime.run()
@@ -953,11 +1009,11 @@ async def _execute_admitted(
 
 async def _finish_success(
     *,
-    agent: Agent[InputT, OutputT, DependenciesT],
-    admitted: _AdmittedRun[InputT, OutputT, DependenciesT],
+    agent: Agent[InputT, OutputT, DependenciesT, StateT, StoreT],
+    admitted: _AdmittedRun[InputT, OutputT, DependenciesT, StateT, StoreT],
     span: Span,
     completion: _PreparedCompletion[OutputT],
-) -> _ExecutionOutcome[OutputT]:
+) -> _ExecutionOutcome[OutputT, StateT]:
     runtime = admitted.runtime
     result, finalization_cancellation = await drain_terminal_work(
         _commit_success_terminal(
@@ -989,10 +1045,10 @@ async def _finish_success(
 
 
 async def _finish_failure(
-    admitted: _AdmittedRun,
+    admitted: _AdmittedRun[Any, Any, Any, Any, Any],
     span: Span,
     error: AgentExecutionError,
-) -> _ExecutionOutcome:
+) -> _ExecutionOutcome[Any, Any]:
     runtime = admitted.runtime
     state, finalization_cancellation = await drain_terminal_work(
         _commit_failure_terminal(runtime=runtime, span=span, error=error)
@@ -1020,10 +1076,10 @@ async def _finish_failure(
 
 
 async def _finish_cancellation(
-    admitted: _AdmittedRun,
+    admitted: _AdmittedRun[Any, Any, Any, Any, Any],
     span: Span,
     cancellation: asyncio.CancelledError,
-) -> _ExecutionOutcome:
+) -> _ExecutionOutcome[Any, Any]:
     runtime = admitted.runtime
     state, finalization_cancellation = await drain_terminal_work(
         _commit_cancellation_terminal(
@@ -1039,6 +1095,7 @@ async def _finish_cancellation(
                 identity=admitted.lifecycle_identity,
                 reason=_cancellation_reason(cancellation),
                 state=snapshot_agent_state(state),
+                application_state=runtime.application_state,
             ),
         )
     except asyncio.CancelledError as delivery_cancellation:
@@ -1056,13 +1113,13 @@ async def _finish_cancellation(
 
 async def _finish_terminal_commit_failure(
     *,
-    admitted: _AdmittedRun,
+    admitted: _AdmittedRun[Any, Any, Any, Any, Any],
     span: Span,
     selected_outcome: str,
     selected_error: AgentExecutionError | None,
     selected_cancellation: asyncio.CancelledError | None,
     cause: BaseException,
-) -> _ExecutionOutcome:
+) -> _ExecutionOutcome[Any, Any]:
     """Supersede a broken terminal transaction with one typed internal outcome."""
 
     runtime = admitted.runtime
@@ -1118,7 +1175,7 @@ async def _finish_terminal_commit_failure(
 
 async def _commit_internal_failure_terminal(
     *,
-    runtime: _AgentRun,
+    runtime: _AgentRun[Any, Any, Any, Any, Any],
     span: Span,
     selected_outcome: str,
     selected_error: AgentExecutionError | None,
@@ -1152,12 +1209,13 @@ async def _commit_internal_failure_terminal(
     _record_minimal_internal_owner(span, runtime, error, state)
 
     try:
-        evidence = await runtime.store._get_store_owner_evidence()
+        evidence = await runtime.store._get_store_owner_evidence(runtime.store_boundary)
     except (asyncio.CancelledError, Exception):
         evidence = None
     if evidence is not None:
         try:
             set_full_payload(span, "junjo.agent.state.end", evidence.state_end)
+            span.set_attribute("junjo.store.transition.end", evidence.sequence_end)
             span.set_attribute("junjo.store.revision.end", evidence.revision_end)
             span.set_attribute(
                 "junjo.store.transition.count",
@@ -1176,7 +1234,7 @@ async def _commit_internal_failure_terminal(
 
 
 def _new_internal_error(
-    runtime: _AgentRun,
+    runtime: _AgentRun[Any, Any, Any, Any, Any],
     message: str,
     cause: BaseException,
 ) -> AgentInternalError:
@@ -1184,6 +1242,8 @@ def _new_internal_error(
         message,
         **runtime._error_identity(),
         state=snapshot_agent_state(runtime._get_last_known_state()),
+        application_state=runtime.application_state,
+        application_store_id=runtime.application_store.id if runtime.application_store is not None else None,
     )
     error.__cause__ = cause
     return error
@@ -1191,7 +1251,7 @@ def _new_internal_error(
 
 def _record_minimal_internal_owner(
     span: Span,
-    runtime: _AgentRun,
+    runtime: _AgentRun[Any, Any, Any, Any, Any],
     error: AgentInternalError,
     state: AgentState,
 ) -> None:
@@ -1245,12 +1305,13 @@ def _record_terminal_dispatch_failure(span: Span, failure: Exception) -> None:
 
 async def _commit_success_terminal(
     *,
-    agent: Agent[InputT, OutputT, DependenciesT],
-    runtime: _AgentRun[InputT, OutputT, DependenciesT],
+    agent: Agent[InputT, OutputT, DependenciesT, StateT, StoreT],
+    runtime: _AgentRun[InputT, OutputT, DependenciesT, StateT, StoreT],
     span: Span,
     completion: _PreparedCompletion[OutputT],
-) -> AgentExecutionResult[OutputT]:
+) -> AgentExecutionResult[OutputT, StateT]:
     await runtime.store.commit_success(completion.normalized_output)
+    await _capture_application_store(runtime, span)
     state = await runtime._get_state()
     transcript = (
         *runtime.transcript,
@@ -1266,6 +1327,7 @@ async def _commit_success_terminal(
     await _set_terminal_agent_telemetry(
         span,
         store=runtime.store,
+        boundary=runtime.store_boundary,
         state=state,
         operation_count=runtime.operation_count,
         usage=runtime.usage,
@@ -1278,17 +1340,21 @@ async def _commit_success_terminal(
 
 async def _commit_failure_terminal(
     *,
-    runtime: _AgentRun,
+    runtime: _AgentRun[Any, Any, Any, Any, Any],
     span: Span,
     error: AgentExecutionError,
 ) -> AgentState:
     await runtime.store.set_terminal_reason(error.termination_reason)
+    await _capture_application_store(runtime, span)
+    error.application_state = runtime.application_state
+    error.application_store_id = runtime.application_store.id if runtime.application_store is not None else None
     state = await runtime._get_state()
     error.state = snapshot_agent_state(state)
     error.evidence = error.state
     await _set_terminal_agent_telemetry(
         span,
         store=runtime.store,
+        boundary=runtime.store_boundary,
         state=state,
         operation_count=runtime.operation_count,
         usage=runtime.usage,
@@ -1303,15 +1369,17 @@ async def _commit_failure_terminal(
 
 async def _commit_cancellation_terminal(
     *,
-    runtime: _AgentRun,
+    runtime: _AgentRun[Any, Any, Any, Any, Any],
     span: Span,
     cancellation: asyncio.CancelledError,
 ) -> AgentState:
     await runtime.store.set_terminal_reason("cancelled")
+    await _capture_application_store(runtime, span)
     state = await runtime._get_state()
     await _set_terminal_agent_telemetry(
         span,
         store=runtime.store,
+        boundary=runtime.store_boundary,
         state=state,
         operation_count=runtime.operation_count,
         usage=runtime.usage,
@@ -1340,8 +1408,8 @@ def _record_invocation_failure(span: Span, error: AgentInvocationError) -> None:
 
 
 def _propagate_outcome(
-    outcome: _ExecutionOutcome[OutputT],
-) -> AgentExecutionResult[OutputT]:
+    outcome: _ExecutionOutcome[OutputT, StateT],
+) -> AgentExecutionResult[OutputT, StateT]:
     if outcome.terminal_delivery_cancellation is not None:
         raise outcome.terminal_delivery_cancellation
     if outcome.cancellation is not None:
@@ -1353,12 +1421,12 @@ def _propagate_outcome(
 
 
 def _build_result(
-    agent: Agent[InputT, OutputT, DependenciesT],
-    runtime: _AgentRun[InputT, OutputT, DependenciesT],
+    agent: Agent[InputT, OutputT, DependenciesT, StateT, StoreT],
+    runtime: _AgentRun[InputT, OutputT, DependenciesT, StateT, StoreT],
     state: AgentState,
     output: OutputT,
     transcript: tuple[AgentMessage, ...],
-) -> AgentExecutionResult[OutputT]:
+) -> AgentExecutionResult[OutputT, StateT]:
     return AgentExecutionResult(
         agent_key=agent.key,
         name=agent.name,
@@ -1367,6 +1435,8 @@ def _build_result(
         run_id=runtime.run_id,
         output=output,
         transcript=transcript,
+        application_state=runtime.application_state,
+        application_store_id=runtime.application_store.id if runtime.application_store is not None else None,
         usage=runtime.usage,
         model_request_count=state.model_request_count,
         tool_call_requested_count=state.tool_call_requested_count,
@@ -1377,9 +1447,9 @@ def _build_result(
 
 
 def _clone_result(
-    agent: Agent[InputT, OutputT, DependenciesT],
-    result: AgentExecutionResult[OutputT],
-) -> AgentExecutionResult[OutputT]:
+    agent: Agent[InputT, OutputT, DependenciesT, StateT, StoreT],
+    result: AgentExecutionResult[OutputT, StateT],
+) -> AgentExecutionResult[OutputT, StateT]:
     cloned_output, _normalized = validate_and_detach(agent.output_adapter, result.output)
     return AgentExecutionResult(
         agent_key=result.agent_key,
@@ -1389,6 +1459,8 @@ def _clone_result(
         run_id=result.run_id,
         output=cast(OutputT, cloned_output),
         transcript=result.transcript,
+        application_state=result.application_state,
+        application_store_id=result.application_store_id,
         usage=result.usage,
         model_request_count=result.model_request_count,
         tool_call_requested_count=result.tool_call_requested_count,
@@ -1406,6 +1478,8 @@ def _clone_execution_error(error: AgentExecutionError) -> AgentExecutionError:
         "structural_id": error.structural_id,
         "run_id": error.run_id,
         "state": state,
+        "application_state": error.application_state,
+        "application_store_id": error.application_store_id,
     }
     if isinstance(error, AgentLimitExceededError):
         kwargs.update(
@@ -1458,9 +1532,10 @@ def _message_json_value(message: AgentMessage) -> JsonValue:
 
 def _lifecycle_identity(
     *,
-    agent: Agent,
+    agent: Agent[Any, Any, Any, Any, Any],
     run_id: str,
     store_id: str,
+    application_store_id: str | None,
     span: Span,
     parent: ParentExecutableIdentity | None,
 ) -> AgentLifecycleIdentity:
@@ -1471,6 +1546,7 @@ def _lifecycle_identity(
         name=agent.name,
         agent_key=agent.key,
         store_id=store_id,
+        application_store_id=application_store_id,
         trace_id=trace_id,
         span_id=span_id,
         executable_structural_id=agent.structural_id,
@@ -1481,10 +1557,29 @@ def _lifecycle_identity(
     )
 
 
+async def _capture_application_store(runtime: _AgentRun[Any, Any, Any, Any, Any], span: Span) -> None:
+    """Capture the application boundary once without owning other borrowers."""
+    store = runtime.application_store
+    boundary = runtime.application_boundary
+    if store is None or boundary is None:
+        return
+    state, evidence = await store._capture_store_end(boundary)
+    runtime.application_state = state
+    set_full_payload(span, "junjo.agent.application_state.end", evidence.state_end)
+    for name, value in {
+        "revision.end": evidence.revision_end,
+        "transition.end": evidence.sequence_end,
+        "transition.count": evidence.transition_count,
+        "reconstructable": evidence.reconstructable,
+    }.items():
+        span.set_attribute(f"junjo.agent.application_store.{name}", value)
+
+
 async def _set_terminal_agent_telemetry(
     span: Span,
     *,
     store: AgentStore,
+    boundary: StoreBoundary,
     state: AgentState,
     operation_count: int,
     usage: AgentUsage,
@@ -1503,8 +1598,9 @@ async def _set_terminal_agent_telemetry(
     )
     span.set_attribute("junjo.agent.outcome", outcome)
     span.set_attribute("junjo.agent.termination_reason", reason)
-    evidence = await store._get_store_owner_evidence()
+    evidence = await store._get_store_owner_evidence(boundary)
     set_full_payload(span, "junjo.agent.state.end", evidence.state_end)
+    span.set_attribute("junjo.store.transition.end", evidence.sequence_end)
     span.set_attribute("junjo.store.revision.end", evidence.revision_end)
     span.set_attribute("junjo.store.transition.count", evidence.transition_count)
     span.set_attribute("junjo.store.reconstructable", evidence.reconstructable)

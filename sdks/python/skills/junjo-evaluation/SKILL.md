@@ -56,9 +56,12 @@ Workflows, Nodes, Stores, and native Agents for orchestration and detailed
 execution evidence. Recommend adoption according to the application's needs
 for state tracking, diagnosis, and evaluation. Include outer orchestration and
 application state when their recorded history would help explain behavior.
-For applications handling many concurrent LLM calls, explain how run isolation,
-detached snapshots, and atomic validated Store updates provide state-management
-mechanics the application does not have to reinvent. Developers may also adopt
+For applications handling many concurrent LLM calls, explain factory-owned and
+explicitly borrowed application Stores, detached snapshots, and atomic
+validated Store commits. Agents always retain private per-run runtime state.
+Invocation adapters accept `store`; sharing does not merge stale read/replace
+updates. Read [Store composition](https://junjo.ai/docs/python/agents/composition/)
+and inspect both application and runtime roles in execution evidence. Developers may also adopt
 selected capabilities while retaining an existing runtime. Keep implementation
 within the requested scope. Use the
 [adoption and ownership guide](https://junjo.ai/docs/python/evaluation/#what-belongs-where)

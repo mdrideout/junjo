@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .._json import freeze_json, require_ijson_integer, require_ijson_text
+from ..state import BaseState
 from .json import FrozenJsonValue
 from .state import AgentStateSnapshot
 
@@ -64,11 +65,20 @@ class AgentAdmissionError(AgentInvocationError):
 class AgentExecutionError(AgentError):
     """Failure after an Agent run was admitted."""
 
-    def __init__(self, *args, state: AgentStateSnapshot, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        state: AgentStateSnapshot,
+        application_state: BaseState | None = None,
+        application_store_id: str | None = None,
+        **kwargs,
+    ) -> None:
         if not isinstance(state, AgentStateSnapshot):
             raise TypeError("state must be AgentStateSnapshot.")
         super().__init__(*args, evidence=state, **kwargs)
         self.state = state
+        self.application_state = application_state.model_copy(deep=True) if application_state is not None else None
+        self.application_store_id = application_store_id
 
 
 class AgentInternalError(AgentExecutionError):

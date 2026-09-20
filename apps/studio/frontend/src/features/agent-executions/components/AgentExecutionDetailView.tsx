@@ -195,7 +195,10 @@ export function AgentExecutionDetailView({ detail }: { detail: AgentExecutionDet
         operations={detail.operations}
         nestedExecutables={detail.nested_executables}
       />
-      <AgentStateTimeline state={detail.state} />
+      <AgentStateTimeline key={`${summary.runtime_id}:application`} state={detail.application_state} role="application"
+        traceId={summary.trace_id} serviceName={summary.service.name} />
+      <AgentStateTimeline key={`${summary.runtime_id}:runtime`} state={detail.state} role="runtime"
+        traceId={summary.trace_id} serviceName={summary.service.name} />
 
       <section className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)] p-4">
         <h2 className="m-0">Usage evidence</h2>

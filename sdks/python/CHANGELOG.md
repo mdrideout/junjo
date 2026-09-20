@@ -4,6 +4,19 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+### Breaking Changes
+
+- Require Python 3.11.9+ or 3.12.3+ on those release lines; Python 3.13 and newer
+  remain supported. Older patches have an upstream typing bug that can crash
+  explicitly parameterized Agent and Tool construction. Package installation now
+  excludes those affected versions, and CI verifies the minimum supported patches.
+
+### Docs and Examples
+
+- Corrected the native OpenAI SDK example's local Studio browser URL.
+- AI Chat now generates the contact's name before its biography and passes that
+  stored identity into the biography prompt.
+
 ## 0.68.0 - 2026-09-13
 
 ### Breaking Changes

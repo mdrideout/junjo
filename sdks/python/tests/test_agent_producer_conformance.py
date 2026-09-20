@@ -84,6 +84,7 @@ EXPECTED_SCENARIOS = {
     "terminal_commit_internal_error_partial",
     "terminal_observer_cancellation",
     "tool_invokes_nested_workflow",
+    "shared_application_store",
     "tool_output_validation_failure",
     "tool_service_failure",
     "unexpected_internal_error",
@@ -127,7 +128,8 @@ class NestedState(BaseState):
 
 
 class NestedStore(BaseStore[NestedState]):
-    pass
+    async def write_value(self, value: str) -> None:
+        await self.set_state({"value": value})
 
 
 class AgentNode(Node[WorkflowStore]):
@@ -155,13 +157,17 @@ class NestedNode(Node[NestedStore]):
         failure: bool = False,
         entered: asyncio.Event | None = None,
         inner_agent: Agent[Question, Answer, None] | None = None,
+        write: bool = False,
     ) -> None:
         super().__init__()
         self.failure = failure
         self.entered = entered
         self.inner_agent = inner_agent
+        self.write = write
 
     async def service(self, store: NestedStore) -> None:
+        if self.write:
+            await store.write_value("result-1")
         if self.failure:
             raise RuntimeError("nested failure")
         if self.entered is not None:
@@ -285,12 +291,14 @@ def _nested_workflow(
     failure: bool = False,
     entered: asyncio.Event | None = None,
     inner_agent: Agent[Question, Answer, None] | None = None,
+    write: bool = False,
 ) -> Workflow:
     def graph_factory() -> Graph:
         node = NestedNode(
             failure=failure,
             entered=entered,
             inner_agent=inner_agent,
+            write=write,
         )
         return Graph(source=node, sinks=[node], edges=[])
 
@@ -321,6 +329,22 @@ async def _execute_scenario(  # noqa: C901
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     question = Question(question="fixture?")
+
+    if scenario == "shared_application_store":
+        store = NestedStore(NestedState(value="before"))
+        await store.write_value("prepared")
+        await store.write_value("prepared")  # no-op advances sequence, not revision
+
+        async def shared_service(input, context):
+            await context.store.write_value("tool")
+            result = await _nested_workflow(write=True).execute(store=context.store)
+            await context.store.write_value("after")
+            return LookupOutput(value=result.state.value)
+
+        definition = _agent([_calls("lookup"), _final()], tools=(_tool("lookup", shared_service),))
+        result = await definition.execute(question, dependencies=None, store=store)
+        assert result.application_state == NestedState(value="after")
+        return
 
     if scenario == "boundary_input_history_rejection":
         agent = _agent([_final()])
@@ -786,7 +810,11 @@ def _store_evidence_from_actual(
                 event
                 for span in spans
                 for event in span.events
-                if event.name == "set_state" and event.attributes.get("junjo.store.id") == store_id
+                if event.name == "set_state"
+                and event.attributes.get("junjo.store.id") == store_id
+                and attributes["junjo.store.transition.start"]
+                < event.attributes["junjo.store.transition.sequence"]
+                <= attributes["junjo.store.transition.end"]
             ),
             key=lambda event: event.attributes["junjo.store.transition.sequence"],
         )
@@ -825,7 +853,11 @@ def _store_evidence_from_canonical(
                 event
                 for span in fixture["spans"]
                 for event in span["events_json"]
-                if event["name"] == "set_state" and event["attributes"].get("junjo.store.id") == store_id
+                if event["name"] == "set_state"
+                and event["attributes"].get("junjo.store.id") == store_id
+                and attributes["junjo.store.transition.start"]
+                < event["attributes"]["junjo.store.transition.sequence"]
+                <= attributes["junjo.store.transition.end"]
             ),
             key=lambda event: event["attributes"]["junjo.store.transition.sequence"],
         )

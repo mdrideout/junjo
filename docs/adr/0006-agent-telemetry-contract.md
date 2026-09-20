@@ -1,5 +1,10 @@
 # ADR 0006: Agent telemetry contract
 
+Application Store composition and telemetry contract 3 are governed by
+[ADR 0016](0016-composable-application-stores.md). Its shared application Store and execution-interval
+semantics supersede the original isolation-only restrictions below; private
+Agent runtime state remains isolated.
+
 - Status: Accepted
 - Date: 2026-07-13
 - Last clarified: 2026-07-14
@@ -23,7 +28,7 @@ object model or Studio inference over arbitrary spans.
 
 ## Decision
 
-### Agent telemetry is contract version 2
+### Agent telemetry began in contract version 2
 
 Agent semantics and generic Store revision semantics are a breaking telemetry
 contract change. The first Horizon 1 implementation must atomically:
@@ -36,15 +41,15 @@ contract change. The first Horizon 1 implementation must atomically:
 6. update Studio ingestion, backend, and frontend consumers;
 7. validate canonical producer and consumer conformance in the same change.
 
-The accepted sequencing did not bump the active contract before those producers
-and consumers existed. The atomic Horizon 1 implementation now makes contract
-version 2 the truthful active source contract.
+The atomic Horizon 1 implementation introduced contract version 2. ADR 0016
+advances the active contract to version 3 with explicit Store execution
+intervals and optional Agent application Store evidence.
 
 During greenfield development, SDK and Studio support only the active contract
 version. No compatibility fallback or dual-emission path is added.
 
 Every Junjo-owned semantic executable or operation span carries
-`junjo.telemetry.contract_version = 2`.
+`junjo.telemetry.contract_version = 3` under ADR 0016.
 
 ### Executables and operations remain distinct
 
@@ -355,6 +360,8 @@ When `junjo.agent.state.available = true`, the span also requires:
   `junjo.agent.state.end`;
 - `junjo.store.revision.start`;
 - `junjo.store.revision.end`;
+- `junjo.store.transition.start` (exclusive);
+- `junjo.store.transition.end` (inclusive);
 - `junjo.store.transition.count`;
 - `junjo.store.reconstructable`.
 
@@ -686,9 +693,10 @@ Every Store-owning executable span records:
 - `junjo.store.transition.count`;
 - `junjo.store.reconstructable`.
 
-Workflow spans retain `junjo.workflow.store.id` and Agent spans use
-`junjo.agent.store.id`. The generic revision, transition-count, and
-reconstructability attributes have one meaning for both executable types.
+Workflow spans retain `junjo.workflow.store.id` and Agent private runtime Stores
+use `junjo.agent.store.id`. Agent application boundaries use the separate
+`junjo.agent.application_store.*` metadata and
+`junjo.agent.application_state.*` payloads defined in ADR 0016.
 
 Initial Store revision is 0. Every successfully validated `set_state` call
 emits a `set_state` event with:
@@ -711,8 +719,10 @@ Only content or reference is conditional on mode. An absent slot is missing
 contract evidence, not policy exclusion.
 
 Transition sequence is contiguous and 1-based for every successfully validated
-`set_state` event. The owning span's transition count is the final sequence;
-observed sequences must be exactly `1..count`. Revision is 0-based and
+`set_state` event over the Store's lifetime. Under contract 3, each execution's
+count is `sequence.end - sequence.start`; observed sequences must cover exactly
+`(sequence.start, sequence.end]`. Reused Stores may start at nonzero sequence
+and revision. Revision is 0-based and
 increments by exactly one only when live validated state changes. A true no-op
 keeps before and after revision equal. A committed live change hidden by
 telemetry projection still increments revision.
@@ -740,7 +750,7 @@ inference. It is true only when:
 
 - state start and end content are present;
 - the same serializer, mode, and policy key govern start, end, and every patch;
-- observed transition sequences are exactly `1..transition.count`;
+- observed transition sequences cover exactly `(sequence.start, sequence.end]`;
 - the first revision-before equals `revision.start`, every revision-before
   equals the previous revision-after, and each revision-after is equal to or
   exactly one greater than revision-before;
@@ -764,7 +774,8 @@ including a missing no-op whose revision would not have changed. Workflow owner
 spans retain their existing Workflow state, Store, and Graph attributes; only
 the shared telemetry evidence contract changes.
 
-Each state event is attached to the causal active span. Model-operation
+Each state event is attached to the causal active span. For the private Agent
+runtime Store, model-operation
 bookkeeping and response commits belong to the model span; Tool start and
 result commits belong to the Tool span; run admission, rejected-batch, and
 terminal commits without a narrower operation owner belong to the Agent span.
@@ -772,8 +783,10 @@ The allowed action correspondence is exact: model spans own
 `record_model_start` and `record_model_response`; Tool spans own
 `record_tool_started` and `record_tool_result`; and the Agent owner span owns
 `admit_tool_batch`, `commit_success`, and `set_terminal_reason`. A matching
-Store event attached to any other span is out-of-scope evidence and is not
-replayed.
+private runtime Store event attached to any other span is out-of-scope evidence
+and is not replayed. Application Store events retain the actual writer span,
+including nested or concurrent executions. Studio selects them across the
+loaded trace by Store ID and the selected execution's sequence interval.
 
 ### Contract evidence loss is observable
 

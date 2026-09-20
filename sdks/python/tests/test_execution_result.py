@@ -32,11 +32,11 @@ class TerminalEvidenceFailingStore(WorkflowStore):
         super().__init__(initial_state=initial_state)
         self._evidence_reads = 0
 
-    async def _get_store_owner_evidence(self):
+    async def _capture_store_end(self, boundary):
         self._evidence_reads += 1
-        if self._evidence_reads == 2:
+        if self._evidence_reads == 1:
             raise RuntimeError("terminal evidence failed")
-        return await super()._get_store_owner_evidence()
+        return await super()._capture_store_end(boundary)
 
 
 class BlockingTerminalEvidenceFailingStore(WorkflowStore):
@@ -52,13 +52,13 @@ class BlockingTerminalEvidenceFailingStore(WorkflowStore):
         self._terminal_evidence_entered = terminal_evidence_entered
         self._release_terminal_evidence = release_terminal_evidence
 
-    async def _get_store_owner_evidence(self):
+    async def _capture_store_end(self, boundary):
         self._evidence_reads += 1
-        if self._evidence_reads == 2:
+        if self._evidence_reads == 1:
             self._terminal_evidence_entered.set()
             await self._release_terminal_evidence.wait()
             raise RuntimeError("terminal evidence failed after caller cancellation")
-        return await super()._get_store_owner_evidence()
+        return await super()._capture_store_end(boundary)
 
 
 class SetWorkflowStatusNode(Node[WorkflowStore]):

@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "subflow_with_parent_store",
   "trace_id": "22222222222222222222222222222222",
   "service_name": "svc-junjo-phase0-subflow",
@@ -20,7 +20,7 @@
         "junjo.workflow.execution_graph_snapshot": "{\"v\":2,\"graphStructuralId\":\"graph-parent-subflow-01\",\"nodes\":[{\"nodeRuntimeId\":\"node.subflow.prepare\",\"nodeStructuralId\":\"struct-subflow-prepare\",\"nodeType\":\"Node\",\"nodeLabel\":\"prepare\"},{\"nodeRuntimeId\":\"node.subflow.container\",\"nodeStructuralId\":\"struct-subflow-container\",\"nodeType\":\"Workflow\",\"nodeLabel\":\"child_subflow\",\"isSubflow\":true,\"subflowGraphStructuralId\":\"graph-child-subflow-01\",\"subflowSourceNodeRuntimeId\":\"node.child.entry\",\"subflowSourceNodeStructuralId\":\"struct-child-entry\",\"subflowSinkNodeRuntimeIds\":[\"node.child.exit\"],\"subflowSinkNodeStructuralIds\":[\"struct-child-exit\"]},{\"nodeRuntimeId\":\"node.child.entry\",\"nodeStructuralId\":\"struct-child-entry\",\"nodeType\":\"Node\",\"nodeLabel\":\"child_entry\"},{\"nodeRuntimeId\":\"node.child.exit\",\"nodeStructuralId\":\"struct-child-exit\",\"nodeType\":\"Node\",\"nodeLabel\":\"child_exit\"}],\"edges\":[{\"edgeStructuralId\":\"edge-parent-prepare-subflow\",\"tailNodeRuntimeId\":\"node.subflow.prepare\",\"tailNodeStructuralId\":\"struct-subflow-prepare\",\"headNodeRuntimeId\":\"node.subflow.container\",\"headNodeStructuralId\":\"struct-subflow-container\",\"edgeConditionLabel\":null,\"edgeScope\":\"explicit\",\"parentSubflowRuntimeId\":null},{\"edgeStructuralId\":\"edge-child-entry-exit\",\"tailNodeRuntimeId\":\"node.child.entry\",\"tailNodeStructuralId\":\"struct-child-entry\",\"headNodeRuntimeId\":\"node.child.exit\",\"headNodeStructuralId\":\"struct-child-exit\",\"edgeConditionLabel\":null,\"edgeScope\":\"subflow\",\"parentSubflowRuntimeId\":\"node.subflow.container\"}]}",
         "junjo.workflow.store.id": "store-subflow-parent-01",
         "junjo.workflow.node.count": 2,
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "workflow",
         "junjo.executable_definition_id": "workflow.parent.with_subflow",
         "junjo.executable_runtime_id": "run-subflow-parent-01",
@@ -34,7 +34,9 @@
         "junjo.store.revision.start": 0,
         "junjo.store.revision.end": 0,
         "junjo.store.transition.count": 0,
-        "junjo.store.reconstructable": true
+        "junjo.store.reconstructable": true,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 0
       },
       "events_json": [],
       "links_json": [],
@@ -62,7 +64,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.subflow.prepare",
         "junjo.parent_executable_definition_id": "workflow.parent.with_subflow",
@@ -103,7 +105,7 @@
         "junjo.workflow.store.id": "store-subflow-child-01",
         "junjo.workflow.node.count": 1,
         "junjo.workflow.parent_store.id": "store-subflow-parent-01",
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "subflow",
         "junjo.executable_definition_id": "workflow.child.subflow",
         "junjo.executable_runtime_id": "run-subflow-child-01",
@@ -120,7 +122,9 @@
         "junjo.store.revision.start": 0,
         "junjo.store.revision.end": 1,
         "junjo.store.transition.count": 1,
-        "junjo.store.reconstructable": true
+        "junjo.store.reconstructable": true,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 1
       },
       "events_json": [],
       "links_json": [],
@@ -148,7 +152,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "node",
         "junjo.executable_definition_id": "node.child.entry",
         "junjo.parent_executable_definition_id": "workflow.child.subflow",

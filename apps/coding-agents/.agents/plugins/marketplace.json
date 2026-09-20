@@ -1,0 +1,20 @@
+{
+  "name": "junjo-coding-agents-dev",
+  "interface": {
+    "displayName": "Junjo Coding Agents Dev"
+  },
+  "plugins": [
+    {
+      "name": "junjo-coding-agents",
+      "source": {
+        "source": "local",
+        "path": "./plugins/junjo-coding-agents"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

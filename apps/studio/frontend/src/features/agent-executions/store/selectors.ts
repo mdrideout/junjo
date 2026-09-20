@@ -1,5 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit'
 import type { RootState } from '../../../root-store/store'
+import { hydrateStoreView } from '../../store-diagnostics/hydrate-store-view'
 import type { AgentExecutionDetail } from '../schemas/agent-execution'
 import type { AgentExecutionQuery } from '../schemas/query'
 import { getAgentExecutionQueryKey } from '../schemas/query'
@@ -38,10 +39,12 @@ export const selectAgentExecutionDetailRequest = createSelector(
       }
     }
 
-    const state = executable.store_id === null
-      ? executable.unavailable_store
-      : evidence.stores_by_id[executable.store_id]?.detail
-    if (state === null || state === undefined) {
+    const view = executable.stores.runtime
+    const state = hydrateStoreView(view, view?.store_id ? evidence?.stores_by_id[view.store_id]?.transitions : [])
+    const applicationView = executable.stores.application
+    const applicationState = hydrateStoreView(applicationView,
+      applicationView?.store_id ? evidence.stores_by_id[applicationView.store_id]?.transitions : [])
+    if (!state || !applicationState) {
       return {
         data: null,
         loading: false,
@@ -62,6 +65,7 @@ export const selectAgentExecutionDetailRequest = createSelector(
       history_candidate: executable.history_candidate,
       operations,
       state,
+      application_state: applicationState,
       parent_executable: relationships?.parent ?? null,
       nested_executables: relationships?.nested ?? [],
       error: executable.error,

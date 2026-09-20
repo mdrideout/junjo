@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "unknown_tool",
   "trace_id": "95e29b1a619bea995ba129735f028470",
   "service_name": "svc-agent-unknown-tool",
@@ -22,7 +22,7 @@
       "status_code": "2",
       "status_message": "missing",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-c70f93b6ff71afe6",
         "junjo.executable_runtime_id": "run-c70f93b6ff71afe63e5d",
@@ -59,7 +59,10 @@
         "junjo.agent.state.end.mode": "full",
         "junjo.agent.state.end.policy": "junjo.full.v1",
         "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"missing\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"}],\"model_iteration\":1,\"model_request_count\":1,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":0,\"tool_call_started_count\":0,\"tool_call_completed_count\":0,\"usage\":{\"v\":1,\"modelResponses\":1,\"fields\":{\"inputTokens\":{\"sum\":10,\"observations\":1},\"outputTokens\":{\"sum\":4,\"observations\":1},\"totalTokens\":{\"sum\":14,\"observations\":1}}},\"admitted_tool_call_ids\":[],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[],\"final_output_available\":false,\"final_output\":null,\"terminal_reason\":\"unknown_tool\"}",
-        "error.type": "AgentUnknownToolError"
+        "error.type": "AgentUnknownToolError",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 3
       },
       "events_json": [
         {
@@ -115,7 +118,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-c70f93b6ff71afe63e5d",

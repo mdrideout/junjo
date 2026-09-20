@@ -224,16 +224,21 @@ export const identifySpanWorkflowChain = createWorkflowChainSelector(
   },
 )
 
-/**
- * Select Workflow Span By Store ID
- * Allows for the selection of a workflow span for a given storeId
- */
-export const selectWorkflowSpanByStoreId = createSelector(
-  [selectTraceSpansForTraceId, (_state: RootState, props: { storeId: string | undefined }) => props.storeId],
-  (traceSpans, storeId): OtelSpan | undefined => {
-    if (!traceSpans || !storeId) return undefined
-
-    return traceSpans.find((span) => wrapSpan(span).workflowStoreId === storeId)
+/** Resolve a Store view by execution ancestry, never by the first matching Store ID. */
+export const selectWorkflowStoreViewOwner = createSelector(
+  [selectTraceSpansForTraceId, selectWorkflowDetailActiveSpan, selectActiveStateEvent],
+  (traceSpans, activeSpan, event): OtelSpan | undefined => {
+    const spansById = new Map(traceSpans.map((span) => [span.span_id, span]))
+    if (event?.viewOwnerSpanId) return spansById.get(event.viewOwnerSpanId)
+    let span = activeSpan
+    const visited = new Set<string>()
+    while (span && !visited.has(span.span_id)) {
+      visited.add(span.span_id)
+      const storeId = wrapSpan(span).workflowStoreId
+      if (storeId && (!event || storeId === event.storeId)) return span
+      span = span.parent_span_id ? spansById.get(span.parent_span_id) : undefined
+    }
+    return undefined
   },
 )
 

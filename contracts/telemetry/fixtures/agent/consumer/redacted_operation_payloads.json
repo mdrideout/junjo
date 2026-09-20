@@ -1,5 +1,5 @@
 {
-  "contract_version": 2,
+  "contract_version": 3,
   "scenario": "redacted_operation_payloads",
   "trace_id": "1546a671f89fbc4c93dcdebf9461ab6a",
   "service_name": "svc-agent-redacted-operation-payloads",
@@ -22,7 +22,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.span_type": "agent",
         "junjo.executable_definition_id": "definition-cc107c0879e9050a",
         "junjo.executable_runtime_id": "run-cc107c0879e9050a9c4f",
@@ -61,7 +61,10 @@
         "junjo.agent.state.end": "{\"input\":{\"question\":\"fixture?\"},\"history\":[],\"transcript\":[{\"type\":\"agent_input\",\"input\":{\"question\":\"fixture?\"}},{\"type\":\"assistant_tool_calls\",\"calls\":[{\"id\":\"call-1\",\"name\":\"lookup\",\"arguments\":{\"query\":\"q1\"}}],\"assistantText\":\"Using tools\"},{\"type\":\"tool_result\",\"callId\":\"call-1\",\"toolName\":\"lookup\",\"result\":{\"value\":\"result-1\"}},{\"type\":\"assistant_output\",\"output\":{\"answer\":\"done\"}}],\"model_iteration\":2,\"model_request_count\":2,\"tool_call_requested_count\":1,\"tool_call_admitted_count\":1,\"tool_call_started_count\":1,\"tool_call_completed_count\":1,\"usage\":{\"v\":1,\"modelResponses\":2,\"fields\":{\"inputTokens\":{\"sum\":20,\"observations\":2},\"outputTokens\":{\"sum\":8,\"observations\":2},\"totalTokens\":{\"sum\":28,\"observations\":2}}},\"admitted_tool_call_ids\":[\"call-1\"],\"pending_tool_call_ids\":[],\"completed_tool_call_ids\":[\"call-1\"],\"final_output_available\":true,\"final_output\":{\"answer\":\"done\"},\"terminal_reason\":\"final_output\"}",
         "junjo.agent.output.mode": "full",
         "junjo.agent.output.policy": "junjo.full.v1",
-        "junjo.agent.output": "{\"answer\":\"done\"}"
+        "junjo.agent.output": "{\"answer\":\"done\"}",
+        "junjo.agent.application_state.available": false,
+        "junjo.store.transition.start": 0,
+        "junjo.store.transition.end": 8
       },
       "events_json": [
         {
@@ -124,7 +127,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-cc107c0879e9050a9c4f",
@@ -209,7 +212,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "tool",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-cc107c0879e9050a9c4f",
@@ -294,7 +297,7 @@
       "status_code": "0",
       "status_message": "",
       "attributes_json": {
-        "junjo.telemetry.contract_version": 2,
+        "junjo.telemetry.contract_version": 3,
         "junjo.agent.operation_type": "model_request",
         "junjo.agent.key": "fixture_agent",
         "junjo.agent.runtime_id": "run-cc107c0879e9050a9c4f",

@@ -67,7 +67,7 @@ def test_schemas_enums_and_callable_protocols_are_readable(reference):
     assert "detail_path:" in page(reference, "junjo.studio.ExecutionResolutionRead")
     assert "DRAFT = 'draft'" in page(reference, "junjo.studio.DatasetStatus")
     assert "JUDGE = 'judge'" in page(reference, "junjo.evaluation.EvaluationRole")
-    assert "__call__(input: ToolInputT, context: AgentRunContext[DependenciesT]) -> ToolOutputT" in page(
+    assert "__call__(input: ToolInputT, context: AgentRunContext[DependenciesT, StoreT]) -> ToolOutputT" in page(
         reference, "junjo.agent.tool.ToolService"
     )
     aliases = (reference / "docs/python/api/junjo/agent/json/index.md").read_text()

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider, useNavigate } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import { tracesPath, workflowPath } from '../../util/telemetry-paths'
+import { agentPath, tracesPath, workflowPath } from '../../util/telemetry-paths'
 import type { OtelSpan } from './schemas/schemas'
 import SpanRow from './SpanRow'
 
@@ -32,9 +32,10 @@ function workflowSpan(): OtelSpan {
 }
 
 describe('SpanRow', () => {
-  it('lets the nested Workflow Explorer link own its navigation', async () => {
+  it.each(['workflow', 'agent'])('lets the nested %s diagnostics link own its navigation', async (kind) => {
     const user = userEvent.setup()
     const span = workflowSpan()
+    span.attributes_json['junjo.span_type'] = kind
     const selectSpan = vi.fn()
     const openFailures = vi.fn()
 
@@ -63,11 +64,11 @@ describe('SpanRow', () => {
     )
     render(<RouterProvider router={router} />)
 
-    expect(screen.getByText('Workflow', { selector: '[data-span-kind="workflow"]' })).toBeVisible()
+    expect(screen.getByText(kind === 'workflow' ? 'Workflow' : 'Agent', { selector: `[data-span-kind="${kind}"]` })).toBeVisible()
     expect(screen.getByText('Test Workflow')).toBeVisible()
 
-    const link = screen.getByRole('link', { name: /Workflow Explorer/ })
-    const destination = workflowPath(
+    const link = screen.getByRole('link', { name: kind === 'workflow' ? /Workflow Explorer/ : /Agent diagnostics/ })
+    const destination = kind === 'agent' ? agentPath(span.trace_id, span.span_id) : workflowPath(
       span.service_name,
       span.trace_id,
       span.span_id,
