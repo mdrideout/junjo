@@ -8,6 +8,17 @@ frontend, backend, and ingestion service. Deploy them alongside your application
 or on a separate host. Your application runs its own models, tools, and
 evaluators; Studio stores the shared experiment data and execution evidence.
 
+## Upgrading to Studio 0.85.0
+
+Use Junjo Python SDK 0.69.0 with Studio 0.85.0. This is a breaking telemetry
+contract upgrade: wipe Studio application data or select a new empty data
+directory, then complete first-user setup and create new credentials. Existing
+users, credentials, evaluations, and telemetry are not migrated.
+
+Follow the [canonical reset procedure](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md).
+It covers the shared SQLite, WAL, and Parquet data directory. `docker compose
+down --volumes` does not clear host-mounted application data.
+
 ## Minimal Build Template (Recommended Starting Point)
 
 Use the [Junjo AI Studio minimal distribution](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
