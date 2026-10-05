@@ -16,7 +16,7 @@ pub mod metadata;
 /// The application database schema, and the version stamped on a database
 /// created from it. Change both together.
 pub const JUNJO_SCHEMA_SQL: &str = include_str!("../../../schema/junjo.sql");
-pub const JUNJO_SCHEMA_VERSION: i32 = 3;
+pub const JUNJO_SCHEMA_VERSION: i32 = 4;
 
 /// The metadata index schema and its version. Change both together.
 pub const METADATA_SCHEMA_SQL: &str = include_str!("../../../schema/metadata.sql");

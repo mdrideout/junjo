@@ -23,11 +23,17 @@ CREATE UNIQUE INDEX ix_users_email ON users (email);
 -- Application Telemetry API keys. The canonical key value is `jtel_` plus a
 -- 64-character generated secret. Ingestion validates keys through the
 -- internal gRPC service.
+--
+-- Deleting a key deactivates it. The row stays, without the key value, so
+-- the key's identifier and name remain on record. A deactivated key no
+-- longer validates and is not listed.
 CREATE TABLE api_keys (
     id TEXT NOT NULL PRIMARY KEY,
-    key TEXT NOT NULL,
+    key TEXT,
     name TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    deleted_at TEXT,
+    CHECK ((key IS NULL) = (deleted_at IS NOT NULL))
 ) STRICT;
 
 CREATE UNIQUE INDEX ix_api_keys_key ON api_keys (key);

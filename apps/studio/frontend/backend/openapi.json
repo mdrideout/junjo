@@ -204,7 +204,7 @@
         "tags": [
           "api_keys"
         ],
-        "summary": "List every API key, newest first.",
+        "summary": "List every active API key, newest first.",
         "operationId": "list_api_keys",
         "responses": {
           "200": {
@@ -289,6 +289,7 @@
           "api_keys"
         ],
         "summary": "Delete one API key.",
+        "description": "The key stops validating and leaves the list. Its identifier and name\nstay on record, without the key value.",
         "operationId": "delete_api_key",
         "parameters": [
           {

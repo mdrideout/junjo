@@ -27,16 +27,20 @@ pub struct ApiKey {
 
 pub const INSERT_API_KEY: &str =
     "INSERT INTO api_keys (id, key, name, created_at) VALUES (?1, ?2, ?3, ?4)";
-pub const SELECT_API_KEYS: &str =
-    "SELECT id, key, name, created_at FROM api_keys ORDER BY created_at DESC, rowid DESC";
-pub const DELETE_API_KEY: &str = "DELETE FROM api_keys WHERE id = ?1";
+pub const SELECT_API_KEYS: &str = "
+    SELECT id, key, name, created_at FROM api_keys
+    WHERE deleted_at IS NULL
+    ORDER BY created_at DESC, rowid DESC";
+/// Deleting deactivates: the row stays, without the key value.
+pub const DEACTIVATE_API_KEY: &str =
+    "UPDATE api_keys SET key = NULL, deleted_at = ?2 WHERE id = ?1 AND deleted_at IS NULL";
 pub const SELECT_KEY_EXISTS: &str = "SELECT 1 FROM api_keys WHERE key = ?1";
 
 #[cfg(test)]
 pub const ALL_STATEMENTS: [&str; 4] = [
     INSERT_API_KEY,
     SELECT_API_KEYS,
-    DELETE_API_KEY,
+    DEACTIVATE_API_KEY,
     SELECT_KEY_EXISTS,
 ];
 
@@ -59,7 +63,7 @@ pub fn create(connection: &Connection, api_key: &ApiKey) -> rusqlite::Result<()>
     Ok(())
 }
 
-/// All API keys, newest first.
+/// The active API keys, newest first.
 pub fn list(connection: &Connection) -> rusqlite::Result<Vec<ApiKey>> {
     connection
         .prepare_cached(SELECT_API_KEYS)?
@@ -67,20 +71,57 @@ pub fn list(connection: &Connection) -> rusqlite::Result<Vec<ApiKey>> {
         .collect()
 }
 
-/// Delete one key. Returns whether a key was deleted.
-pub fn delete(connection: &Connection, id: &str) -> rusqlite::Result<bool> {
+/// Delete one key: deactivate it and forget its key value. Its identifier
+/// and name stay on record. Returns whether an active key was deleted.
+pub fn delete(connection: &Connection, id: &str, now: UtcSeconds) -> rusqlite::Result<bool> {
     Ok(connection
-        .prepare_cached(DELETE_API_KEY)?
-        .execute(params![id])?
+        .prepare_cached(DEACTIVATE_API_KEY)?
+        .execute(params![id, now])?
         > 0)
 }
 
-/// Whether an ingestion API key exists. This is the authoritative answer the
-/// ingestion service asks for.
+/// Whether an active ingestion API key has this value. This is the
+/// authoritative answer the ingestion service asks for. A deleted key has no
+/// value, so it never matches.
 pub fn key_exists(connection: &Connection, key: &str) -> rusqlite::Result<bool> {
     Ok(connection
         .prepare_cached(SELECT_KEY_EXISTS)?
         .query_row(params![key], |_| Ok(()))
         .optional()?
         .is_some())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::{JUNJO_SCHEMA_SQL, JUNJO_SCHEMA_VERSION, ensure_schema};
+
+    #[test]
+    fn a_deleted_key_keeps_its_row_without_its_value_and_no_longer_validates() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        ensure_schema(&mut connection, JUNJO_SCHEMA_SQL, JUNJO_SCHEMA_VERSION).unwrap();
+        let api_key = ApiKey {
+            id: "key-1".to_string(),
+            key: "jtel_secret".to_string(),
+            name: "Production".to_string(),
+            created_at: UtcSeconds::now(),
+        };
+        create(&connection, &api_key).unwrap();
+        assert!(key_exists(&connection, "jtel_secret").unwrap());
+
+        assert!(delete(&connection, "key-1", UtcSeconds::now()).unwrap());
+
+        assert!(!key_exists(&connection, "jtel_secret").unwrap());
+        assert!(list(&connection).unwrap().is_empty());
+        let (name, key, deleted): (String, Option<String>, bool) = connection
+            .query_row(
+                "SELECT name, key, deleted_at IS NOT NULL FROM api_keys WHERE id = 'key-1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!((name.as_str(), key, deleted), ("Production", None, true));
+        // A key is deleted once.
+        assert!(!delete(&connection, "key-1", UtcSeconds::now()).unwrap());
+    }
 }

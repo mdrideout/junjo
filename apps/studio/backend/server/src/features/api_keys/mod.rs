@@ -99,7 +99,7 @@ pub async fn create_api_key(
     Ok((StatusCode::CREATED, Json(api_key)))
 }
 
-/// List every API key, newest first.
+/// List every active API key, newest first.
 #[utoipa::path(
     get,
     path = "/api-keys",
@@ -123,6 +123,9 @@ pub async fn list_api_keys(
 }
 
 /// Delete one API key.
+///
+/// The key stops validating and leaves the list. Its identifier and name
+/// stay on record, without the key value.
 #[utoipa::path(
     delete,
     path = "/api-keys/{id}",
@@ -144,7 +147,7 @@ pub async fn delete_api_key(
     let deleted = state
         .application_db
         .writer
-        .call(move |connection| repo::delete(connection, &deleted_id))
+        .call(move |connection| repo::delete(connection, &deleted_id, UtcSeconds::now()))
         .await?;
     if !deleted {
         return Err(ApiError::not_found("API key not found"));
