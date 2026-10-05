@@ -56,6 +56,9 @@ WAL_MTIME_COMPARISON_TOLERANCE_MS = 2.0
 STUDIO_SERVICE_NAMES = tuple(f"studio-benchmark-{index}" for index in range(3))
 # What follows the Workflow root span of a Studio-shaped trace, in turn. Two of
 # every six are LLM spans, one in each convention Studio classifies.
+# The SDK gives every Workflow and Agent execution its own runtime identity.
+STUDIO_RUNTIME_ID_KEY = "junjo.executable_runtime_id"
+STUDIO_EXECUTABLE_SPAN_TYPES = ("workflow", "agent")
 STUDIO_CHILD_SPAN_ATTRIBUTES: tuple[dict[str, str], ...] = (
     {"junjo.span_type": "node"},
     {"openinference.span.kind": "LLM"},
@@ -340,7 +343,8 @@ def make_studio_export_request(
     trace is one row of the Traces page and one row of the Workflow page, and
     it has LLM spans for the Traces page's default filter. Span identifiers
     are 1 to ``spans_per_export``, which is what delivery verification writes
-    as well, so the parent of every child stays the root.
+    as well, so the parent of every child stays the root. The Workflow span
+    and every Agent span carry a runtime identity.
     """
     root_span_id = (1).to_bytes(8, "big")
     spans: list[trace_pb2.Span] = []
@@ -351,6 +355,8 @@ def make_studio_export_request(
             attributes = STUDIO_CHILD_SPAN_ATTRIBUTES[
                 (span_index - 1) % len(STUDIO_CHILD_SPAN_ATTRIBUTES)
             ]
+        if attributes.get("junjo.span_type") in STUDIO_EXECUTABLE_SPAN_TYPES:
+            attributes = {**attributes, STUDIO_RUNTIME_ID_KEY: ""}
         spans.append(
             trace_pb2.Span(
                 trace_id=(exporter_id + 1).to_bytes(16, "big"),
@@ -390,7 +396,18 @@ def make_studio_export_request(
         ]
     )
     stamp_span_times(request)
+    stamp_runtime_ids(request, f"{exporter_id}-0")
     return request
+
+
+def stamp_runtime_ids(
+    request: trace_service_pb2.ExportTraceServiceRequest, trace_name: str
+) -> None:
+    """Give every execution of a trace a runtime identity no other trace has."""
+    for index, span in enumerate(request.resource_spans[0].scope_spans[0].spans):
+        for attribute in span.attributes:
+            if attribute.key == STUDIO_RUNTIME_ID_KEY:
+                attribute.value.string_value = f"run-{trace_name}-{index}"
 
 
 def stamp_span_times(request: trace_service_pb2.ExportTraceServiceRequest) -> None:
@@ -470,6 +487,7 @@ async def export_worker(
                     span.span_id = (index + 1).to_bytes(8, "big")
             if config.span_shape == "studio":
                 stamp_span_times(request)
+                stamp_runtime_ids(request, f"{exporter_id}-{export_index}")
             started = time.perf_counter()
             for attempt in range(config.max_retries + 1):
                 try:

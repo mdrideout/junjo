@@ -158,6 +158,8 @@ validation that ingestion asks it for.
 - **Load.** The exporters send Studio-shaped traces (`--span-shape studio`):
   a Workflow root span with every other span as its child, two in six of them
   LLM spans, written to three services and stamped with the time of export.
+  The Workflow span and the Agent spans, one child in six, each carry a
+  runtime identity of their own, as the SDK's executions do.
   By default 50 exporters each send one 32-span trace every 100 ms for 90
   seconds, which offers 16,000 spans a second and 1,440,000 in all.
 - **The real frontend.** `frontend/e2e/live-load.mjs` signs in and drives four

@@ -13,6 +13,7 @@ from auth_path_benchmark import (
     STUDIO_SERVICE_NAMES,
     export_worker,
     make_studio_export_request,
+    stamp_runtime_ids,
 )
 from compare_results import compare
 from delivery import verify_delivery, workload_trace_id
@@ -120,6 +121,23 @@ def test_a_studio_shaped_trace_is_one_workflow_root_with_llm_spans_under_it():
     assert spans[0].parent_span_id == b""
     assert attributes[0]["junjo.span_type"] == "workflow"
     assert all(span.parent_span_id == spans[0].span_id for span in spans[1:])
+    # The Workflow span and the five Agent spans each own an execution.
+    runtime_ids = [
+        item["junjo.executable_runtime_id"]
+        for item in attributes
+        if item.get("junjo.span_type") in ("workflow", "agent")
+    ]
+    assert len(set(runtime_ids)) == 6
+    assert all("junjo.executable_runtime_id" not in item for item in attributes[1:3])
+    stamp_runtime_ids(request, "next-export")
+    restamped = {
+        item.value.string_value
+        for span in spans
+        for item in span.attributes
+        if item.key == "junjo.executable_runtime_id"
+    }
+    assert len(restamped) == 6
+    assert restamped.isdisjoint(runtime_ids)
     # Two of every six children are LLM spans, one in each convention.
     assert sum("openinference.span.kind" in item for item in attributes) == 5
     assert sum("gen_ai.operation.name" in item for item in attributes) == 5

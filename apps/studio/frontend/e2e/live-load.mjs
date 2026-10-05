@@ -90,6 +90,25 @@ const responses = []
 const requestFailures = []
 const pageErrors = []
 const actions = []
+// For each service, the runtime identity of the first Workflow execution a
+// tab was shown. An execution link resolves it later in the run, when its
+// span has been flushed and indexed.
+const firstRuntimeIds = new Map()
+
+/** Remember one runtime identity from a service's Workflow listing. */
+async function rememberRuntimeId(response) {
+  const match = new URL(response.url()).pathname.match(/\/services\/([^/]+)\/workflows$/)
+  if (match === null || !response.ok()) return
+  const service = decodeURIComponent(match[1])
+  if (firstRuntimeIds.has(service)) return
+  try {
+    const spans = await response.json()
+    const runtimeId = spans.at(-1)?.attributes_json?.['junjo.executable_runtime_id']
+    if (typeof runtimeId === 'string' && runtimeId !== '') firstRuntimeIds.set(service, runtimeId)
+  } catch {
+    // The tab left the page before the body was read.
+  }
+}
 
 function record(page) {
   const started = new Map()
@@ -102,6 +121,7 @@ function record(page) {
     if (begin === undefined) return
     started.delete(request)
     responses.push({ route: routeOf(request.url()), status: response.status(), ms: Date.now() - begin })
+    void rememberRuntimeId(response)
   })
   page.on('requestfailed', (request) => {
     started.delete(request)
@@ -293,15 +313,17 @@ async function browse(context, tab, deadline) {
     })
     if (Date.now() >= deadline) break
 
-    // A deep link to one execution by its runtime identity. The backend
-    // reads every executable span of the service to find it. No execution
-    // has this identity, so the answer is that there is none.
+    // A deep link to one execution by its runtime identity: the first
+    // Workflow execution of the service a tab was shown, or one that does
+    // not exist until a tab has been shown one. The exporters' spans name
+    // no telemetry contract, so the answer is that there is no such
+    // execution once the backend has read the span.
     await act(tab, 'execution link', service, async () => {
       const url = new URL('/resolve/executable', studioOrigin)
       url.searchParams.set('service_namespace', '')
       url.searchParams.set('service_name', service)
       url.searchParams.set('executable_type', 'workflow')
-      url.searchParams.set('runtime_id', `live-load-${tab}-${turn}`)
+      url.searchParams.set('runtime_id', firstRuntimeIds.get(service) ?? `live-load-${tab}-${turn}`)
       url.searchParams.set('destination', 'detail')
       return answered(page, url.href, '/api/v1/execution-resolution')
     })
