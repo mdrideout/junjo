@@ -357,6 +357,59 @@ trace or span query that finds nothing, and whose snapshot was replaced or
 removed while it ran, asks ingestion again and runs once more. A listing is
 not run again. It cannot tell that spans are missing.
 
+## 2026-10-05 amendment
+
+### The Agent listing reads a page at a time
+
+The Agent listing returned one page and read a service's whole history for
+it. It opened every indexed file that held Agent spans of the service, loaded
+and sorted every one of those spans, built a summary of each, and applied the
+caller's filters last. It was the one service-scoped read that the guardrail
+"Service-Scoped Cold File Registration Must Stay Bounded" did not cover.
+Measured with the real frontend while spans arrived, the page took about
+0.9 s over 18 cold files and about 2.5 s over 72, and requests failed when
+the sort ran out of memory. The numbers before and after are in
+[the final image evidence](../../../../docs/roadmaps/evidence/studio-backend-rust-final-2026-10-04/README.md)
+under "The two pages that read a service's history" and "The Agent listing a
+page at a time".
+
+The listing now walks the service's Agent spans from the newest, a page at a
+time, and stops when it has enough summaries that pass the filters.
+
+- **Order.** Newest first by start time. Spans that start at the same
+  instant are ordered by trace and span identifier, so a place in the listing
+  is exact and the next page starts after it.
+- **One page.** A page asks for the newest Agent spans after a place, sorted
+  and cut to the page size inside the query.
+- **Filters.** The caller's start and end time bounds are part of the query.
+  So are the agent, structure, version, and outcome filters, as text the
+  stored span must contain, so a page holds spans that can pass them. The
+  assembled summary still decides exactly which spans pass.
+- **Files.** The index already records each file's time bounds per service.
+  A page reads the indexed Agent files that reach across its place and the
+  next 20 below it, the bound the other service listings use. The first file
+  it leaves out ends at some time. Spans that started at or before that time
+  could also be in files the page did not read, so the page stops above it
+  and the next page continues from there.
+- **The unindexed spans.** Every page is an ordinary query: it asks ingestion
+  and reads the hot snapshot and the recent cold files, as before.
+
+These consequences are accepted.
+
+- A listing that no stored span passes reads the service's whole history, a
+  group of files at a time. It costs about one read of that history and does
+  not hold it in memory.
+- A listing that needs more than one page asks ingestion once per page.
+- An Agent span whose evidence cannot be read fails a listing only when the
+  walk reaches it. Before, one such span anywhere in a service's history
+  failed every listing of that service.
+- A span stored twice in one tier is listed twice whether or not a hot
+  snapshot exists. The walk reads a short page as the end of the files it
+  read, so a page must not come back short because copies were removed. The
+  cold copy of a span still replaces its hot copy.
+- A file's bounds are its earliest start and its latest end. A span stored
+  with an end before its start can therefore be left out.
+
 ## Source Of Truth
 
 The active implementation lives in:

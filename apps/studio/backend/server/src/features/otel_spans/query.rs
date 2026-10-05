@@ -113,6 +113,45 @@ pub struct QuerySources {
     pub hot_snapshot: Option<String>,
 }
 
+/// A place in a walk over spans, newest first.
+#[derive(Debug, Clone)]
+pub struct SpanPlace {
+    pub start_time_ns: i64,
+    /// The trace and span identifiers of the span at this place. Without
+    /// them the place is before every span that starts at this time.
+    pub span: Option<(String, String)>,
+}
+
+/// What every span of a walk over Agent spans satisfies inside the query, so
+/// a page holds spans the caller can use.
+#[derive(Debug, Clone, Default)]
+pub struct AgentSpanBounds {
+    /// Only spans that started at or after this time.
+    pub started_from_ns: Option<i64>,
+    /// Only spans that ended at or before this time.
+    pub ended_by_ns: Option<i64>,
+    /// Text the stored attributes contain. Like the span-type prefilters,
+    /// a substring cannot decide the question: the caller makes the exact
+    /// check.
+    pub attributes_contain: Vec<String>,
+    /// Text the stored resource attributes contain.
+    pub resource_attributes_contain: Vec<String>,
+}
+
+/// One page of a walk over the Agent spans of one service.
+#[derive(Debug)]
+pub struct AgentSpanPage {
+    /// The indexed cold files that can hold the page's spans.
+    pub indexed_files: Vec<String>,
+    pub bounds: AgentSpanBounds,
+    /// Only spans after this place.
+    pub after: Option<SpanPlace>,
+    /// Only spans that started after this time. Older spans can be in
+    /// indexed files that are not among the page's.
+    pub started_after_ns: Option<i64>,
+    pub limit: usize,
+}
+
 /// One span in the raw observability API's shape.
 ///
 /// The four stored JSON columns are validated and passed through as raw JSON.
@@ -344,7 +383,9 @@ impl QueryEngine {
                 self.workflow_spans(sources, service_name, limit, api_key_id)
                     .await
             }
-            SpanQuery::Agents { service_name } => self.agent_spans(sources, service_name).await,
+            SpanQuery::Agents { service_name, page } => {
+                self.agent_spans(sources, service_name, page).await
+            }
             SpanQuery::Executable {
                 service_name,
                 executable_type,
@@ -368,15 +409,31 @@ impl QueryEngine {
         parameters: Vec<ScalarValue>,
         limit: Option<usize>,
     ) -> Result<Vec<Span>> {
+        self.ordered_spans(sources, filter, parameters, limit, Order::NewestFirst)
+            .await
+    }
+
+    /// Run one span query over both tiers in the given order.
+    async fn ordered_spans(
+        &self,
+        sources: &QuerySources,
+        filter: &str,
+        parameters: Vec<ScalarValue>,
+        limit: Option<usize>,
+        order: Order,
+    ) -> Result<Vec<Span>> {
         let files = TierFiles::usable(sources)?;
-        let batches = match self.span_batches(&files, filter, &parameters, limit).await {
+        let batches = match self
+            .span_batches(&files, filter, &parameters, limit, order)
+            .await
+        {
             Ok(batches) => batches,
             Err(error) => {
                 let readable = self.readable(&files).await;
                 if readable == files {
                     return Err(error);
                 }
-                self.span_batches(&readable, filter, &parameters, limit)
+                self.span_batches(&readable, filter, &parameters, limit, order)
                     .await?
             }
         };
@@ -393,10 +450,11 @@ impl QueryEngine {
         filter: &str,
         parameters: &[ScalarValue],
         limit: Option<usize>,
+        order: Order,
     ) -> Result<Vec<RecordBatch>> {
         let context = self.context();
         let tiers = self.register(&context, files).await?;
-        let Some(sql) = two_tier_sql(tiers, filter, limit) else {
+        let Some(sql) = two_tier_sql(tiers, filter, limit, order) else {
             return Ok(Vec::new());
         };
         let mut frame = context
@@ -510,18 +568,67 @@ impl QueryEngine {
         Ok(spans)
     }
 
-    /// Every Agent span of one service, newest first.
-    async fn agent_spans(&self, sources: &QuerySources, service_name: &str) -> Result<Vec<Span>> {
-        let mut spans = self
-            .query_spans(
-                sources,
-                &format!("service_name = $1 AND {AGENT_SPAN_PREFILTER}"),
-                vec![ScalarValue::from(service_name)],
-                None,
-            )
-            .await?;
-        spans.retain(|span| classify_attributes(span.attributes_json.get()).is_agent);
-        Ok(spans)
+    /// One page of the spans of one service that pass the Agent prefilter,
+    /// in walk order.
+    ///
+    /// The exact check is the caller's. The walk continues after the page's
+    /// last span, whether or not that span is an Agent span.
+    ///
+    /// Times are compared as the stored column's own type, so the Parquet
+    /// reader can leave out row groups by their statistics.
+    async fn agent_spans(
+        &self,
+        sources: &QuerySources,
+        service_name: &str,
+        page: &AgentSpanPage,
+    ) -> Result<Vec<Span>> {
+        let mut filter = String::from("service_name = $1");
+        let mut parameters = vec![ScalarValue::from(service_name)];
+        let mut time = |nanoseconds: i64| {
+            parameters.push(ScalarValue::from(nanoseconds));
+            format!("to_timestamp_nanos(${})", parameters.len())
+        };
+        if let Some(started_from_ns) = page.bounds.started_from_ns {
+            filter.push_str(&format!(" AND start_time >= {}", time(started_from_ns)));
+        }
+        if let Some(ended_by_ns) = page.bounds.ended_by_ns {
+            filter.push_str(&format!(" AND end_time <= {}", time(ended_by_ns)));
+        }
+        if let Some(started_after_ns) = page.started_after_ns {
+            filter.push_str(&format!(" AND start_time > {}", time(started_after_ns)));
+        }
+        if let Some(place) = &page.after {
+            let started = time(place.start_time_ns);
+            filter.push_str(&format!(" AND start_time <= {started}"));
+            if let Some((trace_id, span_id)) = &place.span {
+                parameters.push(ScalarValue::from(trace_id.as_str()));
+                parameters.push(ScalarValue::from(span_id.as_str()));
+                let (trace, span) = (parameters.len() - 1, parameters.len());
+                filter.push_str(&format!(
+                    " AND (start_time < {started}
+                        OR trace_id > ${trace}
+                        OR (trace_id = ${trace} AND span_id > ${span}))"
+                ));
+            }
+        }
+        filter.push_str(" AND ");
+        filter.push_str(AGENT_SPAN_PREFILTER);
+        // The text is a bound value, so `LIKE` wildcards in it mean nothing.
+        let contained = [
+            ("attributes", &page.bounds.attributes_contain),
+            (
+                "resource_attributes",
+                &page.bounds.resource_attributes_contain,
+            ),
+        ];
+        for (column, texts) in contained {
+            for text in texts {
+                parameters.push(ScalarValue::from(text.as_str()));
+                filter.push_str(&format!(" AND contains({column}, ${})", parameters.len()));
+            }
+        }
+        self.ordered_spans(sources, &filter, parameters, Some(page.limit), Order::Walk)
+            .await
     }
 
     /// Every span of one service that is the executable with exactly this type
@@ -675,8 +782,11 @@ pub enum SpanQuery<'a> {
         api_key_id: Option<&'a str>,
         limit: usize,
     },
-    /// Every Agent span of one service.
-    Agents { service_name: &'a str },
+    /// One page of a walk over the Agent spans of one service.
+    Agents {
+        service_name: &'a str,
+        page: &'a AgentSpanPage,
+    },
     /// Every span of one service that is the executable with exactly this
     /// type and runtime identity.
     Executable {
@@ -684,6 +794,18 @@ pub enum SpanQuery<'a> {
         executable_type: &'a str,
         runtime_id: &'a str,
     },
+}
+
+/// The order of a query's spans.
+#[derive(Debug, Clone, Copy)]
+enum Order {
+    /// By start time, newest first. Spans that start together are in no
+    /// particular order.
+    NewestFirst,
+    /// Newest first, and by trace and span identifier among spans that
+    /// start together. A span's place is exact, so a walk can continue
+    /// after it.
+    Walk,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -740,8 +862,16 @@ fn hot_snapshot_file(hot_snapshot: &str) -> Result<Vec<String>> {
 /// `limit` spans of the two tiers together are among the newest `limit` of
 /// each tier, so duplicates are removed among those candidates and not among
 /// every matching span of every file (ingestion ADR-002).
-fn two_tier_sql(tiers: Tiers, filter: &str, limit: Option<usize>) -> Option<String> {
-    let order = "ORDER BY start_time_ns DESC";
+///
+/// A walk reads a page that is shorter than it asked for as the end of the
+/// files it read. Its hot copy of a span is still replaced by the cold one,
+/// and a span stored twice in one tier keeps both copies, as it does when
+/// there is one tier. Removing one would shorten the page.
+fn two_tier_sql(tiers: Tiers, filter: &str, limit: Option<usize>, order: Order) -> Option<String> {
+    let (order, numbering) = match order {
+        Order::NewestFirst => ("ORDER BY start_time_ns DESC", "ROW_NUMBER()"),
+        Order::Walk => ("ORDER BY start_time_ns DESC, trace_id, span_id", "RANK()"),
+    };
     // Each tier's part of the union: every matching span, or its newest.
     let newest = match limit {
         Some(limit) => format!("{order} LIMIT {limit}"),
@@ -766,7 +896,7 @@ fn two_tier_sql(tiers: Tiers, filter: &str, limit: Option<usize>) -> Option<Stri
              ),
              ranked AS (
                  SELECT *,
-                     ROW_NUMBER() OVER (
+                     {numbering} OVER (
                          PARTITION BY trace_id, span_id
                          ORDER BY CASE _tier WHEN 'cold' THEN 0 ELSE 1 END
                      ) AS _rn
@@ -1029,6 +1159,23 @@ mod tests {
 
     fn span_ids(spans: &[Span]) -> Vec<&str> {
         spans.iter().map(|span| span.span_id.as_str()).collect()
+    }
+
+    /// The first page of a walk with no bounds.
+    fn first_page(limit: usize) -> AgentSpanPage {
+        AgentSpanPage {
+            indexed_files: Vec::new(),
+            bounds: AgentSpanBounds::default(),
+            after: None,
+            started_after_ns: None,
+            limit,
+        }
+    }
+
+    fn agent(trace_id: &str, span_id: &str, start_time_ns: i64) -> TestSpan {
+        TestSpan::new(trace_id, span_id, "checkout")
+            .times(start_time_ns, start_time_ns + 10)
+            .attributes(r#"{"junjo.span_type":"agent"}"#)
     }
 
     fn names(spans: &[Span]) -> Vec<&str> {
@@ -1640,12 +1787,161 @@ mod tests {
             .unwrap();
         assert_eq!(span_ids(&workflows), ["workflow"]);
 
+        // An Agent page is the prefilter's spans. The walk makes the exact
+        // check: it continues after the page's last span, whatever it is.
         let agents = fixture
             .engine
-            .agent_spans(&sources, "checkout")
+            .agent_spans(&sources, "checkout", &first_page(LARGE_PAGE))
             .await
             .unwrap();
-        assert_eq!(span_ids(&agents), ["agent"]);
+        assert_eq!(span_ids(&agents), ["agent", "nested-agent"]);
+    }
+
+    #[tokio::test]
+    async fn an_agent_page_holds_the_spans_after_a_place_inside_its_bounds() {
+        let fixture = fixture();
+        let cold = fixture.write(
+            "cold.parquet",
+            &[
+                agent("trace-1", "at-500", 500),
+                // Three spans start together. Their order is by trace and
+                // then by span identifier.
+                agent("trace-2", "b", 400),
+                agent("trace-1", "z", 400),
+                agent("trace-2", "a", 400),
+                agent("trace-1", "at-300", 300),
+                agent("trace-1", "at-200", 200),
+                TestSpan::new("trace-1", "not-an-agent", "checkout").times(450, 460),
+            ],
+        );
+        let sources = cold_only(&cold);
+        let page = |page: AgentSpanPage| {
+            let (engine, sources) = (&fixture.engine, &sources);
+            async move {
+                let spans = engine.agent_spans(sources, "checkout", &page).await;
+                let spans = spans.unwrap();
+                spans
+                    .iter()
+                    .map(|span| span.span_id.clone())
+                    .collect::<Vec<_>>()
+            }
+        };
+        let place = |start_time_ns, span: Option<(&str, &str)>| {
+            Some(SpanPlace {
+                start_time_ns,
+                span: span.map(|(trace_id, span_id)| (trace_id.to_string(), span_id.to_string())),
+            })
+        };
+
+        assert_eq!(page(first_page(3)).await, ["at-500", "z", "a"]);
+        // After a span: the rest of the spans that start with it, then
+        // the older ones.
+        let after_a = AgentSpanPage {
+            after: place(400, Some(("trace-2", "a"))),
+            ..first_page(3)
+        };
+        assert_eq!(page(after_a).await, ["b", "at-300", "at-200"]);
+        // A place with no span is before every span that starts at its time.
+        let from_400 = AgentSpanPage {
+            after: place(400, None),
+            ..first_page(2)
+        };
+        assert_eq!(page(from_400).await, ["z", "a"]);
+        // A page stops above the time older files can reach.
+        let above_300 = AgentSpanPage {
+            started_after_ns: Some(300),
+            ..first_page(LARGE_PAGE)
+        };
+        assert_eq!(page(above_300).await, ["at-500", "z", "a", "b"]);
+        // The caller's bounds: started at or after, ended at or before.
+        let bounded = AgentSpanPage {
+            bounds: AgentSpanBounds {
+                started_from_ns: Some(300),
+                ended_by_ns: Some(410),
+                ..AgentSpanBounds::default()
+            },
+            ..first_page(LARGE_PAGE)
+        };
+        assert_eq!(page(bounded).await, ["z", "a", "b", "at-300"]);
+    }
+
+    #[tokio::test]
+    async fn an_agent_page_holds_the_spans_whose_stored_text_contains_what_the_caller_wants() {
+        let fixture = fixture();
+        let stored = |span_id: &str, start_time_ns, key: &str, version: &str| {
+            let mut span = TestSpan::new("trace-1", span_id, "checkout")
+                .times(start_time_ns, start_time_ns + 10)
+                .attributes(&format!(
+                    r#"{{"junjo.span_type":"agent","junjo.agent.key":"{key}"}}"#
+                ));
+            span.resource_attributes = format!(r#"{{"service.version":"{version}"}}"#);
+            span
+        };
+        let cold = fixture.write(
+            "cold.parquet",
+            &[
+                stored("wanted", 500, "50%_off", "2.0.0"),
+                // `%` and `_` are text here, not wildcards.
+                stored("other-key", 400, "50x-off", "2.0.0"),
+                stored("other-version", 300, "50%_off", "1.0.0"),
+            ],
+        );
+        let page = AgentSpanPage {
+            bounds: AgentSpanBounds {
+                attributes_contain: vec![r#""junjo.agent.key":"50%_off""#.to_string()],
+                resource_attributes_contain: vec![r#""service.version":"2.0.0""#.to_string()],
+                ..AgentSpanBounds::default()
+            },
+            ..first_page(LARGE_PAGE)
+        };
+
+        let spans = fixture
+            .engine
+            .agent_spans(&cold_only(&cold), "checkout", &page)
+            .await
+            .unwrap();
+
+        assert_eq!(span_ids(&spans), ["wanted"]);
+    }
+
+    #[tokio::test]
+    async fn an_agent_page_is_not_shortened_by_a_span_stored_twice_in_one_tier() {
+        let fixture = fixture();
+        // The newest span is in two cold files. The hot snapshot holds a
+        // copy of a flushed span and one span of its own.
+        let cold = fixture.write(
+            "cold.parquet",
+            &[
+                agent("trace-1", "twice", 500).name("cold"),
+                agent("trace-1", "flushed", 400).name("cold"),
+                agent("trace-1", "older", 300).name("cold"),
+            ],
+        );
+        let copy = fixture.write(
+            "copy.parquet",
+            &[agent("trace-1", "twice", 500).name("cold")],
+        );
+        let hot = fixture.write(
+            "hot.parquet",
+            &[
+                agent("trace-1", "flushed", 400).name("hot"),
+                agent("trace-1", "unflushed", 600).name("hot"),
+            ],
+        );
+        let sources = QuerySources {
+            cold_files: vec![cold, copy],
+            hot_snapshot: Some(hot),
+        };
+
+        let spans = fixture
+            .engine
+            .agent_spans(&sources, "checkout", &first_page(4))
+            .await
+            .unwrap();
+
+        // A full page: the walk continues after it and reaches "older".
+        assert_eq!(span_ids(&spans), ["unflushed", "twice", "twice", "flushed"]);
+        assert_eq!(names(&spans), ["hot", "cold", "cold", "cold"]);
     }
 
     #[tokio::test]
@@ -2130,7 +2426,7 @@ mod tests {
                 .unwrap();
             let mut owners = fixture
                 .engine
-                .agent_spans(&sources, service_name)
+                .agent_spans(&sources, service_name, &first_page(LARGE_PAGE))
                 .await
                 .unwrap();
             let expected_owners = case_spans(&case, Some("agent"));

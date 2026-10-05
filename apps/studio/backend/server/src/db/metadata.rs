@@ -94,12 +94,18 @@ pub const SELECT_NEWEST_WORKFLOW_FILE_PATHS: &str = "
     WHERE wf.service_name = ?1
     ORDER BY pf.max_time_ns DESC
     LIMIT ?2";
-pub const SELECT_AGENT_FILE_PATHS: &str = "
-    SELECT pf.file_path
+/// A service's time bounds in a file are its earliest span start and its
+/// latest span end. A span starts no later than it ends, so the latest end is
+/// also the latest a span of the service can start in that file.
+pub const SELECT_AGENT_FILES_BETWEEN: &str = "
+    SELECT pf.file_path, fs.max_time_ns
     FROM agent_files af
-    JOIN parquet_files pf ON af.file_id = pf.file_id
+    JOIN file_services fs ON fs.file_id = af.file_id AND fs.service_name = af.service_name
+    JOIN parquet_files pf ON pf.file_id = af.file_id
     WHERE af.service_name = ?1
-    ORDER BY pf.max_time_ns DESC";
+      AND fs.max_time_ns >= ?2
+      AND fs.min_time_ns <= ?3
+    ORDER BY fs.max_time_ns DESC";
 pub const SELECT_LLM_TRACE: &str =
     "SELECT 1 FROM llm_traces WHERE service_name = ?1 AND trace_id = ?2";
 pub const SELECT_INDEXED_FILE: &str = "SELECT 1 FROM parquet_files WHERE file_path = ?1";
@@ -124,7 +130,7 @@ pub const ALL_STATEMENTS: [&str; 20] = [
     SELECT_FILE_PATHS_FOR_SERVICE,
     SELECT_NEWEST_FILE_PATHS_FOR_SERVICE,
     SELECT_NEWEST_WORKFLOW_FILE_PATHS,
-    SELECT_AGENT_FILE_PATHS,
+    SELECT_AGENT_FILES_BETWEEN,
     SELECT_LLM_TRACE,
     SELECT_INDEXED_FILE,
 ];
@@ -290,16 +296,54 @@ pub fn workflow_file_paths(
         .collect()
 }
 
-/// Every indexed cold file that contains Agent spans for one service, newest
-/// first.
-pub fn agent_file_paths(
+/// The indexed cold files one page of an Agent listing reads.
+#[derive(Debug, PartialEq, Eq)]
+pub struct AgentPageFiles {
+    pub file_paths: Vec<String>,
+    /// The latest time an Agent span can start in the files that were left
+    /// out. `None` when no file was left out.
+    pub rest_starts_by_ns: Option<i64>,
+}
+
+/// The indexed cold files that can hold the newest Agent spans of one service
+/// that start at or before `starts_by_ns`.
+///
+/// Those are the files that reach across that time, and the `files_below`
+/// newest files that end before it. The time bounds a caller filters by leave
+/// out the files that hold no span inside them.
+pub fn agent_page_files(
     connection: &Connection,
     service_name: &str,
-) -> rusqlite::Result<Vec<String>> {
-    connection
-        .prepare_cached(SELECT_AGENT_FILE_PATHS)?
-        .query_map(params![service_name], |row| row.get(0))?
-        .collect()
+    started_from_ns: Option<i64>,
+    ended_by_ns: Option<i64>,
+    starts_by_ns: Option<i64>,
+    files_below: usize,
+) -> rusqlite::Result<AgentPageFiles> {
+    let starts_by_ns = starts_by_ns.unwrap_or(i64::MAX);
+    let mut statement = connection.prepare_cached(SELECT_AGENT_FILES_BETWEEN)?;
+    let mut rows = statement.query(params![
+        service_name,
+        started_from_ns.unwrap_or(i64::MIN),
+        // A span that ended by a time started by it.
+        starts_by_ns.min(ended_by_ns.unwrap_or(i64::MAX)),
+    ])?;
+    let mut files = AgentPageFiles {
+        file_paths: Vec::new(),
+        rest_starts_by_ns: None,
+    };
+    let mut below = 0;
+    while let Some(row) = rows.next()? {
+        let latest_end_ns: i64 = row.get(1)?;
+        if latest_end_ns < starts_by_ns {
+            if below == files_below {
+                files.rest_starts_by_ns = Some(latest_end_ns);
+                break;
+            }
+            below += 1;
+        }
+        files.file_paths.push(row.get(0)?);
+    }
+    Ok(files)
 }
 
 /// The candidate traces that the index knows contain an LLM span of one
@@ -529,18 +573,89 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
-        assert_eq!(
-            agent_file_paths(&connection, "billing").unwrap(),
-            [
-                "/data/new.parquet",
-                "/data/middle.parquet",
-                "/data/old.parquet"
-            ]
-        );
+        let every_file = agent_page_files(&connection, "billing", None, None, None, 3).unwrap();
+        assert_eq!(every_file.file_paths.len(), 3);
         assert!(
-            agent_file_paths(&connection, "checkout")
+            agent_page_files(&connection, "checkout", None, None, None, 3)
                 .unwrap()
+                .file_paths
                 .is_empty()
+        );
+    }
+
+    /// A file in which billing's Agent spans start at `earliest` at the
+    /// earliest and end at `latest` at the latest.
+    fn agent_file(file_path: &str, earliest: i64, latest: i64) -> FileSummary {
+        let mut summary = summary(file_path);
+        summary.services.insert(
+            "billing".to_string(),
+            ServiceSummary {
+                span_count: 1,
+                min_time_ns: earliest,
+                max_time_ns: latest,
+            },
+        );
+        summary
+    }
+
+    #[test]
+    fn an_agent_page_reads_the_files_across_its_place_and_the_newest_below_it() {
+        let mut connection = index();
+        for summary in [
+            agent_file("/data/long.parquet", 100, 900),
+            agent_file("/data/d.parquet", 700, 800),
+            agent_file("/data/c.parquet", 500, 600),
+            agent_file("/data/b.parquet", 300, 400),
+            agent_file("/data/a.parquet", 100, 200),
+        ] {
+            index_file(&mut connection, &summary).unwrap();
+        }
+        let page = |started_from, ended_by, starts_by| {
+            agent_page_files(&connection, "billing", started_from, ended_by, starts_by, 2).unwrap()
+        };
+
+        // The first page has no place: the two newest files, and the time by
+        // which a span of the next file starts.
+        assert_eq!(
+            page(None, None, None),
+            AgentPageFiles {
+                file_paths: vec!["/data/long.parquet".into(), "/data/d.parquet".into()],
+                rest_starts_by_ns: Some(600),
+            }
+        );
+        // From 600: the long file reaches across it, a file that starts
+        // after it is left out, and two files below it are read.
+        assert_eq!(
+            page(None, None, Some(600)),
+            AgentPageFiles {
+                file_paths: vec![
+                    "/data/long.parquet".into(),
+                    "/data/c.parquet".into(),
+                    "/data/b.parquet".into(),
+                    "/data/a.parquet".into(),
+                ],
+                rest_starts_by_ns: None,
+            }
+        );
+        assert_eq!(
+            page(None, None, Some(650)),
+            AgentPageFiles {
+                file_paths: vec![
+                    "/data/long.parquet".into(),
+                    "/data/c.parquet".into(),
+                    "/data/b.parquet".into(),
+                ],
+                rest_starts_by_ns: Some(200),
+            }
+        );
+        // A file is left out when every span in it ended before the
+        // caller's earliest start, or started after the caller's latest end.
+        assert_eq!(
+            page(Some(450), Some(650), None),
+            AgentPageFiles {
+                file_paths: vec!["/data/long.parquet".into(), "/data/c.parquet".into()],
+                rest_starts_by_ns: None,
+            }
         );
     }
 

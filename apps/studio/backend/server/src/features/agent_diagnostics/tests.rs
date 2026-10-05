@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
 use junjo_evidence::agent_diagnostics::assembler::assemble_agent_summary;
+use junjo_evidence::trace_evidence::assembler::percent_encode;
 use serde_json::{Value, json};
 
 use crate::test_http::{app, get, send, sign_up};
@@ -18,7 +19,8 @@ fn is_agent(span: &Value) -> bool {
 }
 
 /// The summaries a listing of the fixture's service must return: one per
-/// Agent owner span, newest first.
+/// Agent owner span, newest first, and by trace and span identifier among
+/// executions that started together.
 fn expected_summaries(fixture: &Value) -> Vec<Value> {
     let mut summaries: Vec<_> = fixture["spans"]
         .as_array()
@@ -27,7 +29,13 @@ fn expected_summaries(fixture: &Value) -> Vec<Value> {
         .filter(|span| is_agent(span))
         .map(|span| assemble_agent_summary(span.as_object().unwrap()).unwrap())
         .collect();
-    summaries.sort_by_key(|summary| std::cmp::Reverse(summary.start_time));
+    summaries.sort_by(|left, right| {
+        (right.start_time, &left.trace_id, &left.agent_span_id).cmp(&(
+            left.start_time,
+            &right.trace_id,
+            &right.agent_span_id,
+        ))
+    });
     summaries
         .iter()
         .map(|summary| serde_json::to_value(summary).unwrap())
@@ -147,6 +155,125 @@ async fn filters_use_exact_values_and_inclusive_time_bounds() {
     )
     .await;
     assert_eq!(other_namespace.body, json!([]));
+}
+
+/// The first Agent fixture and its Agent owner span.
+fn fixture_and_owner() -> (Value, Value) {
+    let (_, fixture) = agent_fixtures().remove(0);
+    let spans = fixture["spans"].as_array().unwrap();
+    let owner = spans.iter().find(|span| is_agent(span)).unwrap().clone();
+    (fixture, owner)
+}
+
+#[tokio::test]
+async fn a_listing_walks_past_the_newer_executions_of_another_namespace() {
+    let (router, mut app) = app();
+    let cookie = sign_up(&router).await;
+    let (fixture, owner) = fixture_and_owner();
+    // Five newer executions of the same service name in another namespace,
+    // one to a file, and then the fixture's own.
+    for copy in 0..5 {
+        let mut newer = owner.clone();
+        newer["span_id"] = json!(format!("{copy:016x}"));
+        newer["start_time"] = json!(format!("2026-07-14T12:00:0{copy}.000000+00:00"));
+        newer["end_time"] = json!(format!("2026-07-14T12:00:0{copy}.000500+00:00"));
+        newer["resource_attributes_json"]["service.namespace"] = json!("another");
+        app.index_cold_file(
+            &format!("newer-{copy}.parquet"),
+            &[TestSpan::from_api_span(&newer)],
+        );
+    }
+    app.index_cold_file("owner.parquet", &[TestSpan::from_api_span(&owner)]);
+
+    // A page of one: the listing takes six pages to reach the execution.
+    let reply = send(&router, get(&listing(&fixture, "&limit=1"), Some(&cookie))).await;
+
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    let listed = reply.body.as_array().unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0]["agent_span_id"], owner["span_id"]);
+}
+
+#[tokio::test]
+async fn a_filter_value_is_matched_as_the_text_ingestion_stores() {
+    let (router, mut app) = app();
+    let cookie = sign_up(&router).await;
+    let (fixture, owner) = fixture_and_owner();
+    // A key with characters JSON escapes, a non-ASCII letter, and the two
+    // characters a pattern would read as wildcards.
+    let key = "caf\u{e9} \"50%_off\" \\ agent";
+    let mut wanted = owner.clone();
+    wanted["span_id"] = json!("00000000000000aa");
+    wanted["attributes_json"]["junjo.agent.key"] = json!(key);
+    let mut near = owner.clone();
+    near["span_id"] = json!("00000000000000bb");
+    near["attributes_json"]["junjo.agent.key"] = json!("caf\u{e9} \"50x-off\" \\ agent");
+    app.index_cold_file(
+        "agent.parquet",
+        &[
+            TestSpan::from_api_span(&owner),
+            TestSpan::from_api_span(&wanted),
+            TestSpan::from_api_span(&near),
+        ],
+    );
+
+    let filters = format!("&agent_key={}", percent_encode(key));
+    let reply = send(&router, get(&listing(&fixture, &filters), Some(&cookie))).await;
+
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    let listed = reply.body.as_array().unwrap();
+    assert_eq!(listed.len(), 1, "{}", reply.body);
+    assert_eq!(listed[0]["agent_span_id"], "00000000000000aa");
+    assert_eq!(listed[0]["agent_key"], key);
+}
+
+#[tokio::test]
+async fn a_time_bound_keeps_an_execution_whose_stored_time_has_finer_digits() {
+    let (router, mut app) = app();
+    let cookie = sign_up(&router).await;
+    let (fixture, mut owner) = fixture_and_owner();
+    // A summary's times are whole microseconds. The stored span ends 999
+    // nanoseconds into its microsecond.
+    owner["end_time"] = json!("2026-07-13T12:00:00.000500999+00:00");
+    app.index_cold_file("owner.parquet", &[TestSpan::from_api_span(&owner)]);
+
+    let count = async |filters: &str| {
+        let reply = send(&router, get(&listing(&fixture, filters), Some(&cookie))).await;
+        assert_eq!(reply.status, StatusCode::OK, "{filters}: {}", reply.body);
+        reply.body.as_array().unwrap().len()
+    };
+
+    assert_eq!(count("&end_time=2026-07-13T12:00:00.000500Z").await, 1);
+    assert_eq!(count("&end_time=2026-07-13T12:00:00.000499Z").await, 0);
+    assert_eq!(count("&start_time=2026-07-13T12:00:00Z").await, 1);
+    assert_eq!(count("&start_time=2026-07-13T12:00:00.000001Z").await, 0);
+}
+
+#[tokio::test]
+async fn evidence_that_cannot_be_read_fails_a_listing_only_when_the_walk_reaches_it() {
+    let (router, mut app) = app();
+    let cookie = sign_up(&router).await;
+    let (fixture, owner) = fixture_and_owner();
+    // An older Agent span that claims a contract Studio does not read.
+    let mut unreadable = owner.clone();
+    unreadable["span_id"] = json!("00000000000000aa");
+    unreadable["start_time"] = json!("2026-07-12T12:00:00.000000+00:00");
+    unreadable["end_time"] = json!("2026-07-12T12:00:00.000500+00:00");
+    unreadable["attributes_json"]["junjo.telemetry.contract_version"] = json!(1);
+    app.index_cold_file(
+        "agent.parquet",
+        &[
+            TestSpan::from_api_span(&owner),
+            TestSpan::from_api_span(&unreadable),
+        ],
+    );
+
+    let newest = send(&router, get(&listing(&fixture, "&limit=1"), Some(&cookie))).await;
+    assert_eq!(newest.status, StatusCode::OK, "{}", newest.body);
+    assert_eq!(newest.body[0]["agent_span_id"], owner["span_id"]);
+
+    let both = send(&router, get(&listing(&fixture, "&limit=2"), Some(&cookie))).await;
+    assert_eq!(both.status, StatusCode::CONFLICT, "{}", both.body);
 }
 
 #[tokio::test]

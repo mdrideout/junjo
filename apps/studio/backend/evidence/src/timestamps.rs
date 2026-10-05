@@ -35,6 +35,11 @@ impl Timestamp {
         }
     }
 
+    /// Whole microseconds from the Unix epoch to this instant.
+    pub fn unix_microseconds(&self) -> i64 {
+        self.0.timestamp_micros()
+    }
+
     /// Whole microseconds from `earlier` to this instant.
     pub fn microseconds_since(&self, earlier: &Self) -> i64 {
         // Both sides hold whole microseconds, and the calendar range of a
@@ -106,6 +111,8 @@ mod tests {
         assert_eq!(utc, shifted);
         assert!(later > utc);
         assert_eq!(later.microseconds_since(&shifted), 1);
+        let epoch = Timestamp::parse("1970-01-01T00:00:00Z").unwrap();
+        assert_eq!(later.unix_microseconds(), later.microseconds_since(&epoch));
         assert_eq!(utc.microseconds_since(&later), -1);
     }
 

@@ -47,8 +47,8 @@ def main() -> int:
     parser.add_argument(
         "--history-pages",
         action="store_true",
-        help="also load the Agents page and an execution link, which read a "
-        "service's whole history",
+        help="also load the Agents page, with and without a filter, and an "
+        "execution link: the requests that can read a service's whole history",
     )
     parser.add_argument(
         "--api-key-filter",

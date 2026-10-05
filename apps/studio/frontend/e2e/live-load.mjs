@@ -52,7 +52,8 @@ const { values } = parseArgs({
     'duration-seconds': { type: 'string' },
     output: { type: 'string' },
     'timeout-milliseconds': { type: 'string', default: '60000' },
-    // Also load the two pages whose queries read a service's whole history.
+    // Also load the Agents page, with and without a filter, and one
+    // execution link: the requests that can read a service's whole history.
     'history-pages': { type: 'boolean', default: false },
     // Also list the traces of the API key with this name, chosen in the
     // Traces page's picker.
@@ -274,11 +275,20 @@ async function browse(context, tab, deadline) {
     })
     if (!values['history-pages'] || Date.now() >= deadline) continue
 
-    // The Agent executions of the service. The backend reads every Agent
-    // span the service ever sent to answer one page.
+    // The Agent executions of the service: its newest page.
     await act(tab, 'agents', service, async () => {
       const url = new URL('/agents', studioOrigin)
       url.searchParams.set('service_name', service)
+      return answered(page, url.href, '/api/v1/agent-executions')
+    })
+    if (Date.now() >= deadline) break
+
+    // The same page filtered by an Agent no span names. The backend reads
+    // the service's whole history to find that there is none.
+    await act(tab, 'agents, no match', service, async () => {
+      const url = new URL('/agents', studioOrigin)
+      url.searchParams.set('service_name', service)
+      url.searchParams.set('agent_key', `live-load-${tab}-${turn}`)
       return answered(page, url.href, '/api/v1/agent-executions')
     })
     if (Date.now() >= deadline) break

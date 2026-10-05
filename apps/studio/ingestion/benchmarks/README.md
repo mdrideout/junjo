@@ -214,11 +214,11 @@ Repeat the comparison at a heavier rate, where ingestion and the backend
 compete for the profile's one vCPU. `--export-interval-ms 25` offers four
 times the spans.
 
-`--history-pages` adds two pages to each tab's round: the Agents page of the
-service, and a deep link to one execution by its runtime identity. Both make
-the backend read the service's whole history, so their cost grows with the
-number of cold files. They are off by default because they slow every other
-page in the run.
+`--history-pages` adds three pages to each tab's round: the Agents page of
+the service, the same page filtered by an Agent that no span names, and a
+deep link to one execution by its runtime identity. These are the requests
+whose cost can grow with a service's history. They are off by default because
+they slow every other page in the run.
 
 `--api-key-filter` adds one more step on the Traces page: the tab picks the
 exporters' API key in the picker and waits for that key's traces.

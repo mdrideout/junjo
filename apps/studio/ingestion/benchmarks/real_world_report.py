@@ -21,7 +21,7 @@ MIB = 2**20
 # The pages the browser tabs load, in the order they load them.
 PAGES = ("services", "traces, default view", "traces, all", "trace detail", "workflows")
 # Loaded only with --history-pages.
-HISTORY_PAGES = ("agents", "execution link")
+HISTORY_PAGES = ("agents", "agents, no match", "execution link")
 # Loaded only with --api-key-filter.
 KEY_FILTER_PAGES = ("traces, one key",)
 SESSION_CHECK_ROUTE = "/api/v1/auth-test"

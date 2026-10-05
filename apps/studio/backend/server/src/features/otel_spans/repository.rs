@@ -21,13 +21,14 @@ use std::time::SystemTime;
 
 use datafusion::error::DataFusionError;
 
-use super::query::{QuerySources, Span, SpanQuery};
+use super::query::{AgentSpanBounds, AgentSpanPage, QuerySources, Span, SpanPlace, SpanQuery};
 use super::{
     MAX_RECENT_COLD_FILES_FOR_SERVICE_DISCOVERY, MAX_RECENT_COLD_FILES_PER_QUERY,
     augment_with_recent_cold_files,
 };
 use crate::db::metadata;
 use crate::error::ApiError;
+use crate::features::parquet_indexer::classify::classify_attributes;
 use crate::state::AppState;
 
 /// Upper bound on indexed cold files registered for one service listing,
@@ -92,17 +93,10 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
                 .await?;
             (indexed, Some(MAX_RECENT_COLD_FILES_PER_QUERY))
         }
-        // Agent semantic filters are applied to the result, so nothing is cut
-        // off here: every indexed file with Agent spans for the service is
-        // read, and every recent-cold file.
-        SpanQuery::Agents { service_name } => {
-            let lookup = service_name.to_string();
-            let indexed = state
-                .metadata
-                .call(move |connection| metadata::agent_file_paths(connection, &lookup))
-                .await?;
-            (indexed, None)
-        }
+        // The walk chose the page's indexed files together with the page's
+        // bounds. A span the index does not cover can be of any age, so
+        // every recent-cold file is read.
+        SpanQuery::Agents { page, .. } => (page.indexed_files.clone(), None),
         // An identity must resolve wherever its span is stored, so every
         // indexed file of the service is read, and every recent-cold file.
         SpanQuery::Executable { service_name, .. } => {
@@ -424,9 +418,95 @@ pub async fn workflow_spans(
     run_query(state, query).await
 }
 
-/// Every Agent span of one service, newest first.
-pub async fn agent_spans(state: &AppState, service_name: &str) -> Result<Vec<Span>, ApiError> {
-    run_query(state, SpanQuery::Agents { service_name }).await
+/// A walk over the Agent spans of one service, newest first, a page at a
+/// time (ingestion ADR-002).
+///
+/// A caller takes pages until it has what it wants, so a listing reads as
+/// much of a service's history as its page needs and no more.
+pub struct AgentSpanPages<'a> {
+    service_name: &'a str,
+    bounds: AgentSpanBounds,
+    page_size: usize,
+    /// The next page holds the spans after this place.
+    after: Option<SpanPlace>,
+    finished: bool,
+}
+
+impl<'a> AgentSpanPages<'a> {
+    /// A walk over the spans inside `bounds`, asking storage for `page_size`
+    /// spans at a time.
+    pub fn new(service_name: &'a str, bounds: AgentSpanBounds, page_size: usize) -> Self {
+        Self {
+            service_name,
+            bounds,
+            page_size,
+            after: None,
+            finished: false,
+        }
+    }
+
+    /// The next Agent spans, or `None` after the oldest. A page can be
+    /// empty when older spans remain.
+    ///
+    /// A page reads the indexed files that reach across its place and the
+    /// newest files below it. Spans that started by the time the first file
+    /// left out ends can be in that file or an older one, so the page stops
+    /// above that time. A page that comes back short has every span above
+    /// it, and the next page continues from that time.
+    pub async fn next(&mut self, state: &AppState) -> Result<Option<Vec<Span>>, ApiError> {
+        if self.finished {
+            return Ok(None);
+        }
+        let service_name = self.service_name.to_string();
+        let (started_from_ns, ended_by_ns) = (self.bounds.started_from_ns, self.bounds.ended_by_ns);
+        let starts_by_ns = self.after.as_ref().map(|place| place.start_time_ns);
+        let files = state
+            .metadata
+            .call(move |connection| {
+                metadata::agent_page_files(
+                    connection,
+                    &service_name,
+                    started_from_ns,
+                    ended_by_ns,
+                    starts_by_ns,
+                    MAX_COLD_FILES_PER_SERVICE_QUERY,
+                )
+            })
+            .await?;
+        let page = AgentSpanPage {
+            indexed_files: files.file_paths,
+            bounds: self.bounds.clone(),
+            after: self.after.take(),
+            started_after_ns: files.rest_starts_by_ns,
+            limit: self.page_size,
+        };
+        let query = SpanQuery::Agents {
+            service_name: self.service_name,
+            page: &page,
+        };
+        let mut spans = run_query(state, query).await?;
+
+        let full_page = spans.len() >= self.page_size;
+        match (spans.last(), files.rest_starts_by_ns) {
+            (Some(last), _) if full_page => {
+                self.after = Some(SpanPlace {
+                    // The stored column is never null.
+                    start_time_ns: last.start_time_ns.unwrap_or_default(),
+                    span: Some((last.trace_id.clone(), last.span_id.clone())),
+                });
+            }
+            (_, Some(rest_starts_by_ns)) => {
+                self.after = Some(SpanPlace {
+                    start_time_ns: rest_starts_by_ns,
+                    span: None,
+                });
+            }
+            (_, None) => self.finished = true,
+        }
+        // The exact check behind the query's substring prefilter.
+        spans.retain(|span| classify_attributes(span.attributes_json.get()).is_agent);
+        Ok(Some(spans))
+    }
 }
 
 /// The spans of one service that are the executable with exactly this type
@@ -458,6 +538,18 @@ pub async fn span(
 ) -> Result<Option<Span>, ApiError> {
     let spans = run_query(state, SpanQuery::Span { trace_id, span_id }).await?;
     Ok(spans.into_iter().next())
+}
+
+/// Every Agent span of one service, newest first: a whole walk in pages of
+/// two.
+#[cfg(test)]
+pub async fn agent_spans(state: &AppState, service_name: &str) -> Result<Vec<Span>, ApiError> {
+    let mut pages = AgentSpanPages::new(service_name, AgentSpanBounds::default(), 2);
+    let mut spans = Vec::new();
+    while let Some(page) = pages.next(state).await? {
+        spans.extend(page);
+    }
+    Ok(spans)
 }
 
 #[cfg(test)]
@@ -891,6 +983,98 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(span_ids(&oldest), ["workflow-0"]);
+    }
+
+    /// An Agent span of the shared service that runs from `start` to `end`.
+    fn agent_span(span_id: &str, start: i64, end: i64) -> TestSpan {
+        TestSpan::new("trace-1", span_id, SERVICE)
+            .times(start, end)
+            .attributes(&executable("agent", span_id))
+    }
+
+    #[tokio::test]
+    async fn an_agent_walk_misses_no_span_of_files_that_overlap_and_keeps_the_caller_bounds() {
+        let mut app = test_app();
+        // Thirty indexed files, more than one page reads. Each holds a span
+        // of its own time and a span that started five files earlier, so
+        // every file overlaps the five before it.
+        let mut stored = Vec::new();
+        for index in 0..30_i64 {
+            let time = 100_000 + 1_000 * index;
+            let short = (format!("short-{index:02}"), time + 500, time + 510);
+            let long = (format!("long-{index:02}"), time - 4_600, time + 450);
+            app.index_cold_file(
+                &format!("{index:02}.parquet"),
+                &[
+                    agent_span(&short.0, short.1, short.2),
+                    agent_span(&long.0, long.1, long.2),
+                    // The substring prefilter matches this span. It is not
+                    // an Agent span.
+                    TestSpan::new("trace-1", &format!("nested-{index:02}"), SERVICE)
+                        .times(time + 100, time + 110)
+                        .attributes(r#"{"payload":{"junjo.span_type":"agent"}}"#),
+                ],
+            );
+            stored.extend([short, long]);
+        }
+        // One span runs across every file, one is in a flushed file the
+        // index does not hold, and two are unflushed: one old, one new.
+        let across = ("across".to_string(), 100_050, 129_900);
+        app.index_cold_file(
+            "across.parquet",
+            &[agent_span(&across.0, across.1, across.2)],
+        );
+        let recent = ("recent".to_string(), 107_777, 107_787);
+        let recent_file = app.write_cold_file(
+            "recent.parquet",
+            &[agent_span(&recent.0, recent.1, recent.2)],
+        );
+        let old = ("unflushed-old".to_string(), 112_250, 112_260);
+        let new = ("unflushed-new".to_string(), 140_000, 140_010);
+        let hot_snapshot = app.write_hot_snapshot(&[
+            agent_span(&old.0, old.1, old.2),
+            agent_span(&new.0, new.1, new.2),
+        ]);
+        app.state.ingestion = ingestion_reporting(Some(&hot_snapshot), &[recent_file]).await;
+        stored.extend([across, recent, old, new]);
+        stored.sort_by_key(|(_, start, _)| std::cmp::Reverse(*start));
+        let state = &app.state;
+
+        let expected: Vec<&str> = stored
+            .iter()
+            .map(|(span_id, ..)| span_id.as_str())
+            .collect();
+        // Pages of two: a page ends well above the files it did not read.
+        let walked = agent_spans(state, SERVICE).await.unwrap();
+        assert_eq!(span_ids(&walked), expected);
+        // Pages larger than what the files of one page hold: a page stops
+        // at the time by which a span of the files it did not read starts.
+        let mut pages = AgentSpanPages::new(SERVICE, AgentSpanBounds::default(), LARGE_PAGE);
+        let mut walked = Vec::new();
+        while let Some(page) = pages.next(state).await.unwrap() {
+            walked.extend(page);
+        }
+        assert_eq!(span_ids(&walked), expected);
+
+        // The caller's bounds: started at or after, and ended at or before.
+        let (started_from, ended_by) = (104_000, 118_000);
+        let bounds = AgentSpanBounds {
+            started_from_ns: Some(started_from),
+            ended_by_ns: Some(ended_by),
+            ..AgentSpanBounds::default()
+        };
+        let mut pages = AgentSpanPages::new(SERVICE, bounds, 3);
+        let mut bounded = Vec::new();
+        while let Some(page) = pages.next(state).await.unwrap() {
+            bounded.extend(page);
+        }
+        let expected: Vec<&str> = stored
+            .iter()
+            .filter(|(_, start, end)| *start >= started_from && *end <= ended_by)
+            .map(|(span_id, ..)| span_id.as_str())
+            .collect();
+        assert!(expected.len() > 20);
+        assert_eq!(span_ids(&bounded), expected);
     }
 
     #[tokio::test]

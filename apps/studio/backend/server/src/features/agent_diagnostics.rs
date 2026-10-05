@@ -3,6 +3,9 @@
 //! Span selection is physical: it finds a service's Agent spans. Everything
 //! that makes a span an Agent execution, and every filter, is decided here
 //! from the evidence the span carries.
+//!
+//! Span selection is also told the stored text a span that passes the
+//! filters contains, so the pages it returns hold spans that can pass them.
 
 use axum::Json;
 use axum::extract::State;
@@ -20,7 +23,7 @@ use utoipa_axum::routes;
 
 use crate::error::{ApiError, ApiQuery, ErrorResponse};
 use crate::features::auth::AuthenticatedUser;
-use crate::features::otel_spans::query::Span;
+use crate::features::otel_spans::query::{AgentSpanBounds, Span};
 use crate::features::otel_spans::repository;
 use crate::pagination::Limit;
 use crate::state::AppState;
@@ -115,17 +118,67 @@ pub async fn list_agent_executions(
             "start_time must be earlier than or equal to end_time",
         ));
     }
-    let owner_spans: Vec<NormalizedSpanEvidence> =
-        repository::agent_spans(&state, query.service_name.as_str())
-            .await?
-            .iter()
-            .map(Span::to_evidence)
-            .collect();
-    Ok(Json(summaries(&owner_spans, &query)?))
+    let limit = query.limit.get() as usize;
+    let mut pages =
+        repository::AgentSpanPages::new(query.service_name.as_str(), stored_bounds(&query), limit);
+    // Pages arrive newest first, so the listing is complete as soon as it
+    // is full.
+    let mut selected = Vec::new();
+    while selected.len() < limit {
+        let Some(spans) = pages.next(&state).await? else {
+            break;
+        };
+        let owner_spans: Vec<NormalizedSpanEvidence> =
+            spans.iter().map(Span::to_evidence).collect();
+        selected.extend(summaries(&owner_spans, &query)?);
+    }
+    selected.truncate(limit);
+    Ok(Json(selected))
 }
 
-/// The summaries of the owner spans that are in the queried service and pass
-/// every filter, newest first, up to the limit.
+/// What a stored span that passes the query's filters satisfies.
+///
+/// `summaries` decides which spans pass. These bounds only keep the walk
+/// from reading spans that cannot.
+fn stored_bounds(query: &AgentExecutionListQuery) -> AgentSpanBounds {
+    // The stored text of one member whose value is this text. Ingestion
+    // writes compact JSON with the same string escapes.
+    let text = |text: &str| serde_json::Value::from(text).to_string();
+    let member = |name: &str, value: &str| format!("{}:{}", text(name), text(value));
+    let mut attributes_contain = Vec::new();
+    if let Some(agent_key) = &query.agent_key {
+        attributes_contain.push(member("junjo.agent.key", agent_key.as_str()));
+    }
+    if let Some(structural_id) = &query.structural_id {
+        let structural_id = structural_id.as_str();
+        attributes_contain.push(member("junjo.executable_structural_id", structural_id));
+    }
+    if let Some(outcome) = query.outcome {
+        attributes_contain.push(member("junjo.agent.outcome", outcome.name()));
+    }
+    let resource_attributes_contain = query
+        .service_version
+        .iter()
+        .map(|version| member("service.version", version.as_str()))
+        .collect();
+    AgentSpanBounds {
+        // A summary's times are whole microseconds: the finer digits of a
+        // stored time are dropped. These are the stored times that pass the
+        // same bounds.
+        started_from_ns: query
+            .start_time
+            .map(|start| start.0.unix_microseconds().saturating_mul(1_000)),
+        ended_by_ns: query.end_time.map(|end| {
+            let microseconds = end.0.unix_microseconds();
+            microseconds.saturating_mul(1_000).saturating_add(999)
+        }),
+        attributes_contain,
+        resource_attributes_contain,
+    }
+}
+
+/// The summaries of one page's owner spans that are in the queried service
+/// and pass every filter, newest first, up to the limit.
 fn summaries(
     owner_spans: &[NormalizedSpanEvidence],
     query: &AgentExecutionListQuery,
