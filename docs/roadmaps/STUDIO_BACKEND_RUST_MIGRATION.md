@@ -1241,14 +1241,14 @@ deactivates it and keeps its record. Studio ADR-013 owns the decision. The
 Workflow executions page has no key picker yet: its list is shared state
 that other pages read.
 
-**Decisions for the maintainer.**
+**Decided by the maintainer on 2026-10-04.** Three differences from the
+Python backend stay as they are, and the release notes describe them:
 
-- Whether the application writes a log line per request at the default
-  level, as Python and the frontend container did.
-- Whether a running Studio serves its OpenAPI document, as Python did at
-  `/openapi.json`.
-- Whether listing API keys or developer tokens, which returns their values,
-  writes an audit event, as it did in Python.
+- The application writes no log line per request at the default level.
+- A running Studio does not serve its OpenAPI document.
+- Listing API keys or developer tokens writes no audit event.
+
+Running the images as a user other than root is left for a later release.
 
 ## Measurement plan and decision gate
 

@@ -54,6 +54,8 @@ const { values } = parseArgs({
     'timeout-milliseconds': { type: 'string', default: '60000' },
     // Also load the two pages whose queries read a service's whole history.
     'history-pages': { type: 'boolean', default: false },
+    // Also list the traces of one API key, chosen in the Traces page's picker.
+    'api-key-filter': { type: 'boolean', default: false },
   },
   strict: true,
 })
@@ -205,6 +207,36 @@ async function browse(context, tab, deadline) {
       return settled(page, tableState, TRACES_ERROR)
     })
     if (Date.now() >= deadline) break
+
+    // One key's traces: the person picks the first key in the picker.
+    if (values['api-key-filter']) {
+      await act(tab, 'traces, one key', service, async () => {
+        await Promise.all([
+          page.waitForResponse(
+            (item) => {
+              const url = new URL(item.url())
+              return url.pathname.endsWith('/spans/root') && url.searchParams.has('api_key_id')
+            },
+            { timeout },
+          ),
+          page.getByRole('combobox').selectOption({ index: 1 }, { timeout }),
+        ])
+        return settled(page, tableState, TRACES_ERROR)
+      })
+      if (Date.now() >= deadline) break
+      // Back to every key, so the next step opens a trace of the full list.
+      await Promise.all([
+        page.waitForResponse(
+          (item) => {
+            const url = new URL(item.url())
+            return url.pathname.endsWith('/spans/root') && !url.searchParams.has('api_key_id')
+          },
+          { timeout },
+        ),
+        page.getByRole('combobox').selectOption({ index: 0 }, { timeout }),
+      ])
+      await settled(page, tableState, TRACES_ERROR)
+    }
 
     // Open one trace of the list, a different row each time.
     if (allTraces.outcome === 'rows') {

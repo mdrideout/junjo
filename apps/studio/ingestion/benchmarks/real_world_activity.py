@@ -101,6 +101,7 @@ def main() -> int:
     seconds = int(os.environ["JUNJO_REAL_WORLD_SECONDS"])
     tabs = os.environ["JUNJO_REAL_WORLD_TABS"]
     history_pages = os.environ.get("JUNJO_REAL_WORLD_HISTORY_PAGES") == "1"
+    api_key_filter = os.environ.get("JUNJO_REAL_WORLD_API_KEY_FILTER") == "1"
 
     with tempfile.TemporaryDirectory(prefix="junjo-real-world-") as directory:
         work = Path(directory)
@@ -121,6 +122,7 @@ def main() -> int:
                 "--output",
                 str(browser_output),
                 *(["--history-pages"] if history_pages else []),
+                *(["--api-key-filter"] if api_key_filter else []),
             ],
             cwd=FRONTEND,
             stdout=subprocess.PIPE,

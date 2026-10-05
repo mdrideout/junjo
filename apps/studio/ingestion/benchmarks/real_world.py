@@ -50,6 +50,11 @@ def main() -> int:
         help="also load the Agents page and an execution link, which read a "
         "service's whole history",
     )
+    parser.add_argument(
+        "--api-key-filter",
+        action="store_true",
+        help="also list one API key's traces through the Traces page's picker",
+    )
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--backend-port", type=int, default=27154)
     parser.add_argument("--ingestion-port", type=int, default=27155)
@@ -94,6 +99,7 @@ def main() -> int:
         "JUNJO_REAL_WORLD_SECONDS": str(args.seconds - ACTIVITY_ENDS_SECONDS_EARLY),
         "JUNJO_REAL_WORLD_TABS": str(args.tabs),
         "JUNJO_REAL_WORLD_HISTORY_PAGES": "1" if args.history_pages else "0",
+        "JUNJO_REAL_WORLD_API_KEY_FILTER": "1" if args.api_key_filter else "0",
     }
     # The harness prints its whole result, which is read from the output file
     # instead. What it writes to its error stream is kept beside the result.

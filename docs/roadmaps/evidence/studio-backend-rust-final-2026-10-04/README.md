@@ -1077,6 +1077,37 @@ snapshot in these runs, so the new rerun did not fire: that case appeared
 once in 7,410 trace detail loads before, and these runs cannot show that it
 is gone. A test with a stand-in ingestion covers the decision.
 
+## Storing the API key's identifier on every span
+
+Ingestion now stores the identifier of the API key that sent each span, and
+a listing can ask for one key (Studio ADR-013). This changes ingestion's
+write path and its stored schema, so both images were rebuilt and run
+against the build before, alternating. Runs `tool-tree3-standard-4` to `-6`
+and `tool-tree4-standard-1` to `-3`, and one heavy run of each.
+
+| | Before | Tree |
+| --- | ---: | ---: |
+| Page loads completed | 888, 961, 971 | 915, 902, 931 |
+| API responses that were 5xx | 0 of 6,212 | 0 of 6,610 |
+| Ingestion CPU | 10.4, 9.7, 9.8 s | 9.9, 10.3, 9.8 s |
+| Export p95 | 14.0, 18.4, 17.6 ms | 11.9, 27.2, 10.8 ms |
+| Exports refused once and retried | 196, 233, 197 | 212, 198, 248 |
+| Ingestion peak memory | 93, 90, 79 MiB | 92, 80, 91 MiB |
+| Accepted trace to readable: p50 | 486, 478, 381 ms | 386, 493, 206 ms |
+| Four times the load: page loads | 433 | 428 |
+| Four times the load: ingestion CPU | 26.8 s | 27.5 s |
+
+No difference is visible in ingestion or in the pages. Every acknowledged
+span was persisted in every run.
+
+Two more runs of the tree added a step to each tab's round: pick the first
+API key in the Traces page's picker and wait for its traces
+(`--api-key-filter`, runs `tool-keyfilter-standard-1` and `-heavy-1`). The
+filtered list took 296 ms at the median against 312 ms for the full list at
+the standard load, and 921 ms against 924 ms at four times the load. No
+request failed in either run. One key sent every span in these runs, so the
+filter kept every row.
+
 ## The two pages that read a service's history
 
 Two requests read everything a service ever sent: the Agent listing reads

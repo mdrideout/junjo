@@ -22,6 +22,8 @@ MIB = 2**20
 PAGES = ("services", "traces, default view", "traces, all", "trace detail", "workflows")
 # Loaded only with --history-pages.
 HISTORY_PAGES = ("agents", "execution link")
+# Loaded only with --api-key-filter.
+KEY_FILTER_PAGES = ("traces, one key",)
 SESSION_CHECK_ROUTE = "/api/v1/auth-test"
 
 
@@ -72,7 +74,7 @@ def describe(result: dict[str, Any]) -> dict[str, Any]:
     ]
 
     pages = {}
-    for page in PAGES + HISTORY_PAGES:
+    for page in PAGES + HISTORY_PAGES + KEY_FILTER_PAGES:
         loads = [action for action in actions if action["action"] == page]
         pages[page] = {
             "loads": len(loads),
@@ -182,7 +184,7 @@ def rows(runs: list[dict[str, Any]]) -> list[tuple[str, str]]:
                 each(lambda run, page=page: number(run["pages"][page]["p95_ms"])),
             )
         )
-    for page in HISTORY_PAGES:
+    for page in HISTORY_PAGES + KEY_FILTER_PAGES:
         if not any(run["pages"][page]["loads"] for run in runs):
             continue
         table.append(
