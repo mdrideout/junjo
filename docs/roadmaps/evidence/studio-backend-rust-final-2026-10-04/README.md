@@ -1142,6 +1142,158 @@ the changes above. Two runs at each load.
   these two pages take the backend's CPU and memory. No comparison with
   those runs is intended.
 
+## The Agent listing a page at a time
+
+The Agent listing now walks a service's Agent spans from the newest, a page
+at a time, with the caller's filters inside the query. Ingestion ADR-002
+records the change under its 2026-10-05 amendment. It was measured on
+2026-10-05 with the repository tool's `--history-pages` option: the build
+before it against the build with it, alternating, on the loaded host.
+
+These runs are not comparable with the table above. Two things in the tool
+changed first, for both builds:
+
+- The load's Workflow and Agent spans carry a runtime identity, as the SDK's
+  do. Execution resolution now has spans to return, which the next section
+  measures.
+- A tab loads the Agents page twice in each round: its newest page, and the
+  page filtered by an Agent that no span names. The second reads the
+  service's whole history to answer that there is none.
+
+Standard load, 18 cold files. Two runs before and four after.
+
+| | Before | A page at a time |
+| --- | ---: | ---: |
+| Agent listing requests that were 5xx | 119 of 151, 122 of 154 | 0 of 176, 0 of 170, 0 of 134, 0 of 192 |
+| Agents page, newest: p50 | 662, 672 ms | 495, 592, 475, 499 ms |
+| Agents page, newest: p95 | 1,525, 1,217 ms | 983, 1,065, 1,046, 969 ms |
+| Agents page, no match: p50 | 602, 604 ms | 416, 403, 382, 398 ms |
+| Agents page, no match: p95 | 1,312, 1,200 ms | 800, 793, 2,554, 783 ms |
+| Page loads completed | 615, 621 | 713, 695, 546, 771 |
+| Backend peak memory | 322, 243 MiB | 215, 214, 213, 211 MiB |
+| Exports refused once and retried | 112, 145 | 216, 223, 270, 162 |
+| Ingestion CPU seconds | 9.1, 8.4 | 9.2, 8.9, 8.4, 8.4 |
+
+Four times the load, 72 cold files.
+
+| | Before | A page at a time |
+| --- | ---: | ---: |
+| Agent listing requests that were 5xx | 74 of 78, 77 of 80 | 3 of 83, 0 of 80, 0 of 88, 0 of 76 |
+| Agents page, newest: p50 | 1,258, 1,098 ms | 1,296, 1,790, 1,409, 1,558 ms |
+| Agents page, newest: p95 | 2,174, 2,283 ms | 2,387, 2,671, 2,198, 2,483 ms |
+| Agents page, no match: p50 | 1,123, 994 ms | 898, 1,172, 922, 783 ms |
+| Agents page, no match: p95 | 2,097, 2,102 ms | 1,524, 1,776, 1,617, 1,594 ms |
+| Page loads completed | 317, 325 | 336, 331, 359, 308 |
+| Backend peak memory | 371, 358 MiB | 450, 351, 356, 367 MiB |
+| Exports refused once and retried | 230, 245 | 279, 223, 250, 301 |
+| Ingestion CPU seconds | 23.4, 23.3 | 24.1, 23.6, 23.4, 23.0 |
+
+- Every failed listing before the change ran out of memory in its sort. The
+  times in that column are mostly of requests that failed.
+- The three failures after it are in one run, and are not the listing's
+  own. Execution resolution, which this build does not change, filled the
+  query memory that all requests share: that run also failed five Traces
+  listings, two trace reads, and one Workflows listing. Backend peak memory
+  in both columns includes those queries. With them fixed, in the next
+  section, the same listing runs in a backend that peaks at 160 to 183 MiB
+  at the standard load and 234 to 259 MiB at four times the load, and no
+  request of any kind failed in eight runs.
+- At four times the load the page is not faster. A page still reads the hot
+  snapshot, up to 20 recent files, and up to 20 indexed files, as the
+  Workflows page does, and that page took 1.2 to 1.5 s at the median in the
+  same runs. The backend ran at its CPU limit in both builds: 40 to 45 of the
+  45 CPU seconds the limit allows in every run but one.
+- The third run after the change at the standard load was disturbed. Its
+  backend used 36 CPU seconds, it completed 546 page loads, and its slowest
+  pages took two to three seconds. It is kept.
+- The exporters' Agent spans carry no Agent contract attributes. The newest
+  page therefore answered 409 once it had read its first page of spans, and
+  the filtered page answered 200 with an empty list.
+- No export failed. The exports refused once are inside the range this
+  evidence has at each load for every build: 96 to 287 at the standard load.
+- A listing whose filter few spans pass was not measured by itself. It reads
+  at most what the page with no match reads.
+
+## Execution links
+
+Execution resolution finds one execution's owner span from its service, type
+and runtime identity. Two changes were measured, separately and together, on
+2026-10-05 with the same tool and option, alternating, on the loaded host.
+Ingestion ADR-002 records both.
+
+- **The identity in the query.** The query returns the spans whose stored
+  attributes contain the wanted identity. Before, it returned every
+  executable span of the files it read.
+- **The index.** The metadata index records which files hold each
+  execution's owner span, so resolution reads those files, the recent files
+  the index does not hold yet, and the hot snapshot. Before, it read every
+  indexed file of the service.
+
+The link in these runs names the first Workflow execution of the service a
+browser tab was shown, so its span is flushed and usually indexed when later
+links resolve it. The exporters' spans name no telemetry contract, so the
+answer is 404 once the span has been read.
+
+Standard load, 18 cold files. Four runs unchanged and two of each change.
+
+| | Unchanged | Identity in the query | Identity in the query, and the index |
+| --- | ---: | ---: | ---: |
+| Resolution requests that were 5xx | 73 of 88, 72 of 85, 57 of 67, 77 of 96 | 0 of 103, 0 of 104 | 0 of 103, 0 of 109 |
+| Resolution response: p50 | 499, 508, 507, 568 ms | 210, 215 ms | 180, 115 ms |
+| Resolution response: p95 | 1,098, 1,194, 914, 1,007 ms | 510, 500 ms | 309, 421 ms |
+| Execution link page: p50 | 661, 768, 732, 784 ms | 412, 404 ms | 375, 313 ms |
+| Other requests that were 5xx | 0, 1, 0, 0 | 0, 0 | 0, 0 |
+| Page loads completed | 713, 695, 546, 771 | 830, 848 | 842, 878 |
+| Backend peak memory | 215, 214, 213, 211 MiB | 174, 160 MiB | 183, 174 MiB |
+| Exports refused once and retried | 216, 223, 270, 162 | 235, 189 | 105, 185 |
+| Ingestion CPU seconds | 9.2, 8.9, 8.4, 8.4 | 8.6, 8.6 | 9.1, 8.7 |
+
+Four times the load, 72 cold files.
+
+| | Unchanged | Identity in the query | Identity in the query, and the index |
+| --- | ---: | ---: | ---: |
+| Resolution requests that were 5xx | 40 of 41, 40 of 40, 44 of 44, 37 of 37 | 0 of 44, 0 of 48 | 0 of 48, 0 of 48 |
+| Resolution response: p50 | 1,218, 817, 998, 998 ms | 728, 797 ms | 603, 570 ms |
+| Resolution response: p95 | 3,182, 3,069, 2,343, 3,395 ms | 1,524, 1,499 ms | 1,228, 1,104 ms |
+| Execution link page: p50 | 1,506, 1,107, 1,289, 1,302 ms | 984, 1,003 ms | 819, 786 ms |
+| Other requests that were 5xx | 11, 1, 1, 7 | 0, 0 | 0, 0 |
+| Page loads completed | 336, 331, 359, 308 | 368, 398 | 394, 397 |
+| Backend peak memory | 450, 351, 356, 367 MiB | 234, 240 MiB | 259, 252 MiB |
+| Exports refused once and retried | 279, 223, 250, 301 | 295, 277 | 247, 325 |
+| Ingestion CPU seconds | 24.1, 23.6, 23.4, 23.0 | 23.2, 23.2 | 23.3, 23.8 |
+
+- Every failed resolution ran out of memory while it sorted the executable
+  spans it had selected. The times in the first column are mostly of
+  requests that failed. One run reached the container's 450 MiB limit.
+- The earlier table, "The two pages that read a service's history", shows no
+  failed resolution. Its load carried no runtime identities, so the query
+  selected nothing and only its read of the files was measured.
+- The identity in the query removes the failures. The index does not: two
+  runs at each load with the index and without the identity in the query
+  failed 69 of 80 and 73 of 91 resolutions at the standard load and all 86
+  at four times the load. The hot snapshot and the files the index does not
+  hold yet still returned every executable span in them.
+- The index takes a further 14 to 46% off the median response at the
+  standard load and 17 to 28% at four times the load. These runs last 90
+  seconds, so most of a service's files are recent or not yet indexed and
+  both builds read them. On a deployment with history, the build without
+  the index reads every indexed file of the service for one link, and the
+  build with it reads the one that holds the execution.
+- The index costs one row for each execution. Measured by writing the index
+  for 20 files of the standard load's shape, 50,000 traces with six
+  executions each: 11.4 MB without the rows and 21.4 MB with them, about 33
+  bytes for each execution. With one execution in a trace it is 13.1 MB.
+  Writing one file's rows took 13 ms without the execution rows and 52 ms
+  with all six to a trace, through Python's SQLite binding on a quiet host.
+  The standard load writes such a file about every five seconds. The backend
+  peaked 10 to 20 MiB higher in the runs with the index.
+- The backend ran at its CPU limit in every run of all three builds, so
+  these runs cannot show what recording the rows costs the indexer. Page
+  loads completed did not fall.
+- With the identity in the query, the backend logged no error in eight
+  runs, and every SDK run was shown in Studio. Without it, one SDK run was
+  not shown in each of two runs at four times the load.
+
 ## Image and container count
 
 | | Python release | Rust |
@@ -1199,6 +1351,20 @@ repository tool:
   instead of the oldest. One of them runs against the real ingestion: it
   lists a trace before its flush and after it, with no indexer running.
 
+Run again on 2026-10-05 on the tree with the Agent listing and execution
+resolution changes:
+
+- Studio's full test script passes: backend format and lint, 285 server tests
+  and 121 evidence tests, 40 ingestion tests, 292 frontend tests with lint and
+  build, 38 contract tests, and the OpenAPI document check.
+- The repository validator, the 164 tooling tests, and the benchmark
+  directory's 6 tests pass.
+- The test of the Agent walk reads 31 indexed files that overlap, a file the
+  index does not hold, and a hot snapshot. It fails when a page does not
+  stop at the time the files it left out can reach.
+- The execution's hash is checked against a value computed apart from the
+  backend, so a build that computed another one fails the test.
+
 ## Limits
 
 - One host: Apple Silicon macOS with OrbStack, 12 CPUs, and 15 unrelated
@@ -1219,6 +1385,12 @@ repository tool:
 - In those two sections a trace is one root span with flat children, and
   every trace has LLM spans. Only the SDK's runs have real nesting, events,
   and Store state. Four browser tabs are one person moving quickly.
+- The runs of "The Agent listing a page at a time" and "Execution links"
+  last 90 seconds, so nearly every cold file is recent or not yet indexed.
+  They do not show a service with days of indexed history, which is where
+  the Agent listing's choice of files and the execution index save the most.
+  The exporters' Agent and Workflow spans name no telemetry contract, so
+  neither page showed a row: what was measured is the read.
 - Docker's sampled memory is a container working-set figure, not process RSS.
   Both are reported.
 - The base Compose file sets glibc allocator variables for the backend

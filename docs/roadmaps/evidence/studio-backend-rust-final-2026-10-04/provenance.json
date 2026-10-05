@@ -51,6 +51,30 @@
     "junjo-rsmig-app:adopted2": {
       "id": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
       "built_from": "working tree on 2026-10-04 with the second variant of the default Traces view change adopted as well, apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree4": {
+      "id": "sha256:e709c592750f90b2031802e49b246b287470f12d793f4a117ed1c8d41c7e2b46",
+      "built_from": "branch studio-rust-backend at 3c1dd7d, whose backend sources equal those of 613aa77; the build before the two changes (label history-before-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree5": {
+      "id": "sha256:9601893f583728be6883a08ef83f7c520e8539a60a83c6cafb7d1ff5868e432a",
+      "built_from": "bd440cc, the Agent listing a page at a time (history-agentpages-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree6": {
+      "id": "sha256:899e97abe264e450a722c007c0d0b4ffd2b112f6cb59f48b6a34faafd86704ef",
+      "built_from": "bd440cc plus the execution index of f7c5678 without the identity in the query; an intermediate state that was not committed (history-index-only-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree8": {
+      "id": "sha256:5f626f36c8633a0df8d701ddc5f56cf1ae151fbf3ba081bd62332d4b006f1d04",
+      "built_from": "d313606, the identity in the query without the index (history-identity-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree7": {
+      "id": "sha256:373aced250f4bcb4a2d2ad35770bd240157e716f295e25992ab903d39674b70a",
+      "built_from": "f7c5678, the identity in the query and the index (history-identity-index-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-ingestion:tree4": {
+      "id": "sha256:25b406dbe1b606c714abfba18b6bd173051fac114d067a91a83401c56d660e8e",
+      "built_from": "branch studio-rust-backend at 3c1dd7d, apps/studio/ingestion/Dockerfile, target production; ingestion is unchanged by the 2026-10-05 changes and every history run uses this image"
     }
   },
   "rust_backend": {
@@ -97,5 +121,13 @@
     "disturbed": "Runs in which ingestion used 11 or more CPU seconds at the standard load, where it otherwise uses 8.6 to 10.5: tool-viewfix-standard-1 and -2, tool-adopted-standard-2, tool-before-standard-2 and -3, tool-viewfix2-standard-1, -2, -3 and -6, tool-tree2-standard-2 and -3, tool-adopted-standard-9. Kept.",
     "harness": "diagnostics/real-world-tool/batch.sh and its overlays."
   },
-  "raw_results": "Not committed. The raw JSON and service logs of each run are kept locally in results/, which Git ignores."
+  "raw_results": "Not committed. The raw JSON and service logs of each run are kept locally in results/, which Git ignores.",
+  "history_runs": {
+    "recorded": "2026-10-05",
+    "tool": "results/tool-history-*.json: 24 runs made with apps/studio/ingestion/benchmarks/real_world.py --history-pages at f03a0aa, whose load generator gives Workflow and Agent spans a runtime identity and whose browser driver loads the Agents page with and without a filter and resolves a real execution. Summaries are in summary-tool.json with a history_routes member for the two routes.",
+    "batches": "First batch 10:36-10:58 local: before, agentpages, index-only in the order A B C C B A, two runs each at the standard load and then at four times the load. Second batch 11:07-11:30: agentpages, identity, identity-index in the same order.",
+    "conditions": "split quota profile; a sibling container running four busy loops (--cpus 4) for each batch; no build or test suite ran during a batch; unrelated containers of the maintainer's were running.",
+    "disturbed": "tool-history-agentpages-standard-c1: the backend used 35.9 CPU seconds where the other runs used 40.4 to 44.9, and it completed 546 page loads. Kept.",
+    "index_size": "Measured apart from the runs, by writing the metadata schema's rows for 20 files of 2,500 traces each with Python's sqlite3 module: 0, 1, 3 and 6 executions to a trace gave 11.42, 13.08, 16.34 and 21.38 MB and 13, 17, 27 and 52 ms of write time for one file."
+  }
 }
