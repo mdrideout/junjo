@@ -54,11 +54,14 @@ const ROOT_SPAN_FILTER: &str = "(parent_span_id IS NULL OR parent_span_id = '')"
 const WORKFLOW_SPAN_PREFILTER: &str = r#"attributes LIKE '%"junjo.span_type":"workflow"%'"#;
 const AGENT_SPAN_PREFILTER: &str = r#"attributes LIKE '%"junjo.span_type":"agent"%'"#;
 
-/// Narrows the scan to spans that carry both identity attributes. The wanted
-/// values are not part of the pattern: `LIKE` would read `%` and `_` inside a
-/// runtime identity as wildcards.
+/// Narrows the scan to spans that carry both identity attributes and contain
+/// the wanted runtime identity as JSON text. The identity is the bound value
+/// `$2` and not part of a pattern: `LIKE` would read `%` and `_` inside it as
+/// wildcards. Without it the query would return every executable span of the
+/// files it reads to keep one.
 const EXECUTABLE_SPAN_PREFILTER: &str = r#"attributes LIKE '%"junjo.span_type"%'
-    AND attributes LIKE '%"junjo.executable_runtime_id"%'"#;
+    AND attributes LIKE '%"junjo.executable_runtime_id"%'
+    AND contains(attributes, $2)"#;
 
 /// The columns the raw span API returns, in the stored span schema's names.
 const SPAN_COLUMNS: &str = "
@@ -640,11 +643,16 @@ impl QueryEngine {
         executable_type: &str,
         runtime_id: &str,
     ) -> Result<Vec<Span>> {
+        // The identity as ingestion writes a JSON string.
+        let stored_runtime_id = Json::from(runtime_id).to_string();
         let mut spans = self
             .query_spans(
                 sources,
                 &format!("service_name = $1 AND {EXECUTABLE_SPAN_PREFILTER}"),
-                vec![ScalarValue::from(service_name)],
+                vec![
+                    ScalarValue::from(service_name),
+                    ScalarValue::from(stored_runtime_id),
+                ],
                 None,
             )
             .await?;

@@ -410,6 +410,28 @@ These consequences are accepted.
 - A file's bounds are its earliest start and its latest end. A span stored
   with an end before its start can therefore be left out.
 
+### Execution resolution returns one execution's spans
+
+Execution resolution finds the one owner span of an execution from its
+service, its type, and its runtime identity. Studio's execution links use it,
+and so does the evidence of an evaluation attempt.
+
+Its query selected every span that carried a type and a runtime identity,
+and the backend then kept the one whose identity matched. With spans that
+carry runtime identities, as the SDK's do, it returned every executable span
+of the files it read, and most requests ran out of memory under load. The
+numbers before and after are in
+[the final image evidence](../../../../docs/roadmaps/evidence/studio-backend-rust-final-2026-10-04/README.md)
+under "Execution links".
+
+The query now also requires the wanted runtime identity as text in the stored
+attributes, so it returns the spans that mention that identity. The spans it
+returns are still compared with the identity exactly.
+
+One consequence is accepted. The identity is looked for as the JSON string
+ingestion writes. Attributes stored by a writer that escapes a string
+differently would not be found.
+
 ## Source Of Truth
 
 The active implementation lives in:
