@@ -93,6 +93,10 @@ Sign in to Studio and create a key in **API Keys**. Give the application that
 key as `JUNJO_AI_STUDIO_API_KEY`; the OTLP exporter sends it in the
 `x-junjo-api-key` header to **ingestion**.
 
+Studio records which key sent each span. Give each application or environment
+its own key, and the **Traces** page can list one key's traces. Deleting a key
+stops it from authorizing exports; the traces it already sent stay.
+
 Select the destination for the application's actual network:
 
 | Application location | Default minimal-distribution ingestion destination |
