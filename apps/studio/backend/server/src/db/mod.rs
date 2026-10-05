@@ -20,7 +20,7 @@ pub const JUNJO_SCHEMA_VERSION: i32 = 4;
 
 /// The metadata index schema and its version. Change both together.
 pub const METADATA_SCHEMA_SQL: &str = include_str!("../../../schema/metadata.sql");
-pub const METADATA_SCHEMA_VERSION: i32 = 1;
+pub const METADATA_SCHEMA_VERSION: i32 = 2;
 
 const APPLICATION_WRITER_PRAGMAS: &str = "
     PRAGMA journal_mode=WAL;

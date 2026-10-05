@@ -71,6 +71,21 @@ CREATE TABLE agent_files (
     FOREIGN KEY (file_id) REFERENCES parquet_files (file_id) ON DELETE CASCADE
 ) STRICT;
 
+-- Files that hold the owner span of a Workflow, Subflow, or Agent execution.
+-- `executable` is a 64-bit hash of the service name, the span type, and the
+-- runtime identity: see `executable_key` in the backend's metadata module.
+-- This is the index's one table with a row per execution, so the row is two
+-- integers and the table is its own primary key index.
+CREATE TABLE executable_files (
+    executable INTEGER NOT NULL,
+    file_id INTEGER NOT NULL,
+    PRIMARY KEY (executable, file_id),
+    FOREIGN KEY (file_id) REFERENCES parquet_files (file_id) ON DELETE CASCADE
+) STRICT, WITHOUT ROWID;
+
+-- Serves the cascade delete from parquet_files.
+CREATE INDEX idx_executable_files_file_id ON executable_files (file_id);
+
 -- Files that failed to index. A file whose contents could not be read as
 -- Parquet stays here and is not tried again. A file that failed on I/O or on
 -- the index write (error_type 'Io' or 'Sqlite') is tried again every cycle,

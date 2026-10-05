@@ -53,6 +53,14 @@ const MAX_LLM_ROOT_SPAN_CANDIDATES: usize = 5000;
 async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QuerySources, ApiError> {
     // `None` reads every recent cold file.
     let (indexed, recent_cold_limit) = match query {
+        SpanQuery::Executable {
+            service_name,
+            executable_type,
+            runtime_id,
+        } => {
+            let executable = metadata::executable_key(service_name, executable_type, runtime_id);
+            return executable_sources(state, executable).await;
+        }
         // The files that contain the trace.
         SpanQuery::Trace { trace_id } | SpanQuery::Span { trace_id, .. } => {
             let lookup = trace_id.to_string();
@@ -72,7 +80,7 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
                     metadata::file_paths_for_service(
                         connection,
                         &lookup,
-                        Some(MAX_COLD_FILES_PER_SERVICE_QUERY),
+                        MAX_COLD_FILES_PER_SERVICE_QUERY,
                     )
                 })
                 .await?;
@@ -97,16 +105,6 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
         // bounds. A span the index does not cover can be of any age, so
         // every recent-cold file is read.
         SpanQuery::Agents { page, .. } => (page.indexed_files.clone(), None),
-        // An identity must resolve wherever its span is stored, so every
-        // indexed file of the service is read, and every recent-cold file.
-        SpanQuery::Executable { service_name, .. } => {
-            let lookup = service_name.to_string();
-            let indexed = state
-                .metadata
-                .call(move |connection| metadata::file_paths_for_service(connection, &lookup, None))
-                .await?;
-            (indexed, None)
-        }
     };
     let ingestion = state.ingestion.query_context().await;
     Ok(QuerySources {
@@ -115,6 +113,31 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
             &ingestion.recent_cold_paths,
             recent_cold_limit.unwrap_or(ingestion.recent_cold_paths.len()),
         ),
+        hot_snapshot: ingestion.hot_snapshot_path,
+    })
+}
+
+/// The files that can hold the owner span of one execution: the indexed
+/// files the index names for it, every recent cold file the index does not
+/// hold yet, and the hot snapshot (ingestion ADR-002).
+///
+/// Ingestion is asked first here. The index is asked which recent files it
+/// does not hold before it is asked for the execution's files. A file that
+/// is indexed between the two lookups is then read as unindexed and found
+/// in the index as well. In the other order both could miss it.
+async fn executable_sources(state: &AppState, executable: i64) -> Result<QuerySources, ApiError> {
+    let ingestion = state.ingestion.query_context().await;
+    let recent_cold_files = ingestion.recent_cold_paths;
+    let cold_files = state
+        .metadata
+        .call(move |connection| {
+            let mut files = metadata::unindexed_file_paths(connection, &recent_cold_files)?;
+            files.extend(metadata::executable_file_paths(connection, executable)?);
+            Ok(files)
+        })
+        .await?;
+    Ok(QuerySources {
+        cold_files,
         hot_snapshot: ingestion.hot_snapshot_path,
     })
 }
@@ -983,6 +1006,46 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(span_ids(&oldest), ["workflow-0"]);
+    }
+
+    #[tokio::test]
+    async fn an_execution_is_read_from_the_file_the_index_names_and_the_unindexed_files() {
+        let mut app = test_app();
+        let workflow = |runtime_id: &str| {
+            TestSpan::new("trace-1", runtime_id, SERVICE)
+                .attributes(&executable("workflow", runtime_id))
+        };
+        let mut indexed = Vec::new();
+        for index in 0..3 {
+            let runtime_id = format!("run-{index}");
+            indexed
+                .push(app.index_cold_file(&format!("{index}.parquet"), &[workflow(&runtime_id)]));
+        }
+        let unindexed = app.write_cold_file("recent.parquet", &[workflow("run-recent")]);
+        // Ingestion still lists a file the index already holds.
+        let recent = [unindexed.clone(), indexed[2].clone()];
+        app.state.ingestion = ingestion_reporting(None, &recent).await;
+        let state = &app.state;
+
+        let query = SpanQuery::Executable {
+            service_name: SERVICE,
+            executable_type: "workflow",
+            runtime_id: "run-1",
+        };
+        let sources = select_sources(state, query).await.unwrap();
+        assert_eq!(sources.cold_files, [unindexed.clone(), indexed[1].clone()]);
+
+        for runtime_id in ["run-0", "run-1", "run-2", "run-recent"] {
+            let spans = executable_spans(state, SERVICE, "workflow", runtime_id)
+                .await
+                .unwrap();
+            assert_eq!(span_ids(&spans), [runtime_id]);
+        }
+        let unknown = executable_spans(state, SERVICE, "workflow", "run-9").await;
+        assert!(unknown.unwrap().is_empty());
+        // The type is part of the identity.
+        let another_type = executable_spans(state, SERVICE, "agent", "run-1").await;
+        assert!(another_type.unwrap().is_empty());
     }
 
     /// An Agent span of the shared service that runs from `start` to `end`.

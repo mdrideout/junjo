@@ -1,7 +1,7 @@
 //! Span classification for the metadata index.
 //!
-//! One rule decides whether a span is an LLM, Workflow, or Agent span. The
-//! indexer and the hot-tier LLM check share it.
+//! One rule decides whether a span is an LLM, Workflow, or Agent span, and
+//! which execution it owns. The indexer and the hot-tier LLM check share it.
 
 use std::borrow::Cow;
 use std::fmt;
@@ -10,14 +10,20 @@ use serde::Deserialize;
 use serde::de::{Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor};
 
 /// What the metadata index needs to know about one span's attributes.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct SpanClassification {
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct SpanClassification<'a> {
     pub is_llm: bool,
     pub is_workflow: bool,
     pub is_agent: bool,
+    /// The type and the runtime identity of the Workflow, Subflow, or Agent
+    /// execution this span owns.
+    pub executable: Option<(Cow<'a, str>, Cow<'a, str>)>,
 }
 
-/// The four attributes that classification reads. Every other attribute is
+/// The span types that own an execution.
+const EXECUTABLE_SPAN_TYPES: [&str; 3] = ["workflow", "subflow", "agent"];
+
+/// The five attributes that classification reads. Every other attribute is
 /// skipped without being materialized.
 #[derive(Deserialize)]
 struct ClassificationAttributes<'a> {
@@ -49,6 +55,13 @@ struct ClassificationAttributes<'a> {
         deserialize_with = "text_or_nothing"
     )]
     junjo_span_type: Option<Cow<'a, str>>,
+    #[serde(
+        rename = "junjo.executable_runtime_id",
+        default,
+        borrow,
+        deserialize_with = "text_or_nothing"
+    )]
+    junjo_executable_runtime_id: Option<Cow<'a, str>>,
 }
 
 /// Classify one span from its stored attributes JSON.
@@ -56,7 +69,7 @@ struct ClassificationAttributes<'a> {
 /// A span is an LLM span when it uses the OpenInference `LLM` kind, or names
 /// a GenAI provider or operation with a non-empty string. Attributes that are
 /// not a JSON object classify as nothing.
-pub fn classify_attributes(attributes_json: &str) -> SpanClassification {
+pub fn classify_attributes(attributes_json: &str) -> SpanClassification<'_> {
     // Only a JSON object carries attributes. Serde would otherwise accept an
     // array as positional fields.
     if !attributes_json.trim_start().starts_with('{') {
@@ -75,6 +88,17 @@ pub fn classify_attributes(attributes_json: &str) -> SpanClassification {
             || is_non_empty(&attributes.gen_ai_operation_name),
         is_workflow: span_type == Some("workflow"),
         is_agent: span_type == Some("agent"),
+        executable: match (
+            attributes.junjo_span_type,
+            attributes.junjo_executable_runtime_id,
+        ) {
+            (Some(span_type), Some(runtime_id))
+                if EXECUTABLE_SPAN_TYPES.contains(&&*span_type) && !runtime_id.is_empty() =>
+            {
+                Some((span_type, runtime_id))
+            }
+            _ => None,
+        },
     }
 }
 
@@ -213,6 +237,38 @@ mod tests {
             classify(r#"{"junjo.span_type":"subflow"}"#),
             (false, false, false)
         );
+    }
+
+    #[test]
+    fn a_workflow_subflow_or_agent_span_with_a_runtime_identity_owns_an_execution() {
+        let executable = |json: &str| {
+            classify_attributes(json)
+                .executable
+                .map(|(span_type, runtime_id)| (span_type.into_owned(), runtime_id.into_owned()))
+        };
+        for span_type in ["workflow", "subflow", "agent"] {
+            let json = format!(
+                r#"{{"junjo.executable_runtime_id":"run-1","junjo.span_type":"{span_type}"}}"#
+            );
+            assert_eq!(
+                executable(&json),
+                Some((span_type.to_string(), "run-1".to_string()))
+            );
+        }
+        // An identity with an escape is read as its text.
+        assert_eq!(
+            executable(r#"{"junjo.span_type":"agent","junjo.executable_runtime_id":"a\"b"}"#),
+            Some(("agent".to_string(), "a\"b".to_string()))
+        );
+        for json in [
+            r#"{"junjo.span_type":"node","junjo.executable_runtime_id":"run-1"}"#,
+            r#"{"junjo.span_type":"workflow"}"#,
+            r#"{"junjo.span_type":"workflow","junjo.executable_runtime_id":""}"#,
+            r#"{"junjo.span_type":"workflow","junjo.executable_runtime_id":7}"#,
+            r#"{"junjo.executable_runtime_id":"run-1"}"#,
+        ] {
+            assert_eq!(executable(json), None, "{json}");
+        }
     }
 
     #[test]

@@ -31,6 +31,25 @@ pub struct FileSummary {
     pub llm_trace_ids: HashMap<String, HashSet<String>>,
     pub workflow_services: HashSet<String>,
     pub agent_services: HashSet<String>,
+    /// The `executable_key` of every execution whose owner span is in the
+    /// file.
+    pub executables: HashSet<i64>,
+}
+
+/// The index's name for one execution: a 64-bit FNV-1a hash of its service
+/// name, its span type, and its runtime identity.
+///
+/// The hash is stored, so it must not change between builds. Changing it
+/// needs a new metadata schema version, which rebuilds the index.
+pub fn executable_key(service_name: &str, executable_type: &str, runtime_id: &str) -> i64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for part in [service_name, executable_type, runtime_id] {
+        // A zero byte ends each part, so the parts cannot run together.
+        for byte in part.bytes().chain([0]) {
+            hash = (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3);
+        }
+    }
+    hash as i64
 }
 
 pub const INSERT_PARQUET_FILE: &str = "
@@ -48,6 +67,8 @@ pub const INSERT_WORKFLOW_FILE: &str =
     "INSERT OR IGNORE INTO workflow_files (service_name, file_id) VALUES (?1, ?2)";
 pub const INSERT_AGENT_FILE: &str =
     "INSERT OR IGNORE INTO agent_files (service_name, file_id) VALUES (?1, ?2)";
+pub const INSERT_EXECUTABLE_FILE: &str =
+    "INSERT OR IGNORE INTO executable_files (executable, file_id) VALUES (?1, ?2)";
 pub const UPSERT_FAILED_FILE: &str = "
     INSERT INTO failed_parquet_files (file_path, error_type, error_message, file_size)
     VALUES (?1, ?2, ?3, ?4)
@@ -74,12 +95,6 @@ pub const SELECT_FILE_PATHS_FOR_TRACE: &str = "
     FROM trace_files tf
     JOIN parquet_files pf ON tf.file_id = pf.file_id
     WHERE tf.trace_id = ?1";
-pub const SELECT_FILE_PATHS_FOR_SERVICE: &str = "
-    SELECT pf.file_path
-    FROM file_services fs
-    JOIN parquet_files pf ON fs.file_id = pf.file_id
-    WHERE fs.service_name = ?1
-    ORDER BY pf.max_time_ns DESC";
 pub const SELECT_NEWEST_FILE_PATHS_FOR_SERVICE: &str = "
     SELECT pf.file_path
     FROM file_services fs
@@ -106,19 +121,25 @@ pub const SELECT_AGENT_FILES_BETWEEN: &str = "
       AND fs.max_time_ns >= ?2
       AND fs.min_time_ns <= ?3
     ORDER BY fs.max_time_ns DESC";
+pub const SELECT_EXECUTABLE_FILE_PATHS: &str = "
+    SELECT pf.file_path
+    FROM executable_files ef
+    JOIN parquet_files pf ON pf.file_id = ef.file_id
+    WHERE ef.executable = ?1";
 pub const SELECT_LLM_TRACE: &str =
     "SELECT 1 FROM llm_traces WHERE service_name = ?1 AND trace_id = ?2";
 pub const SELECT_INDEXED_FILE: &str = "SELECT 1 FROM parquet_files WHERE file_path = ?1";
 
 /// Every statement in this module, for the schema preparation test.
 #[cfg(test)]
-pub const ALL_STATEMENTS: [&str; 20] = [
+pub const ALL_STATEMENTS: [&str; 21] = [
     INSERT_PARQUET_FILE,
     INSERT_TRACE_FILE,
     INSERT_FILE_SERVICE,
     INSERT_LLM_TRACE,
     INSERT_WORKFLOW_FILE,
     INSERT_AGENT_FILE,
+    INSERT_EXECUTABLE_FILE,
     UPSERT_FAILED_FILE,
     SELECT_INDEXED_FILE_PATHS,
     SELECT_DAMAGED_FILE_PATHS,
@@ -127,10 +148,10 @@ pub const ALL_STATEMENTS: [&str; 20] = [
     DELETE_PARQUET_FILE,
     SELECT_SERVICES,
     SELECT_FILE_PATHS_FOR_TRACE,
-    SELECT_FILE_PATHS_FOR_SERVICE,
     SELECT_NEWEST_FILE_PATHS_FOR_SERVICE,
     SELECT_NEWEST_WORKFLOW_FILE_PATHS,
     SELECT_AGENT_FILES_BETWEEN,
+    SELECT_EXECUTABLE_FILE_PATHS,
     SELECT_LLM_TRACE,
     SELECT_INDEXED_FILE,
 ];
@@ -181,6 +202,11 @@ pub fn index_file(connection: &mut Connection, summary: &FileSummary) -> rusqlit
         let mut insert_agent_file = transaction.prepare_cached(INSERT_AGENT_FILE)?;
         for service_name in &summary.agent_services {
             insert_agent_file.execute(params![service_name, file_id])?;
+        }
+
+        let mut insert_executable_file = transaction.prepare_cached(INSERT_EXECUTABLE_FILE)?;
+        for executable in &summary.executables {
+            insert_executable_file.execute(params![executable, file_id])?;
         }
     }
 
@@ -262,26 +288,20 @@ pub fn file_paths_for_trace(
         .collect()
 }
 
-/// Indexed cold files that contain spans for one service, newest first.
+/// The newest indexed cold files that contain spans for one service, newest
+/// first.
 ///
-/// With a limit, only that many of the newest files are returned. Listings
-/// pass one so a query never registers a service's whole cold history
-/// (ingestion ADR-002).
+/// A query never registers a service's whole cold history (ingestion
+/// ADR-002).
 pub fn file_paths_for_service(
     connection: &Connection,
     service_name: &str,
-    limit: Option<usize>,
+    limit: usize,
 ) -> rusqlite::Result<Vec<String>> {
-    match limit {
-        Some(limit) => connection
-            .prepare_cached(SELECT_NEWEST_FILE_PATHS_FOR_SERVICE)?
-            .query_map(params![service_name, limit as i64], |row| row.get(0))?
-            .collect(),
-        None => connection
-            .prepare_cached(SELECT_FILE_PATHS_FOR_SERVICE)?
-            .query_map(params![service_name], |row| row.get(0))?
-            .collect(),
-    }
+    connection
+        .prepare_cached(SELECT_NEWEST_FILE_PATHS_FOR_SERVICE)?
+        .query_map(params![service_name, limit as i64], |row| row.get(0))?
+        .collect()
 }
 
 /// The newest indexed cold files that contain Workflow spans for one service.
@@ -344,6 +364,18 @@ pub fn agent_page_files(
         files.file_paths.push(row.get(0)?);
     }
     Ok(files)
+}
+
+/// The indexed cold files that hold an owner span of the execution with this
+/// `executable_key`. One lookup on the table's primary key.
+pub fn executable_file_paths(
+    connection: &Connection,
+    executable: i64,
+) -> rusqlite::Result<Vec<String>> {
+    connection
+        .prepare_cached(SELECT_EXECUTABLE_FILE_PATHS)?
+        .query_map(params![executable], |row| row.get(0))?
+        .collect()
 }
 
 /// The candidate traces that the index knows contain an LLM span of one
@@ -433,6 +465,7 @@ mod tests {
             )]),
             workflow_services: HashSet::from(["checkout".to_string()]),
             agent_services: HashSet::from(["billing".to_string()]),
+            executables: HashSet::from([executable_key("checkout", "workflow", "run-1")]),
         }
     }
 
@@ -498,6 +531,7 @@ mod tests {
         assert_eq!(count(&connection, "llm_traces"), 1);
         assert_eq!(count(&connection, "workflow_files"), 1);
         assert_eq!(count(&connection, "agent_files"), 1);
+        assert_eq!(count(&connection, "executable_files"), 1);
         assert_eq!(services(&connection).unwrap(), ["billing", "checkout"]);
         assert_eq!(
             file_paths_for_trace(&connection, "trace-a").unwrap(),
@@ -512,6 +546,48 @@ mod tests {
             indexed_file_paths(&connection).unwrap(),
             HashSet::from(["/data/a.parquet".to_string()])
         );
+    }
+
+    #[test]
+    fn an_execution_is_named_by_a_hash_that_does_not_change() {
+        // The value is stored. A build that computed another one would find
+        // no execution an earlier build indexed.
+        assert_eq!(
+            executable_key("checkout", "workflow", "run-1"),
+            0x9303_9575_f8b8_7e9f_u64 as i64
+        );
+        // The parts do not run together.
+        assert_ne!(
+            executable_key("checkout", "workflow", "run-1"),
+            executable_key("checkoutworkflow", "", "run-1")
+        );
+        assert_ne!(
+            executable_key("checkout", "workflow", "run-1"),
+            executable_key("checkout", "agent", "run-1")
+        );
+    }
+
+    #[test]
+    fn an_execution_selects_the_files_that_hold_its_owner_span() {
+        let mut connection = index();
+        // Every summary holds checkout's Workflow execution run-1.
+        index_file(&mut connection, &summary("/data/a.parquet")).unwrap();
+        let mut other = summary("/data/b.parquet");
+        other.executables = HashSet::from([executable_key("checkout", "workflow", "run-2")]);
+        index_file(&mut connection, &other).unwrap();
+
+        let files = |connection: &Connection, runtime_id: &str| {
+            let executable = executable_key("checkout", "workflow", runtime_id);
+            executable_file_paths(connection, executable).unwrap()
+        };
+        assert_eq!(files(&connection, "run-1"), ["/data/a.parquet"]);
+        assert_eq!(files(&connection, "run-2"), ["/data/b.parquet"]);
+        assert!(files(&connection, "run-3").is_empty());
+
+        // Removing a file removes its executions.
+        remove_files(&mut connection, &["/data/a.parquet".to_string()]).unwrap();
+        assert!(files(&connection, "run-1").is_empty());
+        assert_eq!(files(&connection, "run-2"), ["/data/b.parquet"]);
     }
 
     /// The same summary under another path, with another newest span time.
@@ -536,11 +612,11 @@ mod tests {
     }
 
     #[test]
-    fn service_files_are_listed_newest_first_and_can_be_limited() {
+    fn service_files_are_listed_newest_first_up_to_a_limit() {
         let connection = index_with_three_files();
 
         assert_eq!(
-            file_paths_for_service(&connection, "checkout", None).unwrap(),
+            file_paths_for_service(&connection, "checkout", 3).unwrap(),
             [
                 "/data/new.parquet",
                 "/data/middle.parquet",
@@ -548,11 +624,11 @@ mod tests {
             ]
         );
         assert_eq!(
-            file_paths_for_service(&connection, "checkout", Some(2)).unwrap(),
+            file_paths_for_service(&connection, "checkout", 2).unwrap(),
             ["/data/new.parquet", "/data/middle.parquet"]
         );
         assert!(
-            file_paths_for_service(&connection, "missing", None)
+            file_paths_for_service(&connection, "missing", 3)
                 .unwrap()
                 .is_empty()
         );

@@ -17,7 +17,7 @@ use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use datafusion::parquet::errors::ParquetError;
 
 use super::classify::classify_attributes;
-use crate::db::metadata::{FileSummary, ServiceSummary};
+use crate::db::metadata::{FileSummary, ServiceSummary, executable_key};
 
 const METADATA_COLUMNS: [&str; 5] = [
     "trace_id",
@@ -74,6 +74,7 @@ pub fn summarize_parquet_file(
     let mut llm_trace_ids: HashMap<String, HashSet<String>> = HashMap::new();
     let mut workflow_services: HashSet<String> = HashSet::new();
     let mut agent_services: HashSet<String> = HashSet::new();
+    let mut executables: HashSet<i64> = HashSet::new();
 
     for batch in reader {
         let batch = batch?;
@@ -135,6 +136,9 @@ pub fn summarize_parquet_file(
             if classification.is_agent && !agent_services.contains(service) {
                 agent_services.insert(service.to_owned());
             }
+            if let Some((span_type, runtime_id)) = &classification.executable {
+                executables.insert(executable_key(service, span_type, runtime_id));
+            }
         }
         row_count += batch.num_rows() as i64;
     }
@@ -155,6 +159,7 @@ pub fn summarize_parquet_file(
         llm_trace_ids,
         workflow_services,
         agent_services,
+        executables,
     })
 }
 
@@ -223,7 +228,9 @@ mod tests {
             &[
                 TestSpan::new("trace-1", "span-1", "checkout")
                     .times(100, 500)
-                    .attributes(r#"{"junjo.span_type":"workflow"}"#),
+                    .attributes(
+                        r#"{"junjo.span_type":"workflow","junjo.executable_runtime_id":"run-1"}"#,
+                    ),
                 TestSpan::new("trace-1", "span-2", "checkout")
                     .times(200, 900)
                     .attributes(r#"{"openinference.span.kind":"LLM"}"#),
@@ -276,6 +283,12 @@ mod tests {
         );
         assert_eq!(summary.workflow_services, names(&["checkout"]));
         assert_eq!(summary.agent_services, names(&["billing"]));
+        // The Agent span carries no runtime identity, so it owns no
+        // execution the index can name.
+        assert_eq!(
+            summary.executables,
+            HashSet::from([executable_key("checkout", "workflow", "run-1")])
+        );
     }
 
     #[test]

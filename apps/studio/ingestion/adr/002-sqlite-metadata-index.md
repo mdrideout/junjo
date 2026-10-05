@@ -410,17 +410,21 @@ These consequences are accepted.
 - A file's bounds are its earliest start and its latest end. A span stored
   with an end before its start can therefore be left out.
 
-### Execution resolution returns one execution's spans
+### Execution resolution reads one execution's span, from the files that hold it
 
 Execution resolution finds the one owner span of an execution from its
 service, its type, and its runtime identity. Studio's execution links use it,
-and so does the evidence of an evaluation attempt.
+and so does the evidence of an evaluation attempt. It had two costs that
+followed a service's history and not the request.
 
-Its query selected every span that carried a type and a runtime identity,
-and the backend then kept the one whose identity matched. With spans that
-carry runtime identities, as the SDK's do, it returned every executable span
-of the files it read, and most requests ran out of memory under load. The
-numbers before and after are in
+- **It returned every executable span of the files it read.** The query
+  selected every span that carried a type and a runtime identity, and the
+  backend then kept the one whose identity matched. With spans that carry
+  runtime identities, as the SDK's do, most requests ran out of memory under
+  load.
+- **It read every indexed file of the service.**
+
+Both are changed. The numbers before and after are in
 [the final image evidence](../../../../docs/roadmaps/evidence/studio-backend-rust-final-2026-10-04/README.md)
 under "Execution links".
 
@@ -428,9 +432,31 @@ The query now also requires the wanted runtime identity as text in the stored
 attributes, so it returns the spans that mention that identity. The spans it
 returns are still compared with the identity exactly.
 
-One consequence is accepted. The identity is looked for as the JSON string
-ingestion writes. Attributes stored by a writer that escapes a string
-differently would not be found.
+The indexer now records one row for every Workflow, Subflow, and Agent span
+that carries a runtime identity: a 64-bit hash of the service name, the type,
+and the runtime identity, with the file the span is in. Resolution reads the
+files the index names for the identity, the recent cold files the index does
+not hold yet, and the hot snapshot.
+
+The row is finer than "Why Per-Trace And Per-File Instead Of Per-Span" above
+allows: a row per execution, though not per span. An identity carries no
+trace to look up, so nothing coarser names its file. The hash keeps a row to
+two integers. The evidence reports what the rows cost in index size and in
+indexing time.
+
+These consequences are accepted.
+
+- The identity is looked for as the JSON string ingestion writes. Attributes
+  stored by a writer that escapes a string differently would not be found.
+- Two identities can share a hash. Resolution then reads a file that does
+  not hold the execution, and finds nothing in it.
+- The index's schema version changes, so an existing index is deleted and
+  rebuilt from the cold files at the first start. Until a file is indexed
+  again, its executions do not resolve.
+- This query asks ingestion before it reads the index, as the LLM listing's
+  second read does. It asks the index which recent files it does not hold
+  and only then for the identity's files, so a file indexed between the two
+  lookups is found by both and never by neither.
 
 ## Source Of Truth
 
