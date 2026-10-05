@@ -61,6 +61,7 @@ pub struct TestSpan {
     pub dropped_links_count: u32,
     pub resource_attributes: String,
     pub resource_dropped_attributes_count: u32,
+    pub api_key_id: String,
 }
 
 impl TestSpan {
@@ -86,6 +87,7 @@ impl TestSpan {
             dropped_links_count: 0,
             resource_attributes: r#"{"service.name":"test"}"#.to_string(),
             resource_dropped_attributes_count: 0,
+            api_key_id: "key-1".to_string(),
         }
     }
 
@@ -132,6 +134,7 @@ impl TestSpan {
             dropped_links_count: count("dropped_links_count"),
             resource_attributes: span["resource_attributes_json"].to_string(),
             resource_dropped_attributes_count: count("resource_dropped_attributes_count"),
+            api_key_id: "key-1".to_string(),
         }
     }
 
@@ -148,6 +151,12 @@ impl TestSpan {
 
     pub fn name(mut self, name: &str) -> Self {
         self.name = name.to_string();
+        self
+    }
+
+    /// Sent with the API key that has this identifier.
+    pub fn api_key(mut self, api_key_id: &str) -> Self {
+        self.api_key_id = api_key_id.to_string();
         self
     }
 
@@ -267,6 +276,7 @@ pub fn span_schema() -> Arc<Schema> {
         Field::new("dropped_links_count", DataType::UInt32, false),
         Field::new("resource_attributes", DataType::Utf8, false),
         Field::new("resource_dropped_attributes_count", DataType::UInt32, false),
+        Field::new("api_key_id", DataType::Utf8, false),
     ]))
 }
 
@@ -319,6 +329,7 @@ pub fn write_span_parquet(path: &Path, spans: &[TestSpan]) {
         counts(|span| span.dropped_links_count),
         text(|span| &span.resource_attributes),
         counts(|span| span.resource_dropped_attributes_count),
+        text(|span| &span.api_key_id),
     ];
     let batch = RecordBatch::try_new(span_schema(), columns).unwrap();
     let properties = WriterProperties::builder()

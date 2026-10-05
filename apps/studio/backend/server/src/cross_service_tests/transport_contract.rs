@@ -91,7 +91,7 @@ async fn assert_served_unchanged(state: &AppState, case: &Json, stage: &str) {
         "{stage}: Agent details"
     );
 
-    let workflows = repository::workflow_spans(state, service_name, LARGE_PAGE)
+    let workflows = repository::workflow_spans(state, service_name, LARGE_PAGE, None)
         .await
         .unwrap();
     assert_eq!(

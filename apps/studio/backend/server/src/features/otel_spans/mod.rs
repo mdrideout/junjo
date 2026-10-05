@@ -86,6 +86,8 @@ pub struct SpanListQuery {
     #[param(value_type = u32, minimum = 1, maximum = 250, default = 100)]
     #[serde(default)]
     limit: SpanLimit,
+    /// Only spans sent with the API key that has this identifier
+    api_key_id: Option<String>,
 }
 
 /// Get the newest spans of a service.
@@ -108,8 +110,9 @@ pub async fn get_service_spans(
     ApiQuery(query): ApiQuery<SpanListQuery>,
 ) -> Result<Json<Vec<Span>>, ApiError> {
     let limit = query.limit.get() as usize;
+    let api_key_id = query.api_key_id.as_deref();
     Ok(Json(
-        repository::service_spans(&state, &service_name, limit).await?,
+        repository::service_spans(&state, &service_name, limit, api_key_id).await?,
     ))
 }
 
@@ -125,6 +128,8 @@ pub struct RootSpanListQuery {
     #[param(value_type = u32, minimum = 1, maximum = 250, default = 100)]
     #[serde(default)]
     limit: SpanLimit,
+    /// Only spans sent with the API key that has this identifier
+    api_key_id: Option<String>,
 }
 
 /// Get the newest root spans of a service. A root span has no parent: it is
@@ -148,10 +153,11 @@ pub async fn get_root_spans(
     ApiQuery(query): ApiQuery<RootSpanListQuery>,
 ) -> Result<Json<Vec<Span>>, ApiError> {
     let limit = query.limit.get() as usize;
+    let api_key_id = query.api_key_id.as_deref();
     let spans = if query.has_llm {
-        repository::root_spans_with_llm(&state, &service_name, limit).await?
+        repository::root_spans_with_llm(&state, &service_name, limit, api_key_id).await?
     } else {
-        repository::root_spans(&state, &service_name, limit).await?
+        repository::root_spans(&state, &service_name, limit, api_key_id).await?
     };
     Ok(Json(spans))
 }
@@ -176,8 +182,9 @@ pub async fn get_workflow_spans(
     ApiQuery(query): ApiQuery<SpanListQuery>,
 ) -> Result<Json<Vec<Span>>, ApiError> {
     let limit = query.limit.get() as usize;
+    let api_key_id = query.api_key_id.as_deref();
     Ok(Json(
-        repository::workflow_spans(&state, &service_name, limit).await?,
+        repository::workflow_spans(&state, &service_name, limit, api_key_id).await?,
     ))
 }
 

@@ -60,13 +60,13 @@ impl OtlpTraceService for TraceService {
             .ok_or_else(|| Status::unauthenticated("Missing x-junjo-api-key header"))?;
 
         let auth_start = std::time::Instant::now();
-        let is_valid = self.auth.validate(&api_key).await?;
+        let api_key_id = self.auth.authorize(&api_key).await?;
         let auth_duration = auth_start.elapsed();
 
-        if !is_valid {
+        let Some(api_key_id) = api_key_id else {
             debug!("API key validation failed");
             return Err(Status::unauthenticated("Invalid API key"));
-        }
+        };
 
         if auth_duration.as_millis() > 5000 {
             warn!(
@@ -86,7 +86,7 @@ impl OtlpTraceService for TraceService {
 
             for scope_spans in &resource_spans.scope_spans {
                 for span in &scope_spans.spans {
-                    let record = SpanRecord::from_otlp(span, resource);
+                    let record = SpanRecord::from_otlp(span, resource, &api_key_id);
                     records.push(record);
                     span_count += 1;
                 }
@@ -171,7 +171,10 @@ mod tests {
             &self,
             _: Request<ValidateApiKeyRequest>,
         ) -> Result<Response<ValidateApiKeyResponse>, Status> {
-            Ok(Response::new(ValidateApiKeyResponse { is_valid: true }))
+            Ok(Response::new(ValidateApiKeyResponse {
+                is_valid: true,
+                api_key_id: "key-1".to_string(),
+            }))
         }
     }
     fn export_request(span_count: usize) -> Request<ExportTraceServiceRequest> {

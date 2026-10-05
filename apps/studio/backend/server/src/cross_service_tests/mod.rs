@@ -13,6 +13,7 @@
 mod harness;
 mod otlp;
 
+mod api_key_filter;
 mod flush_index_bridge;
 mod flush_wal;
 mod has_llm;

@@ -322,16 +322,28 @@ impl QueryEngine {
             }
             SpanQuery::Service {
                 service_name,
+                api_key_id,
                 limit,
-            } => self.service_spans(sources, service_name, limit).await,
+            } => {
+                self.service_spans(sources, service_name, limit, api_key_id)
+                    .await
+            }
             SpanQuery::Roots {
                 service_name,
+                api_key_id,
                 limit,
-            } => self.root_spans(sources, service_name, limit).await,
+            } => {
+                self.root_spans(sources, service_name, limit, api_key_id)
+                    .await
+            }
             SpanQuery::Workflows {
                 service_name,
+                api_key_id,
                 limit,
-            } => self.workflow_spans(sources, service_name, limit).await,
+            } => {
+                self.workflow_spans(sources, service_name, limit, api_key_id)
+                    .await
+            }
             SpanQuery::Agents { service_name } => self.agent_spans(sources, service_name).await,
             SpanQuery::Executable {
                 service_name,
@@ -429,20 +441,41 @@ impl QueryEngine {
         Ok(spans.into_iter().next())
     }
 
+    /// The newest spans of one service that pass `kind`, a filter over the
+    /// stored span columns. With an API key identifier, only the spans that
+    /// key sent.
+    async fn listing(
+        &self,
+        sources: &QuerySources,
+        kind: Option<&str>,
+        service_name: &str,
+        limit: usize,
+        api_key_id: Option<&str>,
+    ) -> Result<Vec<Span>> {
+        let mut filter = String::from("service_name = $1");
+        let mut parameters = vec![ScalarValue::from(service_name)];
+        if let Some(kind) = kind {
+            filter.push_str(" AND ");
+            filter.push_str(kind);
+        }
+        if let Some(api_key_id) = api_key_id {
+            filter.push_str(" AND api_key_id = $2");
+            parameters.push(ScalarValue::from(api_key_id));
+        }
+        self.query_spans(sources, &filter, parameters, Some(limit))
+            .await
+    }
+
     /// The newest spans of one service.
     async fn service_spans(
         &self,
         sources: &QuerySources,
         service_name: &str,
         limit: usize,
+        api_key_id: Option<&str>,
     ) -> Result<Vec<Span>> {
-        self.query_spans(
-            sources,
-            "service_name = $1",
-            vec![ScalarValue::from(service_name)],
-            Some(limit),
-        )
-        .await
+        self.listing(sources, None, service_name, limit, api_key_id)
+            .await
     }
 
     /// The newest root spans of one service.
@@ -451,14 +484,11 @@ impl QueryEngine {
         sources: &QuerySources,
         service_name: &str,
         limit: usize,
+        api_key_id: Option<&str>,
     ) -> Result<Vec<Span>> {
-        self.query_spans(
-            sources,
-            &format!("service_name = $1 AND {ROOT_SPAN_FILTER}"),
-            vec![ScalarValue::from(service_name)],
-            Some(limit),
-        )
-        .await
+        let kind = Some(ROOT_SPAN_FILTER);
+        self.listing(sources, kind, service_name, limit, api_key_id)
+            .await
     }
 
     /// The newest Workflow spans of one service.
@@ -470,14 +500,11 @@ impl QueryEngine {
         sources: &QuerySources,
         service_name: &str,
         limit: usize,
+        api_key_id: Option<&str>,
     ) -> Result<Vec<Span>> {
+        let kind = Some(WORKFLOW_SPAN_PREFILTER);
         let mut spans = self
-            .query_spans(
-                sources,
-                &format!("service_name = $1 AND {WORKFLOW_SPAN_PREFILTER}"),
-                vec![ScalarValue::from(service_name)],
-                Some(limit),
-            )
+            .listing(sources, kind, service_name, limit, api_key_id)
             .await?;
         spans.retain(|span| classify_attributes(span.attributes_json.get()).is_workflow);
         Ok(spans)
@@ -629,12 +656,25 @@ pub enum SpanQuery<'a> {
     Trace { trace_id: &'a str },
     /// One span of one trace.
     Span { trace_id: &'a str, span_id: &'a str },
-    /// The newest spans of one service.
-    Service { service_name: &'a str, limit: usize },
+    /// The newest spans of one service. With an API key identifier, here and
+    /// in the two listings below, only the spans that key sent.
+    Service {
+        service_name: &'a str,
+        api_key_id: Option<&'a str>,
+        limit: usize,
+    },
     /// The newest root spans of one service.
-    Roots { service_name: &'a str, limit: usize },
+    Roots {
+        service_name: &'a str,
+        api_key_id: Option<&'a str>,
+        limit: usize,
+    },
     /// The newest Workflow spans of one service.
-    Workflows { service_name: &'a str, limit: usize },
+    Workflows {
+        service_name: &'a str,
+        api_key_id: Option<&'a str>,
+        limit: usize,
+    },
     /// Every Agent span of one service.
     Agents { service_name: &'a str },
     /// Every span of one service that is the executable with exactly this
@@ -1413,14 +1453,14 @@ mod tests {
 
         let page = fixture
             .engine
-            .service_spans(&sources, "checkout", 2)
+            .service_spans(&sources, "checkout", 2, None)
             .await
             .unwrap();
         assert_eq!(span_ids(&page), ["span-4", "span-2"]);
 
         let all = fixture
             .engine
-            .service_spans(&sources, "checkout", LARGE_PAGE)
+            .service_spans(&sources, "checkout", LARGE_PAGE, None)
             .await
             .unwrap();
         assert_eq!(span_ids(&all), ["span-4", "span-2", "span-1"]);
@@ -1428,10 +1468,60 @@ mod tests {
         // The service name is a bound value, not SQL text.
         let injected = fixture
             .engine
-            .service_spans(&sources, "' OR '1'='1", LARGE_PAGE)
+            .service_spans(&sources, "' OR '1'='1", LARGE_PAGE, None)
             .await
             .unwrap();
         assert!(injected.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_listing_for_one_api_key_returns_only_the_spans_that_key_sent() {
+        let fixture = fixture();
+        let workflow = r#"{"junjo.span_type":"workflow"}"#;
+        let cold = fixture.write(
+            "cold.parquet",
+            &[
+                TestSpan::new("trace-1", "span-1", "checkout")
+                    .times(1_000, 2_000)
+                    .api_key("key-a"),
+                TestSpan::new("trace-2", "span-2", "checkout")
+                    .times(3_000, 4_000)
+                    .api_key("key-b"),
+            ],
+        );
+        let hot = fixture.write(
+            "hot_snapshot.parquet",
+            &[
+                TestSpan::new("trace-3", "span-3", "checkout")
+                    .times(5_000, 6_000)
+                    .attributes(workflow)
+                    .api_key("key-a"),
+                TestSpan::new("trace-4", "span-4", "checkout")
+                    .times(7_000, 8_000)
+                    .attributes(workflow)
+                    .api_key("key-b"),
+            ],
+        );
+        let sources = QuerySources {
+            cold_files: vec![cold],
+            hot_snapshot: Some(hot),
+        };
+        let engine = &fixture.engine;
+        let key_a = Some("key-a");
+
+        let spans = engine.service_spans(&sources, "checkout", LARGE_PAGE, key_a);
+        assert_eq!(span_ids(&spans.await.unwrap()), ["span-3", "span-1"]);
+        let roots = engine.root_spans(&sources, "checkout", LARGE_PAGE, key_a);
+        assert_eq!(span_ids(&roots.await.unwrap()), ["span-3", "span-1"]);
+        let workflows = engine.workflow_spans(&sources, "checkout", LARGE_PAGE, key_a);
+        assert_eq!(span_ids(&workflows.await.unwrap()), ["span-3"]);
+
+        // Without a key every span is listed, and the identifier is a bound
+        // value, not SQL text.
+        let every = engine.service_spans(&sources, "checkout", LARGE_PAGE, None);
+        assert_eq!(every.await.unwrap().len(), 4);
+        let injected = engine.service_spans(&sources, "checkout", LARGE_PAGE, Some("' OR '1'='1"));
+        assert!(injected.await.unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -1454,7 +1544,7 @@ mod tests {
 
         let mut spans = fixture
             .engine
-            .service_spans(&sources, "checkout", LARGE_PAGE)
+            .service_spans(&sources, "checkout", LARGE_PAGE, None)
             .await
             .unwrap();
 
@@ -1505,7 +1595,7 @@ mod tests {
 
         let roots = fixture
             .engine
-            .root_spans(&sources, "checkout", LARGE_PAGE)
+            .root_spans(&sources, "checkout", LARGE_PAGE, None)
             .await
             .unwrap();
         assert_eq!(names(&roots), ["empty-parent", "root"]);
@@ -1514,7 +1604,7 @@ mod tests {
 
         let newest = fixture
             .engine
-            .root_spans(&sources, "checkout", 1)
+            .root_spans(&sources, "checkout", 1, None)
             .await
             .unwrap();
         assert_eq!(names(&newest), ["empty-parent"]);
@@ -1545,7 +1635,7 @@ mod tests {
 
         let workflows = fixture
             .engine
-            .workflow_spans(&sources, "checkout", LARGE_PAGE)
+            .workflow_spans(&sources, "checkout", LARGE_PAGE, None)
             .await
             .unwrap();
         assert_eq!(span_ids(&workflows), ["workflow"]);
@@ -1580,7 +1670,7 @@ mod tests {
 
         let page = fixture
             .engine
-            .workflow_spans(&cold_only(&cold), "checkout", 2)
+            .workflow_spans(&cold_only(&cold), "checkout", 2, None)
             .await
             .unwrap();
 
@@ -1808,6 +1898,7 @@ mod tests {
         assert!(error.to_string().contains("cannot be read"), "{error}");
         let listing = SpanQuery::Service {
             service_name: "checkout",
+            api_key_id: None,
             limit: LARGE_PAGE,
         };
         assert!(engine.run(&sources, listing).await.is_err());
@@ -1886,19 +1977,23 @@ mod tests {
         // Page sizes around each boundary: the hot-only spans, the spans in
         // both tiers, and everything.
         for limit in [1, 2, 7, 79, 80, 81, 119, 120, 121, 160, 239, 240, 241, 500] {
-            let service = engine.service_spans(&sources, "checkout", limit).await;
+            let service = engine
+                .service_spans(&sources, "checkout", limit, None)
+                .await;
             assert_eq!(
                 returned(service.unwrap()),
                 expected(|_| true, limit),
                 "service spans, limit {limit}"
             );
-            let roots = engine.root_spans(&sources, "checkout", limit).await;
+            let roots = engine.root_spans(&sources, "checkout", limit, None).await;
             assert_eq!(
                 returned(roots.unwrap()),
                 expected(|number| number % 4 != 0, limit),
                 "root spans, limit {limit}"
             );
-            let workflows = engine.workflow_spans(&sources, "checkout", limit).await;
+            let workflows = engine
+                .workflow_spans(&sources, "checkout", limit, None)
+                .await;
             assert_eq!(
                 returned(workflows.unwrap()),
                 expected(|number| number % 3 == 0, limit),
@@ -2007,7 +2102,7 @@ mod tests {
 
             let spans = fixture
                 .engine
-                .workflow_spans(&cold_only(&file), service_name, LARGE_PAGE)
+                .workflow_spans(&cold_only(&file), service_name, LARGE_PAGE, None)
                 .await
                 .unwrap();
 

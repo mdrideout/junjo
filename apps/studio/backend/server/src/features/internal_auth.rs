@@ -48,10 +48,14 @@ impl InternalAuthService for InternalAuth {
         let api_key = request.into_inner().api_key;
         match self
             .reader
-            .call(move |connection| repo::key_exists(connection, &api_key))
+            .call(move |connection| repo::active_key_id(connection, &api_key))
             .await
         {
-            Ok(is_valid) => Ok(Response::new(ValidateApiKeyResponse { is_valid })),
+            // Ingestion stores the identifier on every span the key sends.
+            Ok(api_key_id) => Ok(Response::new(ValidateApiKeyResponse {
+                is_valid: api_key_id.is_some(),
+                api_key_id: api_key_id.unwrap_or_default(),
+            })),
             Err(error) => {
                 tracing::error!(%error, "database error during API key validation");
                 // Retryable: availability is not an authorization answer.

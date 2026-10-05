@@ -255,27 +255,33 @@ async fn unindexed_service_names(state: &AppState) -> Vec<String> {
     })
 }
 
-/// The newest spans of one service.
+/// The newest spans of one service. With an API key identifier, only the
+/// spans that key sent.
 pub async fn service_spans(
     state: &AppState,
     service_name: &str,
     limit: usize,
+    api_key_id: Option<&str>,
 ) -> Result<Vec<Span>, ApiError> {
     let query = SpanQuery::Service {
         service_name,
+        api_key_id,
         limit,
     };
     run_query(state, query).await
 }
 
-/// The newest root spans of one service.
+/// The newest root spans of one service. With an API key identifier, only the
+/// spans that key sent.
 pub async fn root_spans(
     state: &AppState,
     service_name: &str,
     limit: usize,
+    api_key_id: Option<&str>,
 ) -> Result<Vec<Span>, ApiError> {
     let query = SpanQuery::Roots {
         service_name,
+        api_key_id,
         limit,
     };
     run_query(state, query).await
@@ -292,13 +298,14 @@ pub async fn root_spans_with_llm(
     state: &AppState,
     service_name: &str,
     limit: usize,
+    api_key_id: Option<&str>,
 ) -> Result<Vec<Span>, ApiError> {
-    let error = match llm_root_spans(state, service_name, limit).await? {
+    let error = match llm_root_spans(state, service_name, limit, api_key_id).await? {
         Ok(root_spans) => return Ok(root_spans),
         Err(error) => error,
     };
     log_snapshot_change(&error);
-    llm_root_spans(state, service_name, limit)
+    llm_root_spans(state, service_name, limit, api_key_id)
         .await?
         .map_err(|error| unindexed_llm_query_failed(&error, service_name))
 }
@@ -313,12 +320,14 @@ async fn llm_root_spans(
     state: &AppState,
     service_name: &str,
     limit: usize,
+    api_key_id: Option<&str>,
 ) -> Result<Result<Vec<Span>, DataFusionError>, ApiError> {
     let candidate_limit = limit
         .saturating_mul(LLM_ROOT_SPAN_CANDIDATES_PER_RESULT)
         .min(MAX_LLM_ROOT_SPAN_CANDIDATES);
     let query = SpanQuery::Roots {
         service_name,
+        api_key_id,
         limit: candidate_limit,
     };
     let mut root_spans = run_query(state, query).await?;
@@ -399,14 +408,17 @@ fn unindexed_llm_query_failed(error: &DataFusionError, service_name: &str) -> Ap
     ApiError::internal()
 }
 
-/// The newest Workflow spans of one service.
+/// The newest Workflow spans of one service. With an API key identifier, only the
+/// spans that key sent.
 pub async fn workflow_spans(
     state: &AppState,
     service_name: &str,
     limit: usize,
+    api_key_id: Option<&str>,
 ) -> Result<Vec<Span>, ApiError> {
     let query = SpanQuery::Workflows {
         service_name,
+        api_key_id,
         limit,
     };
     run_query(state, query).await
@@ -537,6 +549,7 @@ mod tests {
         };
         let listing = SpanQuery::Roots {
             service_name: SERVICE,
+            api_key_id: None,
             limit: 50,
         };
         let again = |query, sources: &QuerySources| {
@@ -583,7 +596,9 @@ mod tests {
         assert_eq!(span_ids(&trace), ["trace-1-llm", "trace-1-root"]);
 
         app.state.ingestion = ingestion_reporting_in_turn(&answers).await;
-        let listed = root_spans(&app.state, SERVICE, LARGE_PAGE).await.unwrap();
+        let listed = root_spans(&app.state, SERVICE, LARGE_PAGE, None)
+            .await
+            .unwrap();
         assert_eq!(span_ids(&listed), ["trace-1-root"]);
 
         app.state.ingestion = ingestion_reporting_in_turn(&answers).await;
@@ -604,7 +619,11 @@ mod tests {
         // The spans the snapshot held are in a file this query does not know.
         // Answering from the indexed file alone would leave them out.
         assert!(trace_spans(&app.state, "trace-1").await.is_err());
-        assert!(root_spans_with_llm(&app.state, SERVICE, 50).await.is_err());
+        assert!(
+            root_spans_with_llm(&app.state, SERVICE, 50, None)
+                .await
+                .is_err()
+        );
 
         assert_eq!(distinct_service_names(&app.state).await.unwrap(), [SERVICE]);
     }
@@ -623,7 +642,7 @@ mod tests {
             ],
         );
 
-        let roots = root_spans(&app.state, SERVICE, 50).await.unwrap();
+        let roots = root_spans(&app.state, SERVICE, 50, None).await.unwrap();
         assert_eq!(
             span_ids(&roots),
             [
@@ -633,16 +652,20 @@ mod tests {
             ]
         );
 
-        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50).await.unwrap();
+        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50, None)
+            .await
+            .unwrap();
         assert_eq!(
             span_ids(&llm_roots),
             ["trace-llm-new-root", "trace-llm-old-root"]
         );
 
-        let newest = root_spans_with_llm(&app.state, SERVICE, 1).await.unwrap();
+        let newest = root_spans_with_llm(&app.state, SERVICE, 1, None)
+            .await
+            .unwrap();
         assert_eq!(span_ids(&newest), ["trace-llm-new-root"]);
 
-        let other_service = root_spans_with_llm(&app.state, "billing", 50)
+        let other_service = root_spans_with_llm(&app.state, "billing", 50, None)
             .await
             .unwrap();
         assert!(other_service.is_empty());
@@ -659,11 +682,15 @@ mod tests {
         app.index_cold_file("a.parquet", &spans);
 
         // One result examines the five newest roots. None is in an LLM trace.
-        let one = root_spans_with_llm(&app.state, SERVICE, 1).await.unwrap();
+        let one = root_spans_with_llm(&app.state, SERVICE, 1, None)
+            .await
+            .unwrap();
         assert!(one.is_empty());
 
         // Two results examine ten roots, which reaches the LLM trace.
-        let two = root_spans_with_llm(&app.state, SERVICE, 2).await.unwrap();
+        let two = root_spans_with_llm(&app.state, SERVICE, 2, None)
+            .await
+            .unwrap();
         assert_eq!(span_ids(&two), ["trace-llm-root"]);
     }
 
@@ -680,7 +707,9 @@ mod tests {
         ]);
         app.state.ingestion = ingestion_reporting(Some(&hot_snapshot), &[]).await;
 
-        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50).await.unwrap();
+        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50, None)
+            .await
+            .unwrap();
 
         assert_eq!(span_ids(&llm_roots), ["trace-hot-root", "trace-split-root"]);
     }
@@ -711,7 +740,9 @@ mod tests {
             app.write_hot_snapshot(&[root("trace-hot", 5_000), llm_child("trace-hot", 5_010)]);
         app.state.ingestion = ingestion_reporting(Some(&hot_snapshot), &[recent]).await;
 
-        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50).await.unwrap();
+        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50, None)
+            .await
+            .unwrap();
         assert_eq!(
             span_ids(&llm_roots),
             [
@@ -722,7 +753,9 @@ mod tests {
             ]
         );
 
-        let newest = root_spans_with_llm(&app.state, SERVICE, 2).await.unwrap();
+        let newest = root_spans_with_llm(&app.state, SERVICE, 2, None)
+            .await
+            .unwrap();
         assert_eq!(span_ids(&newest), ["trace-hot-root", "trace-recent-root"]);
     }
 
@@ -742,7 +775,9 @@ mod tests {
         app.state.ingestion =
             ingestion_reporting_in_turn(&[before_the_flush, after_the_flush]).await;
 
-        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50).await.unwrap();
+        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50, None)
+            .await
+            .unwrap();
 
         assert_eq!(span_ids(&llm_roots), ["trace-1-root"]);
     }
@@ -765,12 +800,43 @@ mod tests {
         // First attempt: root spans, then a snapshot that is gone. Second
         // attempt: both reads find the snapshot.
         app.state.ingestion = ingestion_reporting_in_turn(&[there, removed, there]).await;
-        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50).await.unwrap();
+        let llm_roots = root_spans_with_llm(&app.state, SERVICE, 50, None)
+            .await
+            .unwrap();
         assert_eq!(span_ids(&llm_roots), ["trace-1-root"]);
 
         // Gone at the second read of both attempts: the listing fails.
         app.state.ingestion = ingestion_reporting_in_turn(&[there, removed, there, removed]).await;
-        assert!(root_spans_with_llm(&app.state, SERVICE, 50).await.is_err());
+        assert!(
+            root_spans_with_llm(&app.state, SERVICE, 50, None)
+                .await
+                .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn the_llm_filter_and_an_api_key_together_keep_that_keys_llm_traces() {
+        let mut app = test_app();
+        app.index_cold_file(
+            "a.parquet",
+            &[
+                root("trace-a", 1_000).api_key("key-a"),
+                llm_child("trace-a", 1_010).api_key("key-a"),
+                root("trace-a-plain", 2_000).api_key("key-a"),
+                root("trace-b", 3_000).api_key("key-b"),
+                llm_child("trace-b", 3_010).api_key("key-b"),
+            ],
+        );
+
+        let key_a = root_spans_with_llm(&app.state, SERVICE, 50, Some("key-a")).await;
+        assert_eq!(span_ids(&key_a.unwrap()), ["trace-a-root"]);
+        let every_key = root_spans_with_llm(&app.state, SERVICE, 50, None).await;
+        assert_eq!(
+            span_ids(&every_key.unwrap()),
+            ["trace-b-root", "trace-a-root"]
+        );
+        let unknown = root_spans(&app.state, SERVICE, 50, Some("key-unknown")).await;
+        assert!(unknown.unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -799,18 +865,20 @@ mod tests {
             app.index_cold_file(&format!("{index:02}.parquet"), &spans);
         }
 
-        let listed = service_spans(&app.state, SERVICE, LARGE_PAGE)
+        let listed = service_spans(&app.state, SERVICE, LARGE_PAGE, None)
             .await
             .unwrap();
         assert_eq!(listed.len(), 20);
         assert_eq!(listed[0].span_id, "workflow-20");
         assert_eq!(listed[19].span_id, "workflow-1");
 
-        let roots = root_spans(&app.state, SERVICE, LARGE_PAGE).await.unwrap();
+        let roots = root_spans(&app.state, SERVICE, LARGE_PAGE, None)
+            .await
+            .unwrap();
         assert_eq!(roots.len(), 20);
         assert_eq!(roots[19].span_id, "workflow-1");
 
-        let workflows = workflow_spans(&app.state, SERVICE, LARGE_PAGE)
+        let workflows = workflow_spans(&app.state, SERVICE, LARGE_PAGE, None)
             .await
             .unwrap();
         assert_eq!(workflows.len(), 20);
@@ -848,11 +916,15 @@ mod tests {
         let unknown = span(state, "trace-1", "missing").await.unwrap();
         assert!(unknown.is_none());
 
-        let listed = service_spans(state, SERVICE, LARGE_PAGE).await.unwrap();
+        let listed = service_spans(state, SERVICE, LARGE_PAGE, None)
+            .await
+            .unwrap();
         assert_eq!(listed.len(), 2);
-        let roots = root_spans(state, SERVICE, LARGE_PAGE).await.unwrap();
+        let roots = root_spans(state, SERVICE, LARGE_PAGE, None).await.unwrap();
         assert_eq!(span_ids(&roots), ["workflow-1"]);
-        let workflows = workflow_spans(state, SERVICE, LARGE_PAGE).await.unwrap();
+        let workflows = workflow_spans(state, SERVICE, LARGE_PAGE, None)
+            .await
+            .unwrap();
         assert_eq!(span_ids(&workflows), ["workflow-1"]);
         let agents = agent_spans(state, SERVICE).await.unwrap();
         assert_eq!(span_ids(&agents), ["agent-1"]);
@@ -910,7 +982,9 @@ mod tests {
         assert!(trace_spans(state, "trace-20").await.unwrap().is_empty());
         let beyond = span(state, "trace-20", "agent-20").await.unwrap();
         assert!(beyond.is_none());
-        let listed = service_spans(state, SERVICE, LARGE_PAGE).await.unwrap();
+        let listed = service_spans(state, SERVICE, LARGE_PAGE, None)
+            .await
+            .unwrap();
         assert_eq!(listed.len(), 20);
 
         // Agent and identity queries read every one.
@@ -958,12 +1032,16 @@ mod tests {
         let unflushed = span(state, "trace-1", "agent-1").await.unwrap();
         assert_eq!(unflushed.unwrap().name, "hot-agent");
 
-        let listed = service_spans(state, SERVICE, LARGE_PAGE).await.unwrap();
+        let listed = service_spans(state, SERVICE, LARGE_PAGE, None)
+            .await
+            .unwrap();
         assert_eq!(listed.len(), 3);
-        let roots = root_spans(state, SERVICE, LARGE_PAGE).await.unwrap();
+        let roots = root_spans(state, SERVICE, LARGE_PAGE, None).await.unwrap();
         assert_eq!(roots.len(), 1);
         assert_eq!(roots[0].name, "from-cold");
-        let workflows = workflow_spans(state, SERVICE, LARGE_PAGE).await.unwrap();
+        let workflows = workflow_spans(state, SERVICE, LARGE_PAGE, None)
+            .await
+            .unwrap();
         assert_eq!(span_ids(&workflows), ["workflow-1"]);
         let agents = agent_spans(state, SERVICE).await.unwrap();
         assert_eq!(span_ids(&agents), ["agent-1"]);

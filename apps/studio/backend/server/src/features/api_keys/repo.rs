@@ -34,14 +34,14 @@ pub const SELECT_API_KEYS: &str = "
 /// Deleting deactivates: the row stays, without the key value.
 pub const DEACTIVATE_API_KEY: &str =
     "UPDATE api_keys SET key = NULL, deleted_at = ?2 WHERE id = ?1 AND deleted_at IS NULL";
-pub const SELECT_KEY_EXISTS: &str = "SELECT 1 FROM api_keys WHERE key = ?1";
+pub const SELECT_ACTIVE_KEY_ID: &str = "SELECT id FROM api_keys WHERE key = ?1";
 
 #[cfg(test)]
 pub const ALL_STATEMENTS: [&str; 4] = [
     INSERT_API_KEY,
     SELECT_API_KEYS,
     DEACTIVATE_API_KEY,
-    SELECT_KEY_EXISTS,
+    SELECT_ACTIVE_KEY_ID,
 ];
 
 fn api_key_from_row(row: &Row<'_>) -> rusqlite::Result<ApiKey> {
@@ -80,15 +80,14 @@ pub fn delete(connection: &Connection, id: &str, now: UtcSeconds) -> rusqlite::R
         > 0)
 }
 
-/// Whether an active ingestion API key has this value. This is the
-/// authoritative answer the ingestion service asks for. A deleted key has no
-/// value, so it never matches.
-pub fn key_exists(connection: &Connection, key: &str) -> rusqlite::Result<bool> {
-    Ok(connection
-        .prepare_cached(SELECT_KEY_EXISTS)?
-        .query_row(params![key], |_| Ok(()))
-        .optional()?
-        .is_some())
+/// The identifier of the active ingestion API key with this value. This is
+/// the authoritative answer the ingestion service asks for. A deleted key
+/// has no value, so it never matches.
+pub fn active_key_id(connection: &Connection, key: &str) -> rusqlite::Result<Option<String>> {
+    connection
+        .prepare_cached(SELECT_ACTIVE_KEY_ID)?
+        .query_row(params![key], |row| row.get(0))
+        .optional()
 }
 
 #[cfg(test)]
@@ -107,11 +106,12 @@ mod tests {
             created_at: UtcSeconds::now(),
         };
         create(&connection, &api_key).unwrap();
-        assert!(key_exists(&connection, "jtel_secret").unwrap());
+        let active = active_key_id(&connection, "jtel_secret").unwrap();
+        assert_eq!(active.as_deref(), Some("key-1"));
 
         assert!(delete(&connection, "key-1", UtcSeconds::now()).unwrap());
 
-        assert!(!key_exists(&connection, "jtel_secret").unwrap());
+        assert_eq!(active_key_id(&connection, "jtel_secret").unwrap(), None);
         assert!(list(&connection).unwrap().is_empty());
         let (name, key, deleted): (String, Option<String>, bool) = connection
             .query_row(

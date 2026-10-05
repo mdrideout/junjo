@@ -2261,6 +2261,15 @@
               "maximum": 250,
               "minimum": 1
             }
+          },
+          {
+            "name": "api_key_id",
+            "in": "query",
+            "description": "Only spans sent with the API key that has this identifier",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2338,6 +2347,15 @@
               "maximum": 250,
               "minimum": 1
             }
+          },
+          {
+            "name": "api_key_id",
+            "in": "query",
+            "description": "Only spans sent with the API key that has this identifier",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2404,6 +2422,15 @@
               "default": 100,
               "maximum": 250,
               "minimum": 1
+            }
+          },
+          {
+            "name": "api_key_id",
+            "in": "query",
+            "description": "Only spans sent with the API key that has this identifier",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],

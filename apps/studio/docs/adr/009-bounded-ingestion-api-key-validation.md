@@ -1,5 +1,10 @@
 # ADR-009: Bounded ingestion API-key validation
 
+Amended 2026-10-05 by [ADR-013](013-api-key-attribution-of-spans.md). The
+key check also answers with the valid key's identifier, which ingestion
+caches with the validation and stores on each span. The validation decision
+below is unchanged.
+
 Amended 2026-10-03 by
 [ADR-011](011-rust-backend-and-single-origin-studio.md). The Studio backend
 that answers each validation is now a Rust service, so the wording and source

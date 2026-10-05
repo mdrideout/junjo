@@ -485,6 +485,7 @@ impl ArrowWal {
             .iter()
             .map(|r| Some(r.resource_dropped_attributes_count))
             .collect();
+        let api_key_ids: StringArray = records.iter().map(|r| Some(&*r.api_key_id)).collect();
 
         let columns: Vec<ArrayRef> = vec![
             Arc::new(span_ids),
@@ -508,6 +509,7 @@ impl ArrowWal {
             Arc::new(dropped_links_counts),
             Arc::new(resource_attrs),
             Arc::new(resource_dropped_attributes_counts),
+            Arc::new(api_key_ids),
         ];
 
         let batch = RecordBatch::try_new(SPAN_SCHEMA.clone(), columns)?;
@@ -543,6 +545,7 @@ mod tests {
             dropped_links_count: 0,
             resource_attributes: "{}".to_string(),
             resource_dropped_attributes_count: 0,
+            api_key_id: Arc::from("key-1"),
         }
     }
 

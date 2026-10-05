@@ -1234,6 +1234,13 @@ Both backends have always had that window. Changed on 2026-10-04: a span
 query asks ingestion after the index lookup, and a trace query that finds
 nothing under a changed snapshot asks again. Ingestion ADR-002 records it.
 
+**Added on 2026-10-05: filtering by API key.** Ingestion stores the
+identifier of the key that sent each span, the three service listings accept
+a key identifier, and the Traces page offers the active keys. Deleting a key
+deactivates it and keeps its record. Studio ADR-013 owns the decision. The
+Workflow executions page has no key picker yet: its list is shared state
+that other pages read.
+
 **Decisions for the maintainer.**
 
 - Whether the application writes a log line per request at the default
@@ -1336,6 +1343,10 @@ peaked at 287–350 MiB, with 43% less CPU while ingesting. The comparison is in
   smaller.
 - `JUNJO_DF_SPILL_POOL_MB` bounds all concurrent queries together. It used to
   apply to each query.
+- The Traces page can show one API key's traces. Ingestion records which key
+  sent each span.
+- Deleting an API key deactivates it. Its identifier and name stay on
+  record, without the key value, and it leaves the key list.
 - The Traces page's default view, with "Has LLM Spans" checked, keeps showing
   new traces after ingestion flushes them. It used to lose the traces of a
   flushed file until that file was indexed, up to about 30 seconds later.

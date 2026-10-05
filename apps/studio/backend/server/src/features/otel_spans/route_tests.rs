@@ -44,6 +44,28 @@ async fn services_come_from_the_metadata_index_when_ingestion_is_unreachable() {
 }
 
 #[tokio::test]
+async fn a_listing_takes_the_identifier_of_an_api_key() {
+    let (router, mut app) = app();
+    let cookie = sign_up(&router).await;
+    app.index_cold_file(
+        "a.parquet",
+        &[
+            span_at("trace-1", "span-1", "checkout", 1)
+                .attributes(r#"{"junjo.span_type":"workflow"}"#)
+                .api_key("key-a"),
+            span_at("trace-2", "span-2", "checkout", 2).api_key("key-b"),
+        ],
+    );
+
+    for listing in ["spans", "spans/root", "workflows"] {
+        let uri = format!("/api/v1/observability/services/checkout/{listing}?api_key_id=key-a");
+        let reply = send(&router, get(&uri, Some(&cookie))).await;
+        assert_eq!(reply.status, StatusCode::OK, "{listing}: {}", reply.body);
+        assert_eq!(span_ids(&reply.body), ["span-1"], "{listing}");
+    }
+}
+
+#[tokio::test]
 async fn trace_spans_are_read_from_indexed_cold_files() {
     let (router, mut app) = app();
     let cookie = sign_up(&router).await;
