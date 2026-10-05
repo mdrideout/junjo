@@ -70,8 +70,7 @@ async function visible(locator, description, timeout) {
 
 const { values } = parseArgs({
   options: {
-    'frontend-url': { type: 'string' },
-    'backend-url': { type: 'string' },
+    'studio-url': { type: 'string' },
     evidence: { type: 'string' },
     screenshot: { type: 'string' },
     'timeout-milliseconds': { type: 'string', default: '30000' },
@@ -79,8 +78,7 @@ const { values } = parseArgs({
   strict: true,
 })
 
-const frontendOrigin = requiredOrigin(values['frontend-url'], '--frontend-url')
-const backendOrigin = requiredOrigin(values['backend-url'], '--backend-url')
+const studioOrigin = requiredOrigin(values['studio-url'], '--studio-url')
 assert.ok(values.evidence, '--evidence is required')
 assert.ok(values.screenshot, '--screenshot is required')
 const timeout = Number.parseInt(values['timeout-milliseconds'], 10)
@@ -93,7 +91,7 @@ const screenshotPath = path.resolve(values.screenshot)
 const browser = await chromium.launch({ headless: true })
 const page = await browser.newPage({ viewport: { width: 1600, height: 1200 } })
 const browserFailures = []
-const firstPartyOrigins = new Set([frontendOrigin, backendOrigin])
+const firstPartyOrigins = new Set([studioOrigin])
 let observedTraceEvidence = false
 let observedExecutionResolution = false
 page.on('pageerror', (error) => browserFailures.push(`page error: ${error.message}`))
@@ -115,7 +113,7 @@ page.on('response', (response) => {
       && url.searchParams.get('runtime_id') === evidence.agent_run_id
     ) {
       observedExecutionResolution = true
-      if (url.origin !== backendOrigin || !response.ok()) {
+      if (url.origin !== studioOrigin || !response.ok()) {
         browserFailures.push(`Execution resolution response was ${response.status()} from ${url.origin}`)
       }
     }
@@ -123,20 +121,20 @@ page.on('response', (response) => {
   const expectedPath = `/api/v1/trace-evidence/${evidence.trace_id}`
   if (url.pathname === expectedPath) {
     observedTraceEvidence = true
-    if (url.origin !== backendOrigin || !response.ok()) {
+    if (url.origin !== studioOrigin || !response.ok()) {
       browserFailures.push(`TraceEvidence response was ${response.status()} from ${url.origin}`)
     }
   }
 })
 
 try {
-  await page.goto(`${frontendOrigin}/sign-in`, { waitUntil: 'domcontentloaded', timeout })
+  await page.goto(`${studioOrigin}/sign-in`, { waitUntil: 'domcontentloaded', timeout })
   await page.getByPlaceholder('Email address').fill(email)
   await page.getByPlaceholder('Password').fill(password)
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await page.waitForFunction(() => window.location.pathname !== '/sign-in', undefined, { timeout })
 
-  const resolverUrl = new URL('/resolve/executable', frontendOrigin)
+  const resolverUrl = new URL('/resolve/executable', studioOrigin)
   resolverUrl.searchParams.set('service_namespace', evidence.service_namespace)
   resolverUrl.searchParams.set('service_name', evidence.service_name)
   resolverUrl.searchParams.set('executable_type', 'agent')
@@ -146,7 +144,7 @@ try {
   await visible(page.getByRole('heading', { level: 1, name: evidence.agent_name, exact: true }), 'Agent heading', timeout)
   const agentDetailUrl = new URL(
     `/agents/${encodeURIComponent(evidence.trace_id)}/${encodeURIComponent(evidence.agent_span_id)}`,
-    frontendOrigin,
+    studioOrigin,
   ).href
   assert.equal(page.url(), agentDetailUrl, 'semantic execution should resolve to the canonical Agent detail URL')
   await visible(page.getByRole('region', { name: 'Evidence integrity' }), 'evidence integrity', timeout)
@@ -179,7 +177,7 @@ try {
   const nestedLink = operations.getByRole('link', { name: 'Open diagnostics', exact: true })
   await nestedLink.click()
   await page.waitForURL(
-    `${frontendOrigin}/workflows/${encodeURIComponent(evidence.service_name)}/${evidence.trace_id}/${evidence.nested_workflow_span_id}`,
+    `${studioOrigin}/workflows/${encodeURIComponent(evidence.service_name)}/${evidence.trace_id}/${evidence.nested_workflow_span_id}`,
     { timeout },
   )
   await visible(

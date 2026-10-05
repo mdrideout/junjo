@@ -3,7 +3,7 @@
  *
  * Tests the sign-in flow including:
  * - Form submission
- * - API calls (sign-in, api_keys)
+ * - API calls (sign-in, api-keys)
  * - Navigation based on API key status (no keys → API Keys, has keys → /)
  */
 
@@ -39,7 +39,7 @@ describe('SignInForm', () => {
   it('should navigate to API keys after sign-in when user has no API keys', async () => {
     const user = userEvent.setup()
 
-    // Default mock returns empty array for /api_keys
+    // Default mock returns empty array for /api/v1/api-keys
     const { getByPlaceholderText, getByRole } = renderWithProviders(<SignInForm />)
 
     const emailInput = getByPlaceholderText('Email address')
@@ -61,7 +61,7 @@ describe('SignInForm', () => {
 
     // Override mock to return API keys
     server.use(
-      http.get(`${API_BASE}/api_keys`, () => {
+      http.get(`${API_BASE}/api/v1/api-keys`, () => {
         return HttpResponse.json([
           {
             id: 'existing-key-id',
@@ -94,16 +94,16 @@ describe('SignInForm', () => {
 
     // Override mock to return 401 Unauthorized
     server.use(
-      http.post(`${API_BASE}/sign-in`, () => {
+      http.post(`${API_BASE}/api/v1/sign-in`, () => {
         return HttpResponse.json(
-          { detail: 'Invalid credentials' },
+          { code: 'unauthorized', message: 'Invalid credentials' },
           { status: 401 }
         )
       }),
       // Also mock auth-test to return unauthorized (sign-in failed, user not authenticated)
-      http.get(`${API_BASE}/auth-test`, () => {
+      http.get(`${API_BASE}/api/v1/auth-test`, () => {
         return HttpResponse.json(
-          { detail: 'Unauthorized' },
+          { code: 'unauthorized', message: 'Unauthorized' },
           { status: 401 }
         )
       })
@@ -130,7 +130,7 @@ describe('SignInForm', () => {
   it('shows a status fallback when an error response is not JSON', async () => {
     const user = userEvent.setup()
     server.use(
-      http.post(`${API_BASE}/sign-in`, () => {
+      http.post(`${API_BASE}/api/v1/sign-in`, () => {
         return new HttpResponse('Internal Server Error', { status: 500 })
       })
     )
@@ -146,7 +146,7 @@ describe('SignInForm', () => {
   it('shows a useful message when Studio cannot be reached', async () => {
     const user = userEvent.setup()
     server.use(
-      http.post(`${API_BASE}/sign-in`, () => HttpResponse.error())
+      http.post(`${API_BASE}/api/v1/sign-in`, () => HttpResponse.error())
     )
 
     const { getByPlaceholderText, getByRole, findByText } = renderWithProviders(<SignInForm />)

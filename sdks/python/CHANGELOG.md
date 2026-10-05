@@ -4,6 +4,35 @@ All notable changes to Junjo will be documented in this file.
 
 ## FUTURE RELEASE
 
+### Library
+
+- Added `junjo auth login`, `junjo auth logout`, and `junjo auth status`. A
+  person signs the CLI in through the browser: the terminal shows a short code,
+  a signed-in Studio user approves it, and the CLI stores the minted developer
+  access token in a private file in the user's configuration directory, keyed by
+  Studio origin. The token value is never printed. The Studio it signs in to
+  must provide the CLI browser sign-in.
+- `JUNJO_AI_STUDIO_CLI_TOKEN` keeps precedence. When it is set, the stored
+  credential is not read, so automation, CI, and coding agents behave as before.
+  Without it, `junjo eval` commands use the credential stored for the resolved
+  Studio origin, and the missing-token error names both ways to provide one.
+- Added `StudioClient.start_cli_sign_in`, `collect_cli_sign_in_token`,
+  `get_current_token`, and `delete_current_token` with their strict DTOs, and
+  the typed `CliSignInPending`, `CliSignInDenied`, and `CliSignInExpired`
+  errors.
+
+### Breaking Changes
+
+- `junjo eval explain --format json` reports `interface_version` 2. Every
+  configuration entry has a new `stored_credential` member, and the command
+  list includes the three `junjo auth` commands.
+
+### Docs and Examples
+
+- The evaluation guide shows `junjo auth login`, `status`, and `logout` for a
+  person at a terminal and keeps the environment variable as the way for
+  automation and coding agents.
+
 ## 0.69.0 - 2026-09-20
 
 ### Library

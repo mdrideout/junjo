@@ -53,8 +53,7 @@ async function visible(locator, description, timeout) {
 
 const { values } = parseArgs({
   options: {
-    'frontend-url': { type: 'string' },
-    'backend-url': { type: 'string' },
+    'studio-url': { type: 'string' },
     evidence: { type: 'string' },
     screenshot: { type: 'string' },
     'timeout-milliseconds': { type: 'string', default: '30000' },
@@ -62,8 +61,7 @@ const { values } = parseArgs({
   strict: true,
 })
 
-const frontendOrigin = requiredOrigin(values['frontend-url'], '--frontend-url')
-const backendOrigin = requiredOrigin(values['backend-url'], '--backend-url')
+const studioOrigin = requiredOrigin(values['studio-url'], '--studio-url')
 assert.ok(values.evidence, '--evidence is required')
 assert.ok(values.screenshot, '--screenshot is required')
 const timeout = Number.parseInt(values['timeout-milliseconds'], 10)
@@ -76,7 +74,7 @@ const screenshotPath = path.resolve(values.screenshot)
 const browser = await chromium.launch({ headless: true })
 const page = await browser.newPage({ viewport: { width: 1600, height: 1200 } })
 const browserFailures = []
-const firstPartyOrigins = new Set([frontendOrigin, backendOrigin])
+const firstPartyOrigins = new Set([studioOrigin])
 page.on('pageerror', (error) => browserFailures.push(`page error: ${error.message}`))
 page.on('requestfailed', (request) => {
   const failure = describeActionableRequestFailure({
@@ -89,18 +87,23 @@ page.on('requestfailed', (request) => {
 page.on('response', (response) => {
   const url = new URL(response.url())
   if (firstPartyOrigins.has(url.origin) && url.pathname.startsWith('/api/') && !response.ok()) {
+    // The app learns that nobody is signed in from this 401. It is the expected answer, not a failure.
+    const signedOutAuthCheck = response.request().method() === 'GET'
+      && url.pathname === '/api/v1/auth-test'
+      && response.status() === 401
+    if (signedOutAuthCheck) return
     browserFailures.push(`${response.request().method()} ${url.href} returned ${response.status()}`)
   }
 })
 
 try {
-  await page.goto(`${frontendOrigin}/sign-in`, { waitUntil: 'domcontentloaded', timeout })
+  await page.goto(`${studioOrigin}/sign-in`, { waitUntil: 'domcontentloaded', timeout })
   await page.getByPlaceholder('Email address').fill(email)
   await page.getByPlaceholder('Password').fill(password)
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await page.waitForFunction(() => window.location.pathname !== '/sign-in', undefined, { timeout })
 
-  await page.goto(`${frontendOrigin}/evaluation-runs`, {
+  await page.goto(`${studioOrigin}/evaluation-runs`, {
     waitUntil: 'domcontentloaded',
     timeout,
   })
@@ -111,7 +114,7 @@ try {
   await visible(page.getByRole('heading', { level: 1, name: 'Evaluation E2E', exact: true }), 'dataset detail heading', timeout)
   await visible(page.getByRole('heading', { level: 2, name: 'Tests', exact: true }), 'dataset Tests heading', timeout)
   await visible(page.getByRole('heading', { level: 2, name: 'Run history', exact: true }), 'dataset Run history heading', timeout)
-  await page.goto(`${frontendOrigin}/evaluation-runs?dataset_id=${encodeURIComponent(evidence.dataset_id)}&limit=50`, {
+  await page.goto(`${studioOrigin}/evaluation-runs?dataset_id=${encodeURIComponent(evidence.dataset_id)}&limit=50`, {
     waitUntil: 'domcontentloaded',
     timeout,
   })
@@ -144,7 +147,7 @@ try {
         && response.ok(),
       { timeout },
     )
-    await page.goto(new URL(href, frontendOrigin).href, {
+    await page.goto(new URL(href, studioOrigin).href, {
       waitUntil: 'domcontentloaded',
       timeout,
     })
@@ -158,14 +161,14 @@ try {
     )
   }
   await page.goto(
-    `${frontendOrigin}/evaluation-runs/${encodeURIComponent(evidence.candidate_run_id)}`,
+    `${studioOrigin}/evaluation-runs/${encodeURIComponent(evidence.candidate_run_id)}`,
     { waitUntil: 'domcontentloaded', timeout },
   )
   await visible(page.getByRole('heading', { level: 1, name: 'candidate', exact: true }), 'candidate Run heading', timeout)
   await mkdir(path.dirname(screenshotPath), { recursive: true })
   await page.screenshot({ path: screenshotPath, fullPage: true })
 
-  const comparisonUrl = new URL('/evaluation-runs/compare', frontendOrigin)
+  const comparisonUrl = new URL('/evaluation-runs/compare', studioOrigin)
   comparisonUrl.searchParams.set('baseline_run_id', evidence.baseline_run_id)
   comparisonUrl.searchParams.set('candidate_run_id', evidence.candidate_run_id)
   comparisonUrl.searchParams.set('target_kind', 'agent')

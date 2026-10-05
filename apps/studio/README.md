@@ -20,7 +20,7 @@ _Junjo AI Studio Workflow Debugging Screenshot_
 - 📊 **OpenTelemetry Native** - Standards-based telemetry ingestion via gRPC
 - 🎯 **Workflow Debugging Interface** - Visual step-by-step debugging of AI graph workflows
 - 🧾 **Evidence Integrity** - Verify Store reconstruction, payload availability, loss signals, and nested execution parentage
-- 🔒 **Production-Ready Security** - Authentication, user accounts, and encrypted sessions
+- 🔒 **Production-Ready Security** - Authentication, user accounts, and server-side sessions
 - 🚀 **Low Resource, High-Performance Ingestion** - Designed for high-throughput in low resource environments
 - 💾 **Shared vCPU, 1GB RAM** - Production grade telemetry on a $5 / month virtual machine
 
@@ -74,25 +74,17 @@ distribution mirror.
    cp .env.example .env
    ```
 
-   Then generate and set secrets:
+   Then generate and set the internal gRPC token:
    ```bash
-   openssl rand -base64 32
-
-   openssl rand -base64 32
-
    openssl rand -base64 32
    ```
 
-   Open `.env` and replace the placeholder values:
-   - Replace `your_base64_secret_here` in `JUNJO_SESSION_SECRET` with the first generated value
-   - Replace `your_base64_key_here` in `JUNJO_SECURE_COOKIE_KEY` with the second generated value
-   - Replace `your_internal_grpc_token_here` in `JUNJO_INTERNAL_GRPC_TOKEN` with the third generated value
+   Open `.env` and replace the placeholder value:
+   - Replace `your_internal_grpc_token_here` in `JUNJO_INTERNAL_GRPC_TOKEN` with the generated value
 
    For production deployments, also configure:
    ```bash
    JUNJO_ENV=production
-   JUNJO_PROD_FRONTEND_URL=https://app.example.com
-   JUNJO_PROD_BACKEND_URL=https://api.example.com
    JUNJO_PROD_INGESTION_URL=https://ingestion.example.com
    ```
 
@@ -105,7 +97,7 @@ distribution mirror.
    - Follow the exact URL and port guidance in the [minimal build README](https://github.com/mdrideout/junjo-ai-studio-minimal-build/blob/master/README.md).
 
 5. **Create your first user**
-   - Navigate to your frontend URL
+   - Navigate to your Studio URL
    - Follow the setup wizard to create your admin account
 
 6. **Create an API key** (for sending telemetry from your Junjo app)
@@ -122,22 +114,20 @@ distribution mirror.
 docker compose logs -f
 
 # View logs from specific service
-docker compose logs -f backend
-docker compose logs -f ingestion
-docker compose logs -f frontend
+docker compose logs -f junjo-ai-studio-app
+docker compose logs -f junjo-ai-studio-ingestion
 
 # Stop services (keeps data)
 docker compose down
 
 # Restart a specific service
-docker compose restart backend
+docker compose restart junjo-ai-studio-app
 
 # View running containers and their status
 docker compose ps
-
-# Stop and remove all data (fresh start)
-docker compose down -v
 ```
+
+A fresh start means resetting the host data directory, which `docker compose down -v` does not remove. Follow the [reset procedure](deployments/RESET.md).
 
 ### Next Steps
 
@@ -153,9 +143,9 @@ This repository contains the complete open source Junjo AI Studio codebase. If y
 
 For operator-managed deployment behind your own reverse proxy, use the
 [minimal distribution](deployments/minimal) or the
-[VM/Caddy distribution](deployments/vm-caddy), and provide explicit
-`JUNJO_PROD_*` public URLs. Their standalone repositories are generated release
-mirrors of these canonical directories.
+[VM/Caddy distribution](deployments/vm-caddy), and set
+`JUNJO_PROD_INGESTION_URL` to your public ingestion URL. Their standalone
+repositories are generated release mirrors of these canonical directories.
 
 ---
 
@@ -177,8 +167,12 @@ docker compose up --build
 ```
 
 Local URLs use the same port numbers inside Docker and on localhost:
-- `JUNJO_BUILD_TARGET=development`: frontend `http://localhost:26151`, backend `http://localhost:26154`, OTLP `grpc://localhost:26155`
-- `JUNJO_BUILD_TARGET=production`: frontend `http://localhost:26153`, backend `http://localhost:26154`, OTLP `grpc://localhost:26155`
+- `JUNJO_BUILD_TARGET=development` with `COMPOSE_PROFILES=development`: Studio UI `http://localhost:26151` (the Vite development server, which proxies API requests to the backend), backend API `http://localhost:26154`, OTLP `grpc://localhost:26155`
+- `JUNJO_BUILD_TARGET=production` with `COMPOSE_PROFILES` empty: Studio UI and API `http://localhost:26154`, OTLP `grpc://localhost:26155`
+
+The two settings go together, and the setup wizard writes both. The Vite development server runs only in the `development` Compose profile; a production build serves the UI from the backend.
+
+A development build compiles the backend inside its container, which needs several GB of memory. The setup wizard therefore leaves the backend's container limits off for a development build and applies the selected memory profile to a production build. An `.env` written before the Rust backend has the limits set: rerun `./scripts/junjo setup`, or set the four `JUNJO_BACKEND_*` limits as `.env.example` shows.
 
 The port numbers stay the same for same-network containers. Only the hostname changes: use `backend:26154` for the backend API and `ingestion:26155` for OTLP from another container on this Compose network.
 
@@ -215,12 +209,13 @@ For service-specific development notes, see [backend/README.md](./backend/README
 
 ## Architecture
 
-The Junjo AI Studio is composed of three primary services:
+The Junjo AI Studio runs as two services, and its web UI is a React application that the backend serves:
 
 ### 1. Backend (`backend`)
-- **Tech Stack**: FastAPI (Python), SQLite, DataFusion
+- **Tech Stack**: Rust (axum, tonic), SQLite, DataFusion
 - **Responsibilities**:
   - HTTP REST API
+  - Serving the web UI on the same origin as the API
   - User authentication & session management
   - Span querying & analytics
   - Semantic Workflow and Agent diagnostics
@@ -237,6 +232,7 @@ The Junjo AI Studio is composed of three primary services:
 
 ### 3. Frontend (`frontend`)
 - **Tech Stack**: React, TypeScript
+- **Delivery**: built into the application image and served by the backend; in development the Vite server serves it
 - **Responsibilities**:
   - Web UI for Workflow Graph visualization
   - Dynamic Agent operation timelines and evidence inspection
@@ -277,8 +273,8 @@ Junjo Python App → Ingestion Service (gRPC) → Arrow IPC WAL
 - **Docker** and **Docker Compose** (for contributor development and local smoke tests)
 
 ### Optional (Development)
-- **Rust toolchain** (for ingestion service development)
-- **Python 3.13+** with **uv** (for backend development)
+- **Rust toolchain** via rustup and **protoc 30.2** (for backend and ingestion development; see [PROTO_VERSIONS.md](PROTO_VERSIONS.md))
+- **Python 3** (for the setup wizard and repository tooling scripts)
 - **Node.js 18+** (for frontend development)
 
 ### For Production Deployment
@@ -306,22 +302,23 @@ For a guided setup wizard that writes critical `.env` values (including memory t
 # Build Target: development | production
 JUNJO_BUILD_TARGET="development"
 
+# Compose profile: "development" starts the Vite development server.
+# Leave empty for a production build, where the backend serves the UI.
+COMPOSE_PROFILES="development"
+
 # Running Environment: development | production
-# (affects cookie security, logging, etc.)
+# (production turns on Secure session cookies and requires
+# JUNJO_PROD_INGESTION_URL)
 JUNJO_ENV="development"
 
-# === Security (REQUIRED for production) ============================
-# Generate each with: openssl rand -base64 32
-JUNJO_SESSION_SECRET=your_base64_secret_here
-JUNJO_SECURE_COOKIE_KEY=your_base64_key_here
+# === Security (REQUIRED) ===========================================
+# Shared by the backend and ingestion. At least 32 characters.
+# Generate with: openssl rand -base64 32
 JUNJO_INTERNAL_GRPC_TOKEN=your_internal_grpc_token_here
 
-# === CORS ==========================================================
-# IMPORTANT: Cannot use "*" with session cookies (credentials=True)
-# Default: http://localhost:26151,http://localhost:26153
-# Production: Auto-derived from JUNJO_PROD_FRONTEND_URL if not set
-# Explicitly set for multiple frontends:
-# JUNJO_ALLOW_ORIGINS=https://app.example.com,https://admin.example.com
+# === Production (REQUIRED when JUNJO_ENV=production) ===============
+# Public ingestion URL. The UI shows it in SDK setup instructions.
+# JUNJO_PROD_INGESTION_URL=https://ingestion.example.com
 
 # === Database Storage ==============================================
 # Where database files are stored on your host machine/VM
@@ -346,6 +343,7 @@ For local development, use a relative path:
 # .env file
 JUNJO_HOST_DB_DATA_PATH=./.dbdata
 JUNJO_BUILD_TARGET=development
+COMPOSE_PROFILES=development
 ```
 
 This stores databases in `./.dbdata` directory next to your `compose.yaml`.
@@ -378,6 +376,7 @@ sudo mount /dev/disk/by-id/google-junjo-data /mnt/junjo-data
 ```bash
 JUNJO_HOST_DB_DATA_PATH=/mnt/junjo-data
 JUNJO_BUILD_TARGET=production
+COMPOSE_PROFILES=
 ```
 
 **3. Start services:**
@@ -396,7 +395,7 @@ docker compose up --build
 - The `JUNJO_HOST_DB_DATA_PATH` variable is the ONLY path you need to configure
 - Container-internal paths are set automatically in `compose.yaml`
 - If `JUNJO_HOST_DB_DATA_PATH` is not set, it defaults to `./.dbdata`
-- The backend and ingestion services share the same storage location (the frontend is stateless and mounts no storage)
+- The backend and ingestion services share the same storage location
 
 #### Database & Storage Types
 
@@ -414,7 +413,7 @@ All are stored under `JUNJO_HOST_DB_DATA_PATH` on your host machine. The backend
 ### Creating API Keys
 
 After starting Junjo AI Studio:
-1. Sign in to the web UI exposed by your active build target (`http://localhost:26151` for development, `http://localhost:26153` for production)
+1. Sign in to the web UI exposed by your active build target (`http://localhost:26151` for development, `http://localhost:26154` for production)
 2. Open the **API Keys** page from the sidebar
 3. Click **Create API Key**
 4. Copy the 64-character key from the API Keys page (use the copy button)
@@ -425,27 +424,25 @@ After starting Junjo AI Studio:
 ## Production Deployment
 
 The Studio runtime root defines the production runtime contract:
-- explicit public URLs via `JUNJO_PROD_FRONTEND_URL`, `JUNJO_PROD_BACKEND_URL`, and `JUNJO_PROD_INGESTION_URL`
-- the frontend/backend same-domain requirement for session cookies
+- three required settings: `JUNJO_ENV=production`, `JUNJO_INTERNAL_GRPC_TOKEN`, and the public ingestion URL in `JUNJO_PROD_INGESTION_URL`
+- one origin for the Studio UI and its API, served by the backend on port 26154
 
 Supported deployment topology source is owned separately under
 [`deployments/`](deployments/). Bring your own reverse proxy, ingress, or load
 balancer around the [minimal distribution](deployments/minimal), or use the
 [VM/Caddy distribution](deployments/vm-caddy) as a complete example.
 
-If you route directly to this source repository's Compose services, target `frontend:26153`, `backend:26154`, and `ingestion:26155`.
+If you route directly to this source repository's Compose services, target `backend:26154` for Studio and `ingestion:26155` for OTLP.
 
 ### Deployment Requirements
 
-⚠️ **IMPORTANT**: The backend API and frontend **MUST be deployed on the same domain** (sharing the same registrable domain).
+Production needs two hostnames:
+- one for Studio, routed to the backend on port 26154, which serves the UI and the API on one origin
+- one for ingestion, routed to port 26155 (OTLP/gRPC)
 
-**Supported configurations:**
-- ✅ `api.example.com` + `app.example.com` (subdomain + subdomain)
-- ✅ `api.example.com` + `example.com` (subdomain + apex)
-- ✅ `example.com` + `api.example.com` (apex + subdomain)
-- ❌ `app.example.com` + `service.run.app` (different domains - **will NOT work**)
+There is no separate API hostname and no shared-domain requirement.
 
-**Why?** Junjo AI Studio uses session cookies with `SameSite=Strict` for security (CSRF protection). Cross-domain deployments will cause authentication to fail.
+In production the session cookie is `Secure`, so serve the Studio hostname over HTTPS.
 
 ### Supported Deployment Distributions
 
@@ -484,9 +481,8 @@ step-by-step deployment instructions.
 
 Junjo AI Studio is built and deployed to **Docker Hub** with each GitHub release:
 
-- **Backend**: [mdrideout/junjo-ai-studio-backend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend)
+- **Studio application** (backend API and web UI): [mdrideout/junjo-ai-studio-app](https://hub.docker.com/r/mdrideout/junjo-ai-studio-app)
 - **Ingestion Service**: [mdrideout/junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)
-- **Frontend**: [mdrideout/junjo-ai-studio-frontend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend)
 
 **Example Compose file:** [`deployments/minimal/docker-compose.yml`](deployments/minimal/docker-compose.yml)
 
@@ -564,18 +560,18 @@ Junjo AI Studio has comprehensive test coverage across all services. Tests are o
 ### Quick Start: Run All Tests
 
 ```bash
-# Run all tests (backend, frontend, contract validation, proto validation)
+# Run all tests (backend, ingestion, frontend, contract validation)
 ./run-all-tests.sh
 ```
 
 This script runs:
 0. **Proto version checking** - Warns if the system compiler used by Rust does not match v30.2
-1. **Python linting** - Runs ruff check on backend code (matches pre-commit validation)
-2. **Backend tests** - Unit, integration, and gRPC tests (Python/pytest)
+1. **Backend formatting and linting** - Runs `cargo fmt --check` and clippy on backend code
+2. **Backend tests** - Rust tests for both backend crates; they build the ingestion binary
 3. **Ingestion tests** - Rust unit/integration tests (Cargo)
-4. **Frontend tests** - Unit, integration, and component tests (TypeScript/Vitest)
+4. **Frontend tests** - Unit, integration, and component tests (TypeScript/Vitest), then lint and the production build
 5. **Contract tests** - Validates frontend ↔ backend API schema compatibility
-6. **Proto validation** - Regenerates protos and validates staleness
+6. **OpenAPI document validation** - Fails if the committed document is not what the backend exports
 
 ### Test Scripts Organization
 
@@ -583,8 +579,8 @@ This script runs:
 - `./run-all-tests.sh` - Complete test suite for all services
 
 **Backend-specific:**
-- `./backend/scripts/run-backend-tests.sh` - All backend tests (unit, integration, gRPC)
-- `./backend/scripts/validate_rest_api_contracts.sh` - Contract tests (schema validation)
+- `cd backend && cargo test --locked` - All backend tests
+- `./backend/scripts/validate_rest_api_contracts.sh` - Exports the OpenAPI document and runs the contract tests (schema validation)
 
 **Frontend-specific:**
 - `cd frontend && npm run test:run` - All frontend tests (exits after completion)
@@ -592,7 +588,7 @@ This script runs:
 - `cd frontend && npm run test:contracts` - Contract tests only
 
 **Individual services:**
-- Backend: See [backend/README.md](backend/README.md#testing) for detailed test categories
+- Backend: See [backend/README.md](backend/README.md#commands) for commands and [TESTING.md](TESTING.md#backend-test-layers) for the test layers
 - Frontend: See [TESTING.md](TESTING.md) for testing strategy and [frontend/README.md](frontend/README.md) for frontend commands
 - Ingestion: See [ingestion/README.md](ingestion/README.md) for Rust tests
 
@@ -611,7 +607,7 @@ Junjo AI Studio uses a centralized root `VERSION` file for release/app metadata 
 ./scripts/check-version-sync.sh
 ```
 
-Managed files include backend (`pyproject`, FastAPI metadata, OpenAPI), ingestion (`Cargo.toml`/`Cargo.lock`), and frontend (`package.json`/`package-lock.json`).
+Managed files include backend (`Cargo.toml`/`Cargo.lock`), ingestion (`Cargo.toml`/`Cargo.lock`), frontend (`package.json`/`package-lock.json`), and the exported OpenAPI document (`frontend/backend/openapi.json`).
 
 Release guardrail: Docker publish workflow validates that the GitHub release tag exactly matches `VERSION`.
 
@@ -623,14 +619,14 @@ Understanding what each validation tool does helps avoid surprises at commit tim
 
 | Validation | run-all-tests.sh | pre-commit hook | CI (GitHub Actions) |
 |------------|------------------|-----------------|---------------------|
-| **Proto version check** | ✅ Warns | ✅ Warns | ✅ Enforces |
-| **Python linting (ruff)** | ✅ Fails | ✅ Auto-fixes + fails | ✅ Enforces |
+| **Proto version check** | ✅ Warns | ❌ | ✅ Enforces |
+| **Backend formatting (`cargo fmt --check`)** | ✅ Fails | ✅ Fails | ✅ Enforces |
+| **Backend linting (clippy)** | ✅ Fails | ❌ | ✅ Enforces |
 | **Backend tests** | ✅ Runs all | ❌ | ✅ Enforces |
 | **Ingestion tests** | ✅ Runs all | ❌ | ✅ Enforces |
 | **Frontend tests** | ✅ Runs all | ❌ | ✅ Enforces |
 | **Contract tests** | ✅ Validates | ❌ | ✅ Enforces |
-| **Proto regeneration** | ✅ Regenerates | ✅ Regenerates + stages | ✅ Checks staleness |
-| **Proto staleness check** | ✅ Fails on diff | ❌ (auto-fixes) | ✅ Enforces |
+| **OpenAPI document staleness check** | ✅ Fails on diff | ❌ | ✅ Enforces |
 
 #### Recommended Workflow
 
@@ -640,11 +636,12 @@ Understanding what each validation tool does helps avoid surprises at commit tim
 # Option 1: Run everything at once (recommended)
 ./run-all-tests.sh
 
-# Option 2: Run individual validations
-cd backend && uv run ruff check app/          # Linting
-./backend/scripts/run-backend-tests.sh        # Backend tests
-cd ingestion && cargo test                    # Ingestion tests
-cd frontend && npm run test:run              # Frontend tests
+# Option 2: Run individual validations (each from the Studio root)
+(cd backend && cargo fmt --check)             # Formatting
+(cd backend && cargo clippy --all-targets --locked -- -D warnings)  # Linting
+(cd backend && cargo test --locked)           # Backend tests
+(cd ingestion && cargo test --locked)         # Ingestion tests
+(cd frontend && npm run test:run)             # Frontend tests
 ./backend/scripts/validate_rest_api_contracts.sh  # Contracts
 ```
 
@@ -652,32 +649,28 @@ cd frontend && npm run test:run              # Frontend tests
 
 ```bash
 git commit
-# Pre-commit hook runs automatically:
-# - Checks proto versions (warns if wrong)
-# - Regenerates proto files (stages changes)
-# - Runs orphan detection (blocks if missing .proto files)
-# - Runs ruff format (auto-fixes Python style)
-# - Runs ruff check (blocks if linting errors)
+# Pre-commit hook runs automatically (install it with ./scripts/install-git-hooks.sh):
+# - Runs cargo fmt --check on the backend (blocks if formatting differs)
 ```
 
 **Philosophy:**
 
 - **run-all-tests.sh**: Comprehensive validation during development - catches issues early
-- **pre-commit hook**: Safety net + auto-fixes - ensures commit quality
+- **pre-commit hook**: Safety net - keeps unformatted backend code out of commits
 - **CI**: Final enforcement - prevents merging broken code
 
-**Why run-all-tests.sh matches pre-commit:**
+**Why run-all-tests.sh covers pre-commit:**
 
-Previously, run-all-tests.sh could pass but pre-commit would fail (orphaned schemas, linting errors). This wasted developer time debugging at commit stage. Now both tools perform the same core validations, with pre-commit adding auto-fixes.
+The pre-commit hook runs the same `cargo fmt --check` that run-all-tests.sh runs first.
 
-**Result:** No surprises at commit time. If run-all-tests.sh passes, pre-commit will too (except for auto-fixable style issues).
+**Result:** No surprises at commit time. If run-all-tests.sh passes, pre-commit will too.
 
 ### Contract Testing
 
-Junjo AI Studio uses **contract testing** to prevent frontend/backend API drift. Backend Pydantic schemas are the single source of truth, validated against frontend TypeScript/Zod schemas using OpenAPI-generated mocks.
+Junjo AI Studio uses **contract testing** to prevent frontend/backend API drift. The backend's Rust request and response types are the single source of truth, validated against frontend TypeScript/Zod schemas using OpenAPI-generated mocks.
 
 **How it works:**
-1. Backend exports OpenAPI schema from Pydantic models
+1. The backend binary exports its OpenAPI document, generated from its Rust types and routes
 2. Frontend tests generate mocks from OpenAPI spec
 3. Zod schemas validate they can parse the mocks
 4. Tests fail if schemas drift
@@ -687,14 +680,13 @@ Junjo AI Studio uses **contract testing** to prevent frontend/backend API drift.
 ./backend/scripts/validate_rest_api_contracts.sh
 ```
 
-See [backend/scripts/README_SCHEMA_VALIDATION.md](backend/scripts/README_SCHEMA_VALIDATION.md) for detailed documentation.
+See [TESTING.md](TESTING.md#contract-testing-frontendbackend) for detailed documentation.
 
 ### GitHub Actions
 
-Tests run automatically on all PRs via GitHub Actions:
-- `../../.github/workflows/studio-backend-tests.yml` - Backend test suite
-- `../../.github/workflows/studio-rest-api-contract-validation.yml` - REST API contract tests
-- `../../.github/workflows/studio-proto-staleness-check.yml` - Proto file validation
+These workflows run on pushes to `master` that touch their paths, and again in Studio release validation:
+- `../../.github/workflows/studio-backend-tests.yml` - Backend tests, formatting, and linting; ingestion tests
+- `../../.github/workflows/studio-rest-api-contract-validation.yml` - REST API contract tests and the committed OpenAPI document
 - `../../.github/workflows/studio-version-sync-check.yml` - Version drift validation against `VERSION`
 
 ---
@@ -711,17 +703,9 @@ Tests run automatically on all PRs via GitHub Actions:
    - Old session cookies from another instance may interfere
    - **Fix**: Clear browser cookies for `localhost` and restart services
 
-2. **Cross-domain deployment** (most common in production)
-   - Frontend and backend on different top-level domains
-   - **Fix**: Ensure both services share the same registrable domain (see [Deployment Requirements](#deployment-requirements))
-
-3. **Missing or invalid secrets**
-   - `JUNJO_SESSION_SECRET`, `JUNJO_SECURE_COOKIE_KEY`, or `JUNJO_INTERNAL_GRPC_TOKEN` not set correctly
-   - **Fix**: Generate new secrets with `openssl rand -base64 32`
-
-4. **CORS misconfiguration**
-   - Frontend URL not in `JUNJO_ALLOW_ORIGINS`
-   - **Fix**: Add your frontend URL to the CORS origins list
+2. **Studio served over plain HTTP in production**
+   - With `JUNJO_ENV=production` the session cookie is `Secure`, so the browser sends it only over HTTPS
+   - **Fix**: Serve the Studio hostname over HTTPS (see [Deployment Requirements](#deployment-requirements))
 
 Hosted deployment troubleshooting lives with the deployment stack you choose. For working examples, start from the minimal-build or deployment-example repositories.
 
@@ -732,7 +716,7 @@ Hosted deployment troubleshooting lives with the deployment stack you choose. Fo
 **Solution:**
 ```bash
 # Find process using the port
-lsof -i :26151  # or :26153, :26154, :26155, etc.
+lsof -i :26151  # or :26154, :26155, etc.
 
 # Kill the process
 kill -9 <PID>
@@ -748,7 +732,7 @@ kill -9 <PID>
    ```bash
    docker compose logs backend
    docker compose logs ingestion
-   docker compose logs frontend
+   docker compose logs frontend   # development profile only
    ```
 
 2. **Clear volumes and rebuild**
@@ -759,11 +743,12 @@ kill -9 <PID>
 
 3. **Check .env file**
    - Ensure all required variables are set
-   - Secrets must be base64-encoded 32-byte values
+   - `JUNJO_INTERNAL_GRPC_TOKEN` must be at least 32 characters
+   - With `JUNJO_ENV=production`, `JUNJO_PROD_INGESTION_URL` must be set
 
 ### Database Issues
 
-**Symptom**: Database errors or corruption warnings
+**Symptom**: Database errors or corruption warnings, or the backend refuses to start because `junjo.db` has another schema version
 
 **Solution:**
 ```bash
@@ -794,9 +779,8 @@ docker compose up --build
   [deployment-example mirror](https://github.com/mdrideout/junjo-ai-studio-deployment-example).
 
 ### Docker Hub Images
-- **[junjo-ai-studio-backend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend)** - FastAPI backend
+- **[junjo-ai-studio-app](https://hub.docker.com/r/mdrideout/junjo-ai-studio-app)** - Studio application: Rust backend API and the React web UI
 - **[junjo-ai-studio-ingestion](https://hub.docker.com/r/mdrideout/junjo-ai-studio-ingestion)** - Rust gRPC ingestion service
-- **[junjo-ai-studio-frontend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend)** - React frontend
 
 ### OpenTelemetry Resources
 - **[OpenTelemetry Documentation](https://opentelemetry.io/docs/)** - OTLP specification

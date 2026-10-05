@@ -1,7 +1,6 @@
 import { useParams } from 'react-router'
 import { useEffect, useState } from 'react'
 import { OtelSpan } from '../traces/schemas/schemas'
-import { getApiHost } from '../../config'
 import { observabilityServicePath } from '../../util/telemetry-paths'
 import TraceListItem from './TraceListItem'
 
@@ -16,11 +15,10 @@ export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
       try {
         setLoading(true)
         setError(false)
-        // Use Python backend endpoints
+        // Use the backend's span endpoints
         const rootSpansPath = observabilityServicePath(serviceName ?? '', 'spans/root')
         const endpoint = filterLLM ? `${rootSpansPath}?has_llm=true` : rootSpansPath
-        const apiHost = getApiHost()
-        const response = await fetch(`${apiHost}${endpoint}`, {
+        const response = await fetch(endpoint, {
           credentials: 'include',
         })
         if (!response.ok) {

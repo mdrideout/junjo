@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from email.message import Message
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -47,10 +48,12 @@ class FakeStudioClient:
         environment: str = "development",
         users_exist: bool = False,
         allow_sign_in: bool = True,
+        backend_serves_ui: bool = False,
     ) -> None:
         self.environment = environment
         self.users_exist = users_exist
         self.allow_sign_in = allow_sign_in
+        self.backend_serves_ui = backend_serves_ui
         self.authenticated = False
         self.api_keys: list[dict[str, object]] = []
         self.access_tokens: list[dict[str, object]] = []
@@ -64,25 +67,25 @@ class FakeStudioClient:
         body: dict[str, object] | None = None,
     ) -> Any:
         self.calls.append((path, method, body))
-        if path == "/api/config":
+        if path == "/api/v1/config":
             return {"environment": self.environment}
         if path == "/health":
             return {"status": "ok"}
-        if path == "/users/db-has-users":
+        if path == "/api/v1/users/db-has-users":
             return {"users_exist": self.users_exist}
-        if path == "/users/create-first-user" and method == "POST":
+        if path == "/api/v1/users/create-first-user" and method == "POST":
             self.users_exist = True
             return {"id": "local-owner"}
-        if path == "/sign-in" and method == "POST":
+        if path == "/api/v1/sign-in" and method == "POST":
             if not self.allow_sign_in:
                 raise provisioner.StudioHttpError(method=method, path=path, status=401)
             self.authenticated = True
             return None
-        if path == "/auth-test":
+        if path == "/api/v1/auth-test":
             return {"user_email": provisioner.LOCAL_ADMIN_EMAIL}
-        if path == "/api_keys" and method == "GET":
+        if path == "/api/v1/api-keys" and method == "GET":
             return list(self.api_keys)
-        if path == "/api_keys" and method == "POST":
+        if path == "/api/v1/api-keys" and method == "POST":
             record = {
                 "id": "api-key-id",
                 "name": body["name"],
@@ -103,6 +106,9 @@ class FakeStudioClient:
             self.access_tokens.append(record)
             return record
         raise AssertionError(f"unexpected request: {method} {path}")
+
+    def serves_ui(self) -> bool:
+        return self.backend_serves_ui
 
 
 def credentials() -> Any:
@@ -180,7 +186,7 @@ class LocalStudioProvisioningTests(unittest.TestCase):
                     "requires Studio to report development mode",
                 ):
                     provisioner.provision_studio(client)
-                self.assertEqual(client.calls, [("/api/config", "GET", None)])
+                self.assertEqual(client.calls, [("/api/v1/config", "GET", None)])
 
     def test_empty_studio_uses_first_user_api_and_exact_credential_contracts(self) -> None:
         client = FakeStudioClient(users_exist=False)
@@ -189,7 +195,7 @@ class LocalStudioProvisioningTests(unittest.TestCase):
         self.assertTrue(result.api_key_created)
         self.assertTrue(result.access_token_created)
         first_user_call = next(
-            call for call in client.calls if call[0] == "/users/create-first-user"
+            call for call in client.calls if call[0] == "/api/v1/users/create-first-user"
         )
         self.assertEqual(
             first_user_call[2],
@@ -199,7 +205,7 @@ class LocalStudioProvisioningTests(unittest.TestCase):
             },
         )
         api_key_call = next(
-            call for call in client.calls if call[0] == "/api_keys" and call[1] == "POST"
+            call for call in client.calls if call[0] == "/api/v1/api-keys" and call[1] == "POST"
         )
         self.assertEqual(api_key_call[2], {"name": provisioner.LOCAL_API_KEY_NAME})
         token_call = next(
@@ -220,16 +226,16 @@ class LocalStudioProvisioningTests(unittest.TestCase):
         client = FakeStudioClient(users_exist=True)
         provisioner.provision_studio(client)
         paths = [path for path, _, _ in client.calls]
-        self.assertNotIn("/users/create-first-user", paths)
-        self.assertFalse(any("password" in path and path != "/sign-in" for path in paths))
+        self.assertNotIn("/api/v1/users/create-first-user", paths)
+        self.assertFalse(any("password" in path and path != "/api/v1/sign-in" for path in paths))
 
     def test_existing_studio_authentication_failure_stops_without_mutation(self) -> None:
         client = FakeStudioClient(users_exist=True, allow_sign_in=False)
-        with self.assertRaisesRegex(provisioner.StudioHttpError, "POST /sign-in"):
+        with self.assertRaisesRegex(provisioner.StudioHttpError, "POST /api/v1/sign-in"):
             provisioner.provision_studio(client)
         self.assertEqual(
             [path for path, _, _ in client.calls],
-            ["/api/config", "/health", "/users/db-has-users", "/sign-in"],
+            ["/api/v1/config", "/health", "/api/v1/users/db-has-users", "/api/v1/sign-in"],
         )
 
     def test_second_provisioning_run_reuses_both_credentials(self) -> None:
@@ -264,6 +270,58 @@ class LocalStudioProvisioningTests(unittest.TestCase):
         with self.assertRaisesRegex(provisioner.ProvisioningError, "Multiple access tokens"):
             provisioner.provision_studio(token_client)
 
+    def test_backend_serves_the_ui_only_when_root_answers_200_with_html(self) -> None:
+        client = provisioner.StudioClient(provisioner.DEFAULT_BACKEND_URL)
+
+        def answer(content_type: str) -> mock.MagicMock:
+            response = mock.MagicMock()
+            response.__enter__.return_value = response
+            response.status = 200
+            response.headers.get_content_type.return_value = content_type
+            return response
+
+        api_only_answer = provisioner.urllib.error.HTTPError(
+            "http://localhost:26154/",
+            404,
+            "Not Found",
+            Message(),
+            io.BytesIO(b'{"code": "not_found", "message": "Not found"}'),
+        )
+        self.addCleanup(api_only_answer.close)
+        for outcome, expected in (
+            (answer("text/html"), True),
+            (answer("application/json"), False),
+            (api_only_answer, False),
+        ):
+            with (
+                self.subTest(expected=expected),
+                mock.patch.object(client.opener, "open", side_effect=[outcome]) as opened,
+            ):
+                self.assertIs(client.serves_ui(), expected)
+                request = opened.call_args.args[0]
+                self.assertEqual(request.full_url, "http://localhost:26154/")
+                self.assertEqual(request.get_method(), "GET")
+
+        with (
+            mock.patch.object(
+                client.opener,
+                "open",
+                side_effect=provisioner.urllib.error.URLError("connection refused"),
+            ),
+            self.assertRaisesRegex(provisioner.ProvisioningError, "GET /"),
+        ):
+            client.serves_ui()
+
+    def test_frontend_base_url_is_the_origin_that_serves_studio_pages(self) -> None:
+        self.assertEqual(
+            provisioner.studio_frontend_base_url(FakeStudioClient(backend_serves_ui=True)),
+            "http://localhost:26154",
+        )
+        self.assertEqual(
+            provisioner.studio_frontend_base_url(FakeStudioClient(backend_serves_ui=False)),
+            "http://localhost:26151",
+        )
+
     def test_environment_render_updates_active_or_commented_assignments(self) -> None:
         rendered = provisioner.render_environment(
             "# comment\n# TOKEN=old\nOTHER=preserved\nACTIVE=old\n",
@@ -295,6 +353,7 @@ class LocalStudioProvisioningTests(unittest.TestCase):
             destinations = provisioner.configure_example_environments(
                 root,
                 credentials(),
+                provisioner.DEFAULT_BACKEND_URL,
                 verify_ignored=False,
             )
 
@@ -332,6 +391,7 @@ class LocalStudioProvisioningTests(unittest.TestCase):
             provisioner.configure_example_environments(
                 root,
                 credentials(),
+                provisioner.DEFAULT_BACKEND_URL,
                 verify_ignored=False,
             )
             updated = ai_chat.read_text(encoding="utf-8")
@@ -383,6 +443,38 @@ class LocalStudioProvisioningTests(unittest.TestCase):
             self.assertNotIn("jcli_local-access-token-secret", rendered)
             self.assertIn(provisioner.LOCAL_API_KEY_NAME, rendered)
             self.assertIn(provisioner.LOCAL_ACCESS_TOKEN_NAME, rendered)
+
+    def test_run_writes_the_frontend_base_url_the_running_backend_implies(self) -> None:
+        for backend_serves_ui, frontend_base_url in (
+            (True, "http://localhost:26154"),
+            (False, "http://localhost:26151"),
+        ):
+            with (
+                self.subTest(backend_serves_ui=backend_serves_ui),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                create_example_templates(root)
+                client = FakeStudioClient(backend_serves_ui=backend_serves_ui)
+                with (
+                    mock.patch.object(provisioner, "StudioClient", return_value=client),
+                    mock.patch.object(provisioner, "require_ignored_environment_files"),
+                    contextlib.redirect_stdout(io.StringIO()),
+                ):
+                    result = provisioner.run(
+                        backend_url=provisioner.DEFAULT_BACKEND_URL,
+                        repository_root=root,
+                    )
+                self.assertEqual(result, 0)
+                ai_chat = (root / "sdks/python/examples/ai_chat/.env").read_text(encoding="utf-8")
+                self.assertIn(
+                    f"JUNJO_AI_STUDIO_FRONTEND_BASE_URL={frontend_base_url}\n",
+                    ai_chat,
+                )
+                self.assertIn(
+                    "JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154\n",
+                    ai_chat,
+                )
 
     def test_real_example_environment_targets_are_gitignored(self) -> None:
         for target in provisioner.ENVIRONMENT_TARGETS:

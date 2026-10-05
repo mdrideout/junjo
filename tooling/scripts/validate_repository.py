@@ -30,10 +30,11 @@ REQUIRED_PATHS = (
     "apps/studio/LICENSE",
     "apps/studio/THIRD_PARTY_NOTICES.md",
     "apps/studio/licenses/artifact-license-policy.json",
+    "apps/studio/licenses/backend-production.json",
     "apps/studio/licenses/frontend-production.json",
     "apps/studio/licenses/ingestion-production.json",
     "apps/studio/VERSION",
-    "apps/studio/backend/uv.lock",
+    "apps/studio/backend/Cargo.lock",
     "apps/studio/frontend/package-lock.json",
     "apps/studio/ingestion/Cargo.lock",
     "apps/studio/docs/adr/004-events-json-contract.md",
@@ -124,9 +125,11 @@ LOCAL_SECRET_STATE = (
     "apps/studio/deployments/vm-caddy/.junjo-env-staging-interrupted",
 )
 
+# Each entry names a manifest, its format, and, for TOML, the dotted path of
+# the table that declares the license. A JSON manifest declares it at the top.
 LICENSE_METADATA = (
     ("sdks/python/pyproject.toml", "toml", "project"),
-    ("apps/studio/backend/pyproject.toml", "toml", "project"),
+    ("apps/studio/backend/Cargo.toml", "toml", "workspace.package"),
     ("apps/studio/e2e_test_apps/app/pyproject.toml", "toml", "project"),
     (
         "apps/studio/e2e_test_apps/orchestration/pyproject.toml",
@@ -138,9 +141,10 @@ LICENSE_METADATA = (
     ("apps/website/package.json", "json", ""),
 )
 
+# Released containers. The Studio frontend Dockerfile is not one: it only runs
+# the Vite development server, and the application image carries the built UI.
 JUNJO_DOCKERFILES = (
     "apps/studio/backend/Dockerfile",
-    "apps/studio/frontend/Dockerfile",
     "apps/studio/ingestion/Dockerfile",
     "apps/studio/deployments/vm-caddy/caddy/Dockerfile",
     "apps/studio/deployments/vm-caddy/junjo_app/Dockerfile",
@@ -184,11 +188,11 @@ def validate_licensing() -> None:
     for relative_path, file_type, section in LICENSE_METADATA:
         path = PLATFORM_ROOT / relative_path
         if file_type == "toml":
-            value = tomllib.loads(path.read_text(encoding="utf-8"))
-            metadata = value.get(section)
+            metadata = tomllib.loads(path.read_text(encoding="utf-8"))
+            for key in section.split("."):
+                metadata = metadata.get(key) if isinstance(metadata, dict) else None
         else:
-            value = json.loads(path.read_text(encoding="utf-8"))
-            metadata = value
+            metadata = json.loads(path.read_text(encoding="utf-8"))
         require(
             isinstance(metadata, dict) and metadata.get("license") == "Apache-2.0",
             f"package metadata must declare Apache-2.0: {relative_path}",
@@ -351,11 +355,16 @@ def validate_studio_frontend_foundation() -> None:
         f"current frontend source still references Catalyst: {catalyst_references}",
     )
 
-    dockerfile = (frontend_root / "Dockerfile").read_text(encoding="utf-8")
+    # The application image, built from the backend Dockerfile, carries the
+    # built UI.
+    dockerfile = (PLATFORM_ROOT / "apps/studio/backend/Dockerfile").read_text(
+        encoding="utf-8"
+    )
     require(
         "COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/licenses/junjo-ai-studio/"
         in dockerfile,
-        "the frontend image must carry the Studio license and third-party notices",
+        "the image that carries the UI must carry the Studio license and "
+        "third-party notices",
     )
 
 
@@ -809,7 +818,6 @@ def validate_release_routing() -> None:
         "python-ci.yml",
         "studio-backend-tests.yml",
         "studio-frontend-tests.yml",
-        "studio-proto-staleness-check.yml",
         "studio-rest-api-contract-validation.yml",
         "studio-version-sync-check.yml",
         "telemetry-contract.yml",
@@ -859,8 +867,7 @@ def validate_studio_release_contract() -> None:
     require(
         contract["images"]
         == {
-            "backend": {"repository": "mdrideout/junjo-ai-studio-backend"},
-            "frontend": {"repository": "mdrideout/junjo-ai-studio-frontend"},
+            "backend": {"repository": "mdrideout/junjo-ai-studio-app"},
             "ingestion": {"repository": "mdrideout/junjo-ai-studio-ingestion"},
         },
         "Studio image repositories differ from the accepted release contract",

@@ -1,9 +1,7 @@
-import { getApiHost } from '../../../config'
 import { ListApiKeysResponse, ListApiKeysResponseSchema } from '../schemas'
 
 export async function fetchApiKeys(): Promise<ListApiKeysResponse> {
-  const apiHost = getApiHost()
-  const res = await fetch(`${apiHost}/api_keys`, {
+  const res = await fetch('/api/v1/api-keys', {
     method: 'GET',
     credentials: 'include',
   })

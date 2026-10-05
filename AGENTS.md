@@ -29,6 +29,11 @@ I/O, or coordination costs to cover exceptional events.
   supported resource profile, including concurrent ingestion and queries where
   affected. Do not hide regressions by increasing resources, reducing offered
   work, counting generated-but-undelivered spans, or changing acceptance gates.
+- Real-world test every change to Studio's query path, backend, or ingestion:
+  make the queries from the real frontend while ingestion is processing spans
+  at load, against the unchanged build. Measurements of the API alone, or
+  after ingestion has finished, are not acceptance evidence.
+  `apps/studio/ingestion/benchmarks/README.md` owns the procedure.
 - Describe the failure trigger, evidence of occurrence, affected data, recovery
   path, and prevention cost separately. A deterministic fault reproduction
   establishes consequences, not how frequently the event occurs in deployments.

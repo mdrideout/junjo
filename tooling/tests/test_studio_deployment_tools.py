@@ -12,6 +12,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from email.message import Message
 from unittest import mock
 from pathlib import Path
 from types import ModuleType
@@ -59,21 +60,21 @@ def core_service(image: str, port: int) -> dict[str, object]:
 
 def rendered_compose(distribution_name: str, version: str = "1.2.3") -> dict[str, Any]:
     """Build a valid rendered Compose fixture for one distribution contract."""
-    backend = core_service(f"mdrideout/junjo-ai-studio-backend:{version}", 26154)
-    backend["environment"] = {
+    app = core_service(f"mdrideout/junjo-ai-studio-app:{version}", 26154)
+    app["environment"] = {
         "INGESTION_HOST": validator.INGESTION,
         "INGESTION_PORT": "50052",
+        "PORT": "26154",
         "GRPC_PORT": "50053",
-        "RUN_MIGRATIONS": "true",
         "JUNJO_SQLITE_PATH": "/app/.dbdata/sqlite/junjo.db",
         "JUNJO_METADATA_DB_PATH": "/app/.dbdata/sqlite/metadata.db",
         "JUNJO_PARQUET_STORAGE_PATH": "/app/.dbdata/spans/parquet",
     }
-    backend["volumes"] = [{"source": "/fixture/data", "target": "/app/.dbdata"}]
+    app["volumes"] = [{"source": "/fixture/data", "target": "/app/.dbdata"}]
 
     ingestion = core_service(f"mdrideout/junjo-ai-studio-ingestion:{version}", 26155)
     ingestion["environment"] = {
-        "BACKEND_GRPC_HOST": validator.BACKEND,
+        "BACKEND_GRPC_HOST": validator.APP,
         "BACKEND_GRPC_PORT": "50053",
         "GRPC_PORT": "26155",
         "INTERNAL_GRPC_PORT": "50052",
@@ -87,7 +88,7 @@ def rendered_compose(distribution_name: str, version: str = "1.2.3") -> dict[str
         "PARQUET_OUTPUT_DIR": "/app/.dbdata/spans/parquet",
     }
     ingestion["volumes"] = [{"source": "/fixture/data", "target": "/app/.dbdata"}]
-    ingestion["depends_on"] = {validator.BACKEND: {"condition": "service_started"}}
+    ingestion["depends_on"] = {validator.APP: {"condition": "service_started"}}
     ingestion["healthcheck"] = {
         "test": ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"],
         "timeout": "3s",
@@ -96,13 +97,9 @@ def rendered_compose(distribution_name: str, version: str = "1.2.3") -> dict[str
         "start_period": "30s",
     }
 
-    frontend = core_service(f"mdrideout/junjo-ai-studio-frontend:{version}", 26153)
-    frontend["depends_on"] = {validator.BACKEND: {"condition": "service_started"}}
-
     services: dict[str, Any] = {
-        validator.BACKEND: backend,
+        validator.APP: app,
         validator.INGESTION: ingestion,
-        validator.FRONTEND: frontend,
     }
     rendered: dict[str, Any] = {
         "services": services,
@@ -116,7 +113,7 @@ def rendered_compose(distribution_name: str, version: str = "1.2.3") -> dict[str
     }
 
     if distribution_name == "vm-caddy":
-        services["junjo-app"] = {
+        services["example-app"] = {
             "build": {"context": "/fixture/junjo_app", "dockerfile": "Dockerfile"},
             "depends_on": {validator.INGESTION: {"condition": "service_started"}},
             "networks": {"junjo-network": None},
@@ -124,8 +121,7 @@ def rendered_compose(distribution_name: str, version: str = "1.2.3") -> dict[str
         services["caddy"] = {
             "build": {"context": "/fixture/caddy", "dockerfile": "Dockerfile"},
             "depends_on": {
-                validator.BACKEND: {"condition": "service_started"},
-                validator.FRONTEND: {"condition": "service_started"},
+                validator.APP: {"condition": "service_started"},
             },
             "networks": {"junjo-network": None},
             "ports": [
@@ -141,13 +137,21 @@ def rendered_compose(distribution_name: str, version: str = "1.2.3") -> dict[str
 class DeploymentComposeContractTests(unittest.TestCase):
     """Exercise topology validation without running containers or pulling images."""
 
-    def test_minimal_contract_accepts_only_the_three_core_services(self) -> None:
+    def test_minimal_contract_accepts_only_the_two_core_services(self) -> None:
         distribution = next(
             item for item in validator.DISTRIBUTIONS if item.name == "minimal"
         )
         validator.validate_rendered_compose(
             distribution, rendered_compose("minimal"), "1.2.3", Path("/fixture")
         )
+        rendered = rendered_compose("minimal")
+        rendered["services"]["third-service"] = core_service(
+            "example.invalid/third-service:1.2.3", 9999
+        )
+        with self.assertRaisesRegex(RuntimeError, "expected services"):
+            validator.validate_rendered_compose(
+                distribution, rendered, "1.2.3", Path("/fixture")
+            )
 
     def test_vm_caddy_contract_requires_the_operator_services(self) -> None:
         distribution = next(
@@ -162,8 +166,8 @@ class DeploymentComposeContractTests(unittest.TestCase):
             item for item in validator.DISTRIBUTIONS if item.name == "minimal"
         )
         rendered = rendered_compose("minimal")
-        rendered["services"][validator.BACKEND]["image"] = (
-            "mdrideout/junjo-ai-studio-backend:latest"
+        rendered["services"][validator.APP]["image"] = (
+            "mdrideout/junjo-ai-studio-app:latest"
         )
         with self.assertRaisesRegex(RuntimeError, "image pins must exactly match"):
             validator.validate_rendered_compose(
@@ -188,7 +192,7 @@ class DeploymentComposeContractTests(unittest.TestCase):
             item for item in validator.DISTRIBUTIONS if item.name == "minimal"
         )
         rendered = rendered_compose("minimal")
-        rendered["services"][validator.BACKEND]["ports"].append(
+        rendered["services"][validator.APP]["ports"].append(
             {"target": 50053, "published": "50053", "protocol": "tcp"}
         )
         with self.assertRaisesRegex(RuntimeError, "ports must be exactly"):
@@ -201,9 +205,7 @@ class DeploymentComposeContractTests(unittest.TestCase):
             item for item in validator.DISTRIBUTIONS if item.name == "minimal"
         )
         rendered = rendered_compose("minimal")
-        rendered["services"][validator.BACKEND]["build"] = {
-            "context": "/fixture/backend"
-        }
+        rendered["services"][validator.APP]["build"] = {"context": "/fixture/backend"}
         with self.assertRaisesRegex(RuntimeError, "must use only its pinned image"):
             validator.validate_rendered_compose(
                 distribution, rendered, "1.2.3", Path("/fixture")
@@ -214,7 +216,7 @@ class DeploymentComposeContractTests(unittest.TestCase):
             item for item in validator.DISTRIBUTIONS if item.name == "minimal"
         )
         rendered = rendered_compose("minimal")
-        rendered["services"][validator.BACKEND]["container_name"] = "fixed-backend"
+        rendered["services"][validator.APP]["container_name"] = "fixed-app"
         with self.assertRaisesRegex(RuntimeError, "project-scoped container name"):
             validator.validate_rendered_compose(
                 distribution, rendered, "1.2.3", Path("/fixture")
@@ -258,7 +260,6 @@ class DistributionSmokeContractTests(unittest.TestCase):
             smoke.parse_published_images(
                 [
                     f"backend=example.invalid/backend@{digest}",
-                    f"frontend={SMOKE_IMAGE_REPOSITORIES['frontend']}@{digest}",
                     f"ingestion={SMOKE_IMAGE_REPOSITORIES['ingestion']}@{digest}",
                 ],
                 SMOKE_IMAGE_REPOSITORIES,
@@ -267,8 +268,8 @@ class DistributionSmokeContractTests(unittest.TestCase):
     def test_compose_images_must_exactly_match_requested_version(self) -> None:
         rendered = rendered_compose("vm-caddy", version="1.2.3")
         smoke.assert_compose_images(rendered, "1.2.3", SMOKE_IMAGE_REPOSITORIES)
-        rendered["services"][validator.FRONTEND]["image"] = (
-            "mdrideout/junjo-ai-studio-frontend:latest"
+        rendered["services"][validator.APP]["image"] = (
+            "mdrideout/junjo-ai-studio-app:latest"
         )
         with self.assertRaisesRegex(smoke.SmokeError, "must use exact image"):
             smoke.assert_compose_images(rendered, "1.2.3", SMOKE_IMAGE_REPOSITORIES)
@@ -306,70 +307,102 @@ class DistributionSmokeContractTests(unittest.TestCase):
             self.assertTrue(
                 all(
                     "image" not in override["services"][service]
-                    for service in smoke.COMPOSE_DATA_SERVICES
+                    for service in smoke.COMPOSE_CORE_SERVICES
                 )
             )
 
-    def test_runtime_override_routes_browser_inside_the_isolated_stack(self) -> None:
+    def test_runtime_override_keeps_session_cookies_usable_over_http(self) -> None:
         runner = self.smoke_runner()
-        frontend_origin = f"http://127.0.0.1:{runner.frontend_port}"
-        backend_origin = f"http://127.0.0.1:{runner.backend_port}"
-        ingestion_url = f"http://127.0.0.1:{runner.ingestion_port}"
-        with tempfile.TemporaryDirectory(prefix="junjo-routing-smoke-") as directory:
+        with tempfile.TemporaryDirectory(prefix="junjo-session-smoke-") as directory:
             runner.runtime_root = Path(directory)
             runner.write_runtime_override()
             self.assertIsNotNone(runner.runtime_override)
             override = json.loads(runner.runtime_override.read_text(encoding="utf-8"))
 
-        smoke.assert_smoke_runtime_routing(
-            override,
-            frontend_origin=frontend_origin,
-            backend_origin=backend_origin,
-            ingestion_url=ingestion_url,
-        )
-        backend_environment = override["services"]["junjo-ai-studio-backend"][
-            "environment"
-        ]
-        frontend_environment = override["services"]["junjo-ai-studio-frontend"][
-            "environment"
-        ]
-        self.assertEqual(backend_environment["JUNJO_ENV"], "development")
-        self.assertEqual(backend_environment["JUNJO_ALLOW_ORIGINS"], frontend_origin)
-        self.assertEqual(frontend_environment["JUNJO_ENV"], "production")
-        self.assertEqual(frontend_environment["JUNJO_PROD_BACKEND_URL"], backend_origin)
+        smoke.assert_smoke_session_mode(override)
+        app = override["services"]["junjo-ai-studio-app"]
+        self.assertEqual(app["environment"], {"JUNJO_ENV": "development"})
+        app["environment"]["JUNJO_ENV"] = "production"
+        with self.assertRaisesRegex(smoke.SmokeError, "development-mode HTTP cookies"):
+            smoke.assert_smoke_session_mode(override)
 
-    def test_live_runtime_routing_checks_served_config_and_cors(self) -> None:
+    def app_response(self) -> mock.MagicMock:
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.status = 200
+        response.headers.get_content_type.return_value = "text/html"
+        return response
+
+    def health_response(self) -> mock.MagicMock:
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.read.return_value = b'{"status": "ok"}'
+        return response
+
+    def not_found_error(self, payload: bytes) -> Exception:
+        error = smoke.urllib.error.HTTPError(
+            "http://fixture.invalid", 404, "Not Found", Message(), io.BytesIO(payload)
+        )
+        self.addCleanup(error.close)
+        return error
+
+    def test_live_studio_origin_serves_app_health_and_api_error_body(self) -> None:
         runner = self.smoke_runner()
-        frontend_origin = f"http://127.0.0.1:{runner.frontend_port}"
-        backend_origin = f"http://127.0.0.1:{runner.backend_port}"
-        config_response = mock.MagicMock()
-        config_response.__enter__.return_value = config_response
-        config_response.read.return_value = (
-            f'window.runtimeConfig = {{ API_HOST: "{backend_origin}" }};\n'.encode()
-        )
-        cors_response = mock.MagicMock()
-        cors_response.__enter__.return_value = cors_response
-        cors_response.headers = {
-            "Access-Control-Allow-Origin": frontend_origin,
-            "Access-Control-Allow-Credentials": "true",
-        }
-
         with mock.patch.object(
             smoke.urllib.request,
             "urlopen",
-            side_effect=[config_response, cors_response],
+            side_effect=[
+                self.app_response(),
+                self.health_response(),
+                self.not_found_error(b'{"code": "not_found", "message": "Not found"}'),
+            ],
         ) as urlopen:
-            runner.assert_live_runtime_routing()
+            runner.assert_live_studio_origin()
 
+        self.assertTrue(smoke.UNKNOWN_API_PATH.startswith("/api/"))
         self.assertEqual(
-            urlopen.call_args_list[0].args[0], f"{frontend_origin}/config.js"
+            [call.args[0] for call in urlopen.call_args_list],
+            [
+                f"{runner.studio_origin}/",
+                f"{runner.studio_origin}/health",
+                f"{runner.studio_origin}{smoke.UNKNOWN_API_PATH}",
+            ],
         )
-        preflight = urlopen.call_args_list[1].args[0]
-        self.assertIsInstance(preflight, smoke.urllib.request.Request)
-        self.assertEqual(preflight.full_url, f"{backend_origin}/health")
-        self.assertEqual(preflight.get_method(), "OPTIONS")
-        self.assertEqual(preflight.get_header("Origin"), frontend_origin)
-        self.assertEqual(preflight.get_header("Access-control-request-method"), "GET")
+
+    def test_live_studio_origin_rejects_a_missing_app_or_a_swallowed_api_path(
+        self,
+    ) -> None:
+        runner = self.smoke_runner()
+        json_at_root = self.app_response()
+        json_at_root.headers.get_content_type.return_value = "application/json"
+        cases = (
+            (
+                [self.not_found_error(b'{"code": "not_found"}')],
+                "does not serve the app at /",
+            ),
+            ([json_at_root], "does not serve the app as HTML at /"),
+            (
+                [self.app_response(), self.health_response(), self.app_response()],
+                "as if it existed",
+            ),
+            (
+                [
+                    self.app_response(),
+                    self.health_response(),
+                    self.not_found_error(b"<!doctype html>"),
+                ],
+                "without the JSON error body",
+            ),
+        )
+        for responses, message in cases:
+            with (
+                self.subTest(message=message),
+                mock.patch.object(
+                    smoke.urllib.request, "urlopen", side_effect=responses
+                ),
+                self.assertRaisesRegex(smoke.SmokeError, message),
+            ):
+                runner.assert_live_studio_origin()
 
     def test_registry_pull_uses_evidence_digest_instead_of_version_tag(self) -> None:
         digest = "sha256:" + ("d" * 64)
@@ -514,6 +547,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
             set(manifest["artifacts"]),
             {"agent-evidence.json", "agent-diagnostics.png"},
         )
+        self.assert_one_studio_origin(calls, runner, "test:e2e:agent-live")
 
     def test_evaluation_studio_proof_extends_manifest_without_exposing_credentials(
         self,
@@ -581,6 +615,26 @@ class DistributionSmokeContractTests(unittest.TestCase):
                 "evaluation-runs.png",
             },
         )
+        self.assert_one_studio_origin(calls, runner, "test:e2e:evaluation-live")
+
+    def assert_one_studio_origin(
+        self,
+        calls: list[tuple[list[str], dict[str, object]]],
+        runner: Any,
+        browser_script: str,
+    ) -> None:
+        """Both proof commands must target the one Studio origin."""
+        api_command, browser_command = (command for command, _ in calls)
+        self.assertEqual(
+            api_command[api_command.index("--backend-url") + 1],
+            runner.studio_origin,
+        )
+        self.assertIn(browser_script, browser_command)
+        self.assertEqual(
+            browser_command[browser_command.index("--studio-url") + 1],
+            runner.studio_origin,
+        )
+        self.assertNotIn("--backend-url", browser_command)
 
     def test_example_workflow_query_authenticates_before_protected_requests(
         self,
@@ -619,7 +673,7 @@ class DistributionSmokeContractTests(unittest.TestCase):
             requests,
             [
                 (
-                    "/sign-in",
+                    "/api/v1/sign-in",
                     "POST",
                     {"email": identity.email, "password": identity.password},
                 ),

@@ -38,82 +38,37 @@ check_equals() {
   fi
 }
 
-# Backend package metadata
-BACKEND_PYPROJECT_VERSION="$(
+# Backend workspace metadata. Both backend crates inherit this version, and the
+# binary reports it at run time and in the OpenAPI document.
+BACKEND_CARGO_VERSION="$(
   awk '
-    /^version = "/ {
+    /^\[/ { in_workspace_package = ($0 == "[workspace.package]") }
+    in_workspace_package && /^version = "/ {
       v = $0
       sub(/^version = "/, "", v)
       sub(/"$/, "", v)
       print v
       exit
     }
-  ' backend/pyproject.toml
+  ' backend/Cargo.toml
 )"
-check_equals "backend/pyproject.toml [project].version" "$BACKEND_PYPROJECT_VERSION" "$VERSION"
-
-# Backend runtime/API metadata
-BACKEND_MAIN_FASTAPI_VERSIONS_RAW="$(sed -n 's/.*version="\([^"]*\)".*/\1/p' backend/app/main.py)"
-BACKEND_MAIN_FASTAPI_VERSION_COUNT="$(printf "%s\n" "$BACKEND_MAIN_FASTAPI_VERSIONS_RAW" | sed '/^$/d' | wc -l | tr -d ' ')"
-if [ "$BACKEND_MAIN_FASTAPI_VERSION_COUNT" -lt 2 ]; then
-  echo "FAIL backend/app/main.py expected at least 2 version=\"...\" values"
-  FAILURES=$((FAILURES + 1))
-else
-  i=0
-  while IFS= read -r main_version; do
-    if [ -z "$main_version" ]; then
-      continue
-    fi
-    i=$((i + 1))
-    check_equals \
-      "backend/app/main.py version=\"...\" entry $i" \
-      "$main_version" \
-      "$VERSION"
-  done <<< "$BACKEND_MAIN_FASTAPI_VERSIONS_RAW"
-fi
-
-BACKEND_MAIN_ROOT_VERSION="$(
-  awk '
-    /"version": "/ {
-      v = $0
-      sub(/.*"version": "/, "", v)
-      sub(/".*/, "", v)
-      print v
-      exit
-    }
-  ' backend/app/main.py
-)"
-check_equals "backend/app/main.py root response version" "$BACKEND_MAIN_ROOT_VERSION" "$VERSION"
-
-BACKEND_HEALTH_SCHEMA_VERSION_DEFAULT="$(
-  awk '
-    /version: str = Field\(default="/ {
-      v = $0
-      sub(/.*default="/, "", v)
-      sub(/".*/, "", v)
-      print v
-      exit
-    }
-  ' backend/app/common/responses.py
-)"
-check_equals \
-  "backend/app/common/responses.py HealthResponse.version default" \
-  "$BACKEND_HEALTH_SCHEMA_VERSION_DEFAULT" \
-  "$VERSION"
+check_equals "backend/Cargo.toml [workspace.package] version" "$BACKEND_CARGO_VERSION" "$VERSION"
 
 # Backend lock metadata
-BACKEND_UV_LOCK_VERSION="$(
-  awk '
-    $0 ~ /^name = "junjo-backend"$/ {
-      getline
-      gsub(/^version = "/, "", $0)
-      gsub(/"$/, "", $0)
-      print $0
-      exit
-    }
-  ' backend/uv.lock
-)"
-check_equals "backend/uv.lock package version" "$BACKEND_UV_LOCK_VERSION" "$VERSION"
+for backend_crate in junjo-backend junjo-evidence; do
+  BACKEND_CARGO_LOCK_VERSION="$(
+    awk -v name_line="name = \"$backend_crate\"" '
+      $0 == name_line {
+        getline
+        gsub(/^version = "/, "", $0)
+        gsub(/"$/, "", $0)
+        print $0
+        exit
+      }
+    ' backend/Cargo.lock
+  )"
+  check_equals "backend/Cargo.lock $backend_crate version" "$BACKEND_CARGO_LOCK_VERSION" "$VERSION"
+done
 
 # Ingestion package metadata
 INGESTION_CARGO_VERSION="$(
@@ -184,30 +139,29 @@ FRONTEND_PACKAGE_LOCK_ROOT_VERSION="$(
 )"
 check_equals "frontend/package-lock.json packages[\"\"] version" "$FRONTEND_PACKAGE_LOCK_ROOT_VERSION" "$VERSION"
 
-# Generated OpenAPI schema version (copied into frontend for contract tests)
-OPENAPI_INFO_VERSION="$(
-  awk '
-    /"version": "/ {
-      v = $0
-      sub(/.*"version": "/, "", v)
-      sub(/".*/, "", v)
-      print v
-      exit
-    }
-  ' frontend/backend/openapi.json
-)"
+# OpenAPI document exported by the backend (read by the frontend and SDK
+# contract tests).
+#
+# Print the string at one key path of the document. A path that is absent or
+# does not hold a string prints nothing, so it is reported as a mismatch.
+openapi_string() {
+  python3 - frontend/backend/openapi.json "$@" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as document:
+    value = json.load(document)
+for key in sys.argv[2:]:
+    value = value.get(key) if isinstance(value, dict) else None
+print(value if isinstance(value, str) else "")
+PY
+}
+
+OPENAPI_INFO_VERSION="$(openapi_string info version)"
 check_equals "frontend/backend/openapi.json info.version" "$OPENAPI_INFO_VERSION" "$VERSION"
 
 OPENAPI_HEALTH_VERSION_DEFAULT="$(
-  awk '
-    /"title": "Version"/ { in_version_schema = 1; next }
-    in_version_schema && /"default": "/ {
-      gsub(/.*"default": "/, "", $0)
-      gsub(/".*/, "", $0)
-      print $0
-      exit
-    }
-  ' frontend/backend/openapi.json
+  openapi_string components schemas HealthResponse properties version default
 )"
 check_equals \
   "frontend/backend/openapi.json HealthResponse.version default" \

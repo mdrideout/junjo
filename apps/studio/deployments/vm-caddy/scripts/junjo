@@ -70,8 +70,6 @@ PROFILE_DISPLAY_LABELS: dict[str, str] = {
 
 SECRET_PLACEHOLDERS = {
     "",
-    "your_base64_secret_here",
-    "your_base64_key_here",
     "your_internal_grpc_token_here",
 }
 
@@ -159,8 +157,6 @@ def update_env_lines(lines: list[str], updates: dict[str, str]) -> list[str]:
 
 def mask_value(key: str, value: str) -> str:
     if key in {
-        "JUNJO_SESSION_SECRET",
-        "JUNJO_SECURE_COOKIE_KEY",
         "JUNJO_INTERNAL_GRPC_TOKEN",
         "CLOUDFLARE_API_TOKEN",
     }:
@@ -233,8 +229,8 @@ def prompt_runtime_environment(default: str) -> str:
     default_idx = keys.index(default) + 1
     print("\nStep 1: Runtime Environment")
     print("Choose how services are addressed at runtime:")
-    print("  - development: localhost ports for frontend/backend/ingestion")
-    print("  - production: production hostname with subdomains")
+    print("  - development: localhost ports for Studio and ingestion")
+    print("  - production: production hostnames for Studio and ingestion")
     print()
     for idx, key in enumerate(keys, start=1):
         print(f"{idx}. {key}")
@@ -251,10 +247,10 @@ def prompt_runtime_environment(default: str) -> str:
         print("Invalid selection. Try again.")
 
 
-def normalize_hostname(value: str) -> str:
+def normalize_hostname(value: str, label: str) -> str:
     raw = value.strip().lower()
     if not raw:
-        raise ValueError("hostname is required")
+        raise ValueError(f"{label} is required")
 
     if "://" in raw:
         parsed = urlparse(raw)
@@ -264,22 +260,14 @@ def normalize_hostname(value: str) -> str:
 
     host = host.rstrip(".")
     if not host:
-        raise ValueError("hostname is required")
+        raise ValueError(f"{label} is required")
     if "/" in host:
-        raise ValueError("hostname must not contain paths")
+        raise ValueError(f"{label} must not contain paths")
     if ":" in host:
-        raise ValueError("hostname must not contain a port")
+        raise ValueError(f"{label} must not contain a port")
     if "." not in host:
-        raise ValueError("hostname must be a valid domain like example.com")
+        raise ValueError(f"{label} must be a valid domain like example.com")
     return host
-
-
-def infer_hostname(current: dict[str, str]) -> str:
-    existing_url = current.get("JUNJO_PROD_FRONTEND_URL", "").strip()
-    if not existing_url:
-        return ""
-    parsed = urlparse(existing_url)
-    return (parsed.hostname or "").strip().lower()
 
 
 def prompt_text(prompt: str, default: str | None = None, required: bool = False) -> str:
@@ -362,33 +350,48 @@ def run_setup(args: argparse.Namespace) -> int:
     }
     updates.update(PROFILE_DEFAULTS[profile])
 
-    frontend_url: str
-    backend_url: str
+    studio_url: str
     ingestion_url: str
 
     if target_env == "production":
-        hostname_default = args.hostname or infer_hostname(current)
-        hostname_input = hostname_default
+        studio_hostname_input = args.hostname or ""
 
         if not non_interactive and not args.hostname:
-            hostname_input = prompt_text(
-                "Production hostname (frontend host, e.g. junjo.example.com)",
-                hostname_default or None,
+            studio_hostname_input = prompt_text(
+                "Studio hostname (e.g. junjo.example.com)",
                 required=True,
             )
 
         try:
-            hostname = normalize_hostname(hostname_input)
+            studio_hostname = normalize_hostname(
+                studio_hostname_input, "Studio hostname"
+            )
         except ValueError as e:
             print(f"Error: {e}")
             return 1
 
-        frontend_url = f"https://{hostname}"
-        backend_url = f"https://api.{hostname}"
-        ingestion_url = f"https://ingestion.{hostname}"
+        ingestion_hostname_input = (
+            args.ingestion_hostname or f"ingestion.{studio_hostname}"
+        )
 
-        updates["JUNJO_PROD_FRONTEND_URL"] = frontend_url
-        updates["JUNJO_PROD_BACKEND_URL"] = backend_url
+        if not non_interactive and not args.ingestion_hostname:
+            ingestion_hostname_input = prompt_text(
+                "Ingestion hostname",
+                ingestion_hostname_input,
+                required=True,
+            )
+
+        try:
+            ingestion_hostname = normalize_hostname(
+                ingestion_hostname_input, "Ingestion hostname"
+            )
+        except ValueError as e:
+            print(f"Error: {e}")
+            return 1
+
+        studio_url = f"https://{studio_hostname}"
+        ingestion_url = f"https://{ingestion_hostname}"
+
         updates["JUNJO_PROD_INGESTION_URL"] = ingestion_url
 
         existing_cloudflare_token = current.get("CLOUDFLARE_API_TOKEN", "").strip()
@@ -422,16 +425,13 @@ def run_setup(args: argparse.Namespace) -> int:
 
         updates["CLOUDFLARE_API_TOKEN"] = cloudflare_token
     else:
-        frontend_url = "http://localhost:26153"
-        backend_url = "http://localhost:26154"
+        studio_url = "http://localhost:26154"
         ingestion_url = "grpc://localhost:26155"
 
-    # Security secrets
-    for secret_key in ("JUNJO_SESSION_SECRET", "JUNJO_SECURE_COOKIE_KEY", "JUNJO_INTERNAL_GRPC_TOKEN"):
-        existing = current.get(secret_key, "")
-        needs_generation = args.force_secrets or existing in SECRET_PLACEHOLDERS
-        if needs_generation:
-            updates[secret_key] = generate_secret()
+    # Internal gRPC token shared by the app and ingestion
+    existing_token = current.get("JUNJO_INTERNAL_GRPC_TOKEN", "")
+    if args.force_secrets or existing_token in SECRET_PLACEHOLDERS:
+        updates["JUNJO_INTERNAL_GRPC_TOKEN"] = generate_secret()
 
     swap_state = detect_swap_enabled()
     if swap_state is False:
@@ -475,12 +475,8 @@ def run_setup(args: argparse.Namespace) -> int:
         "JUNJO_DF_SPILL_ENABLED",
         "JUNJO_DF_SPILL_POOL_MB",
         "JUNJO_DF_SPILL_PATH",
-        "JUNJO_PROD_FRONTEND_URL",
-        "JUNJO_PROD_BACKEND_URL",
         "JUNJO_PROD_INGESTION_URL",
         "CLOUDFLARE_API_TOKEN",
-        "JUNJO_SESSION_SECRET",
-        "JUNJO_SECURE_COOKIE_KEY",
         "JUNJO_INTERNAL_GRPC_TOKEN",
     ]
     for key in summary_order:
@@ -490,19 +486,16 @@ def run_setup(args: argparse.Namespace) -> int:
     print("\nService endpoints")
     print("-----------------")
     if target_env == "production":
-        print(f"  Frontend:  {frontend_url}:443")
-        print(f"  Backend:   {backend_url}:443")
+        print(f"  Studio:    {studio_url}:443")
         print(f"  Ingestion: {ingestion_url}:443")
         print("\nCaddy note")
         print("----------")
         print("  This setup updates .env only.")
-        print("  Update caddy/Caddyfile domains to match your production hostname:")
-        print(f"    - {hostname}")
-        print(f"    - api.{hostname}")
-        print(f"    - ingestion.{hostname}")
+        print("  Update caddy/Caddyfile domains to match your production hostnames:")
+        print(f"    - {studio_hostname}")
+        print(f"    - {ingestion_hostname}")
     else:
-        print(f"  Frontend:  {frontend_url}")
-        print(f"  Backend:   {backend_url}")
+        print(f"  Studio:    {studio_url}")
         print(f"  Ingestion: {ingestion_url}")
 
     print("\nNext steps:")
@@ -535,7 +528,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Show actions without writing files."
     )
     setup.add_argument(
-        "--force-secrets", action="store_true", help="Regenerate security secrets."
+        "--force-secrets",
+        action="store_true",
+        help="Regenerate the internal gRPC token.",
     )
     setup.add_argument(
         "--env", choices=["development", "production"], help="Set JUNJO_ENV."
@@ -545,7 +540,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     setup.add_argument(
         "--hostname",
-        help="Production frontend hostname (for example: junjo.example.com). Used only when --env production.",
+        help="Production Studio hostname (for example: junjo.example.com). Used only when --env production.",
+    )
+    setup.add_argument(
+        "--ingestion-hostname",
+        help=(
+            "Production ingestion hostname (default: ingestion.<hostname>). "
+            "Used only when --env production."
+        ),
     )
     setup.add_argument(
         "--cloudflare-token",

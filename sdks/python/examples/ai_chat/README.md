@@ -166,7 +166,9 @@ JUNJO_AI_STUDIO_API_KEY=jtel_...
 JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154
 JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 
-# Browser -> Studio's authenticated semantic execution resolver.
+# Browser -> Studio's authenticated semantic execution resolver. 26151 is the
+# Vite server of a Studio development stack. Use http://localhost:26154 when
+# the Studio backend serves the UI.
 JUNJO_AI_STUDIO_FRONTEND_BASE_URL=http://localhost:26151
 ```
 

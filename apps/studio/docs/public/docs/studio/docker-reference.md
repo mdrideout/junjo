@@ -9,23 +9,30 @@ and the first application/coding-agent connection, start with
 
 ## Docker Images
 
-Use the three image versions selected together by the supported distribution.
+Use the two image versions selected together by the supported distribution.
 Keep the corresponding SDK and Studio telemetry contract compatible when
 using native graph, Agent, and Store views. See the selected release's notes
 before changing versions.
 
-### Backend Service
+<a id="backend-service"></a>
+<a id="frontend-service"></a>
+### Application Service
 
-**Image:** [mdrideout/junjo-ai-studio-backend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-backend)
+**Image:** [mdrideout/junjo-ai-studio-app](https://hub.docker.com/r/mdrideout/junjo-ai-studio-app)
 
-The backend serves the HTTP API used by the browser, coding-agent CLI, and
-SDK. It manages authentication, canonical evaluation records, and evidence
-queries:
+The application service runs the Studio backend. It serves the web UI and the
+HTTP API on one origin, container port `26154`, for the browser, coding-agent
+CLI, and SDK. It manages authentication, canonical evaluation records, and
+evidence queries:
 
 - `junjo.db` holds accounts, credentials, datasets, cases, runs, and attempts.
 - `metadata.db` is the telemetry file index, separate from canonical product data.
 - DataFusion queries received spans in Parquet and the shared hot snapshot.
 - Private RPCs coordinate recent evidence reads with ingestion.
+
+The web UI provides dataset/run comparisons, trace exploration, and native
+Junjo execution and state views. Port `26151` is the source repository's
+development server and is not a port of this image.
 
 ### Ingestion Service
 
@@ -39,15 +46,6 @@ Ingestion authorization uses application telemetry API keys. Successful
 validation can be reused for the configured short cache interval; invalid keys
 and backend failures are not cached. The distribution's `.env.example` owns
 the cache, buffering, backpressure, and flush settings.
-
-### Frontend Service
-
-**Image:** [mdrideout/junjo-ai-studio-frontend](https://hub.docker.com/r/mdrideout/junjo-ai-studio-frontend)
-
-The frontend provides dataset/run comparisons, trace exploration, and native
-Junjo execution and state views. The browser calls the backend API. The
-prebuilt image serves the web UI on container port `26153`; `26151` is the
-source repository's development server and is not the prebuilt image's port.
 
 ## Complete Docker Compose Configuration
 
@@ -75,45 +73,49 @@ source is [apps/studio/deployments/vm-caddy](https://github.com/mdrideout/junjo/
 <a id="production-deployment-1"></a>
 ### Reverse Proxy Setup
 
-Expose the web UI, backend HTTP API, and OTLP/gRPC endpoint through their
-configured public origins. The ingestion route requires a proxy that supports
-gRPC; forwarding it as ordinary HTTP/1 traffic does not provide an OTLP/gRPC
+Expose two public origins: one hostname for Studio, routed to the application
+service on port `26154`, and one for the OTLP/gRPC endpoint, routed to
+ingestion on port `26155`. The Studio hostname carries both the web UI and the
+HTTP API, so route the whole hostname to the application service. If you add
+path rules, the API prefix is `/api/` with the trailing slash: `/api-keys` is
+a web UI page. The ingestion route requires a proxy that supports gRPC;
+forwarding it as ordinary HTTP/1 traffic does not provide an OTLP/gRPC
 connection. Keep the private service RPC ports inside the Studio network.
 
 Use the distribution's Caddyfile and image together, including its required
-DNS integration when using that setup. The frontend and backend must share a
-registrable domain because Studio uses browser session cookies with
-`SameSite=Strict`.
+DNS integration when using that setup. Studio's browser session cookie is
+scoped to the one Studio hostname, so no second hostname has to share its
+domain.
 
 ## Environment Variables Reference
 
 The distribution's `.env.example` is the complete, release-specific list of
 settings and defaults. The following groups explain the settings most often
-needed during adoption.
+needed during adoption. A production deployment requires three of them:
+`JUNJO_ENV=production`, `JUNJO_INTERNAL_GRPC_TOKEN`, and
+`JUNJO_PROD_INGESTION_URL`.
 
 ### Common Configuration
 
 | Setting | Purpose |
 | --- | --- |
-| `JUNJO_ENV` | Set `development` for the local endpoint configuration or `production` for configured public origins. The prebuilt frontend requires an explicit value. |
-| `JUNJO_ALLOW_ORIGINS` | Allowed browser origins for backend CORS. Production can derive this from the configured frontend URL. Use exact origins when overriding. |
+| `JUNJO_ENV` | Set `development` for the local endpoint configuration or `production` for a deployment behind public origins. Production marks the session cookie `Secure` and requires `JUNJO_PROD_INGESTION_URL`. |
 
-Do not add generic `PORT` or `GRPC_PORT` values to the shared `.env`. Backend
-and ingestion have different listener roles; the Compose file pins each
-service's internal configuration.
+Do not add generic `PORT` or `GRPC_PORT` values to the shared `.env`. The
+application and ingestion services have different listener roles; the Compose
+file pins each service's listener ports.
 
 ### Security (Backend and Ingestion)
 
 | Setting | Purpose |
 | --- | --- |
-| `JUNJO_SESSION_SECRET` | Required session-signing secret. |
-| `JUNJO_SECURE_COOKIE_KEY` | Required cookie-encryption key; must encode exactly 32 bytes in Base64. |
 | `JUNJO_INTERNAL_GRPC_TOKEN` | Required backend/ingestion workload credential with at least 32 characters. |
 
-The setup wizard generates these secrets. Manual setup instructions in the
-distribution describe generating a separate value for each. Keep the internal
-RPC token out of browser-facing and reverse-proxy containers; the canonical
-frontend service explicitly clears it even when a shared `.env` is loaded.
+The setup wizard generates this token. Manual setup instructions in the
+distribution describe generating it. Keep the internal RPC token out of
+containers that do not need it; the VM/Caddy distribution explicitly clears it
+for its reverse-proxy and example application services even though they load
+the shared `.env`.
 
 Application telemetry and developer access credentials are issued in Studio:
 
@@ -128,10 +130,11 @@ covers creation and verification.
 
 ### Database Storage
 
-`JUNJO_HOST_DB_DATA_PATH` selects the host data directory mounted by backend
-and ingestion. The minimal distribution defaults to `./.dbdata`. For a
-persistent mounted volume, point it to the volume's existing mount directory.
-Keep the matching container paths from the distribution.
+`JUNJO_HOST_DB_DATA_PATH` selects the host data directory mounted by the
+application and ingestion services. The minimal distribution defaults to
+`./.dbdata`. For a persistent mounted volume, point it to the volume's
+existing mount directory. Keep the matching container paths from the
+distribution.
 
 ### Logging
 
@@ -143,20 +146,21 @@ for defaults. Avoid copying secrets or customer payloads into support reports.
 
 | Setting | Destination |
 | --- | --- |
-| `JUNJO_PROD_FRONTEND_URL` | Public Studio web UI origin, used for human evidence links. |
-| `JUNJO_PROD_BACKEND_URL` | Public backend API origin, reachable by the browser and evaluation clients. |
-| `JUNJO_PROD_INGESTION_URL` | Public OTLP/gRPC ingestion origin. |
+| `JUNJO_PROD_INGESTION_URL` | Public OTLP/gRPC ingestion origin, as an `http://` or `https://` URL. The web UI shows it in its SDK setup instructions. |
 
-The coding agent's `JUNJO_AI_STUDIO_BACKEND_BASE_URL` points to the backend
-origin, not the UI or ingestion address. SDK/CLI control access requires HTTPS
+Studio's own address needs no setting. The web UI and the HTTP API are one
+origin, and the application service does not need to know its public URL.
+
+The coding agent's `JUNJO_AI_STUDIO_BACKEND_BASE_URL` points to that Studio
+origin, not the ingestion address. SDK/CLI control access requires HTTPS
 outside loopback, including when using a VM or container hostname.
 
 ## Volume Mounts
 
-Backend and ingestion must see the **same underlying files at their expected
-container paths**. The backend reads Parquet and the hot snapshot directly;
-a working network connection between the services does not replace the shared
-storage requirement. The frontend is stateless.
+The application and ingestion services must see the **same underlying files at
+their expected container paths**. The backend reads Parquet and the hot
+snapshot directly; a working network connection between the services does not
+replace the shared storage requirement.
 
 ### Local Directory Structure
 
@@ -191,27 +195,24 @@ container ports:
 
 | Destination | Service and container port | Purpose |
 | --- | --- | --- |
-| Web UI | `junjo-ai-studio-frontend:26153` | Browser application |
-| Backend API | `junjo-ai-studio-backend:26154` | Browser, SDK, and CLI HTTP API |
+| Web UI and HTTP API | `junjo-ai-studio-app:26154` | Browser application; browser, SDK, and CLI HTTP API |
 | Ingestion | `junjo-ai-studio-ingestion:26155` | Application OTLP/gRPC traces |
 | Ingestion private RPC | `junjo-ai-studio-ingestion:50052` | Backend hot-snapshot coordination |
-| Backend private RPC | `junjo-ai-studio-backend:50053` | Ingestion API-key validation |
+| Backend private RPC | `junjo-ai-studio-app:50053` | Ingestion API-key validation |
 
 Application exporters and evaluation clients do not use the two private RPC
 ports. Preserve their private routing when adapting the deployment.
 
 ### External Access
 
-For local host processes, the default frontend, backend, and ingestion
-addresses use `localhost` and host ports `26153`, `26154`, and `26155`
-respectively. `JUNJO_FRONTEND_HOST_PORT`, `JUNJO_BACKEND_HOST_PORT`, and
-`JUNJO_INGESTION_HOST_PORT` can change those host ports without changing the
-container ports.
+For local host processes, the default Studio and ingestion addresses use
+`localhost` and host ports `26154` and `26155` respectively.
+`JUNJO_BACKEND_HOST_PORT` and `JUNJO_INGESTION_HOST_PORT` can change those
+host ports without changing the container ports.
 
 For remote access, use the HTTPS origins configured by your reverse proxy.
-The backend must be reachable from the coding agent's execution environment
-as well as from the human's browser. A localhost-only backend does not enable
-remote evaluation access just because the web UI is reachable.
+The Studio origin must be reachable from the coding agent's execution
+environment as well as from the human's browser. Both use the same address.
 
 ## Resource Requirements
 
@@ -261,21 +262,22 @@ topology.
 ### Service Won't Start
 
 Run `docker compose ps` and inspect logs from the distribution directory.
-The canonical service names are `junjo-ai-studio-backend`,
-`junjo-ai-studio-ingestion`, and `junjo-ai-studio-frontend`; for example,
+The canonical service names are `junjo-ai-studio-app` and
+`junjo-ai-studio-ingestion`; for example,
 `docker compose logs junjo-ai-studio-ingestion` reads ingestion logs.
 
-Check required secrets, host port conflicts, the persistent mount, and write
+Check required settings, host port conflicts, the persistent mount, and write
 permissions. Let Compose create its project network. Preserve persistent data
 while investigating; deleting volumes or formatting disks is not a general
 startup fix.
 
 ### API Errors
 
-Verify the actual backend origin, allowed browser origin, and production URL
-configuration. Check backend logs. If the browser works but the CLI fails,
-check the developer access token's scopes and expiration, and confirm HTTPS
-for a non-loopback origin. An ingestion API key cannot authenticate the CLI.
+Verify the actual Studio origin and the reverse-proxy route to the application
+service. Check the application service's logs. If the browser works but the
+CLI fails, check the developer access token's scopes and expiration, and
+confirm HTTPS for a non-loopback origin. An ingestion API key cannot
+authenticate the CLI.
 
 ## Next Steps
 

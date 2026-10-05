@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_BACKEND_URL = "http://localhost:26154"
+VITE_DEVELOPMENT_SERVER_URL = "http://localhost:26151"
 LOCAL_BACKEND_PORT = 26154
 LOCAL_ADMIN_EMAIL = "admin@test.com"
 LOCAL_ADMIN_PASSWORD = "JunjoAIStudioLocalTestPass1!"
@@ -147,6 +148,23 @@ class StudioClient:
         except json.JSONDecodeError as error:
             raise ProvisioningError(f"Studio returned invalid JSON: {method} {path}") from error
 
+    def serves_ui(self) -> bool:
+        """Report whether the backend answers GET / with the Studio app.
+
+        A backend that serves the UI answers 200 with an HTML body. A backend
+        that serves only the API answers with a JSON error.
+        """
+
+        request = urllib.request.Request(f"{self.base_url}/", method="GET")
+        try:
+            with self.opener.open(request) as response:
+                return response.status == 200 and response.headers.get_content_type() == "text/html"
+        except urllib.error.HTTPError as error:
+            error.close()
+            return False
+        except (urllib.error.URLError, OSError) as error:
+            raise ProvisioningError("Studio request failed: GET /") from error
+
 
 def require(condition: bool, message: str) -> None:
     """Raise one explicit, credential-free provisioning error."""
@@ -205,7 +223,7 @@ def validate_backend_url(value: str) -> str:
 def validate_local_runtime(client: StudioClient) -> None:
     """Prove the target is a healthy Studio development runtime."""
 
-    config = require_object(client.request("/api/config"), "Studio config response")
+    config = require_object(client.request("/api/v1/config"), "Studio config response")
     require(
         config.get("environment") == "development",
         "Local provisioning requires Studio to report development mode",
@@ -218,7 +236,7 @@ def authenticate_local_owner(client: StudioClient) -> None:
     """Create the local owner only on an empty Studio, then sign in normally."""
 
     status = require_object(
-        client.request("/users/db-has-users"),
+        client.request("/api/v1/users/db-has-users"),
         "Studio setup-status response",
     )
     users_exist = status.get("users_exist")
@@ -228,7 +246,7 @@ def authenticate_local_owner(client: StudioClient) -> None:
     )
     if not users_exist:
         client.request(
-            "/users/create-first-user",
+            "/api/v1/users/create-first-user",
             method="POST",
             body={
                 "email": LOCAL_ADMIN_EMAIL,
@@ -237,7 +255,7 @@ def authenticate_local_owner(client: StudioClient) -> None:
         )
 
     client.request(
-        "/sign-in",
+        "/api/v1/sign-in",
         method="POST",
         body={
             "email": LOCAL_ADMIN_EMAIL,
@@ -245,7 +263,7 @@ def authenticate_local_owner(client: StudioClient) -> None:
         },
     )
     authenticated = require_object(
-        client.request("/auth-test"),
+        client.request("/api/v1/auth-test"),
         "Studio authentication response",
     )
     require(
@@ -257,7 +275,7 @@ def authenticate_local_owner(client: StudioClient) -> None:
 def find_or_create_api_key(client: StudioClient) -> tuple[str, bool]:
     """Return the one named persistent local telemetry credential."""
 
-    records = require_list(client.request("/api_keys"), "API-key list response")
+    records = require_list(client.request("/api/v1/api-keys"), "API-key list response")
     matches = [
         require_object(record, "API-key record")
         for record in records
@@ -272,7 +290,7 @@ def find_or_create_api_key(client: StudioClient) -> tuple[str, bool]:
 
     created = require_object(
         client.request(
-            "/api_keys",
+            "/api/v1/api-keys",
             method="POST",
             body={"name": LOCAL_API_KEY_NAME},
         ),
@@ -361,7 +379,22 @@ def provision_studio(client: StudioClient) -> ProvisionedCredentials:
     )
 
 
-def environment_values(credentials: ProvisionedCredentials) -> dict[str, str]:
+def studio_frontend_base_url(client: StudioClient) -> str:
+    """Return the origin where a person opens Studio pages.
+
+    The backend serves the UI itself unless it runs as the API-only
+    development target, where the Vite development server serves the UI.
+    """
+
+    if client.serves_ui():
+        return DEFAULT_BACKEND_URL
+    return VITE_DEVELOPMENT_SERVER_URL
+
+
+def environment_values(
+    credentials: ProvisionedCredentials,
+    frontend_base_url: str,
+) -> dict[str, str]:
     """Return the canonical repository-local example settings."""
 
     return {
@@ -370,7 +403,7 @@ def environment_values(credentials: ProvisionedCredentials) -> dict[str, str]:
         "JUNJO_AI_STUDIO_OTLP_ENDPOINT": "localhost:26155",
         "JUNJO_AI_STUDIO_OTLP_INSECURE": "true",
         "JUNJO_AI_STUDIO_BACKEND_BASE_URL": DEFAULT_BACKEND_URL,
-        "JUNJO_AI_STUDIO_FRONTEND_BASE_URL": "http://localhost:26151",
+        "JUNJO_AI_STUDIO_FRONTEND_BASE_URL": frontend_base_url,
     }
 
 
@@ -467,6 +500,7 @@ def require_ignored_environment_files(repository_root: Path) -> None:
 def configure_example_environments(
     repository_root: Path,
     credentials: ProvisionedCredentials,
+    frontend_base_url: str,
     *,
     verify_ignored: bool = True,
 ) -> tuple[Path, ...]:
@@ -474,7 +508,7 @@ def configure_example_environments(
 
     if verify_ignored:
         require_ignored_environment_files(repository_root)
-    values = environment_values(credentials)
+    values = environment_values(credentials, frontend_base_url)
     rendered: list[tuple[Path, bytes]] = []
     for target in ENVIRONMENT_TARGETS:
         destination = repository_root / target.relative_path
@@ -496,7 +530,12 @@ def run(*, backend_url: str, repository_root: Path) -> int:
 
     client = StudioClient(validate_backend_url(backend_url))
     credentials = provision_studio(client)
-    configured_paths = configure_example_environments(repository_root, credentials)
+    frontend_base_url = studio_frontend_base_url(client)
+    configured_paths = configure_example_environments(
+        repository_root,
+        credentials,
+        frontend_base_url,
+    )
 
     api_action = "created" if credentials.api_key_created else "reused"
     token_action = "created" if credentials.access_token_created else "reused"

@@ -3,7 +3,7 @@
  *
  * Tests the first user creation flow including:
  * - Form submission
- * - API calls (create-first-user, auth-test, db-has-users, api_keys)
+ * - API calls (create-first-user, auth-test, db-has-users, api-keys)
  * - Navigation based on API key status
  */
 
@@ -59,16 +59,16 @@ describe('SetupForm', () => {
 
     // Override the mock to return an error
     server.use(
-      http.post(`${API_BASE}/users/create-first-user`, () => {
+      http.post(`${API_BASE}/api/v1/users/create-first-user`, () => {
         return HttpResponse.json(
-          { detail: 'User already exists' },
-          { status: 409 }
+          { code: 'users_already_exist', message: 'User already exists' },
+          { status: 400 }
         )
       }),
       // Also mock auth-test to return unauthorized (user not created, so not authenticated)
-      http.get(`${API_BASE}/auth-test`, () => {
+      http.get(`${API_BASE}/api/v1/auth-test`, () => {
         return HttpResponse.json(
-          { detail: 'Unauthorized' },
+          { code: 'unauthorized', message: 'Unauthorized' },
           { status: 401 }
         )
       })
@@ -95,7 +95,7 @@ describe('SetupForm', () => {
   it('shows a status fallback when setup receives a non-JSON error', async () => {
     const user = userEvent.setup()
     server.use(
-      http.post(`${API_BASE}/users/create-first-user`, () => {
+      http.post(`${API_BASE}/api/v1/users/create-first-user`, () => {
         return new HttpResponse('Internal Server Error', { status: 500 })
       })
     )

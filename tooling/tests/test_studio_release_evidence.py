@@ -62,7 +62,7 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
         }
         for service, character in zip(
             evidence_builder.SERVICES,
-            ("1", "2", "3"),
+            ("1", "2"),
             strict=True,
         ):
             digest = f"sha256:{character * 64}"
@@ -226,10 +226,10 @@ class StudioReleaseEvidenceTests(unittest.TestCase):
             self.build(source_revision="abc123")
 
     def test_rejects_invalid_image_digest(self) -> None:
-        report = json.loads((self.images / "frontend.json").read_text())
+        report = json.loads((self.images / "ingestion.json").read_text())
         report["digest"] = "sha256:not-a-digest"
-        self.write_json_to(self.images / "frontend.json", report)
-        with self.assertRaisesRegex(RuntimeError, "frontend image digest"):
+        self.write_json_to(self.images / "ingestion.json", report)
+        with self.assertRaisesRegex(RuntimeError, "ingestion image digest"):
             self.build()
 
     def test_rejects_unexpected_evidence_files(self) -> None:

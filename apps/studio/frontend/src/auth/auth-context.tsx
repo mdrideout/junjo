@@ -1,6 +1,5 @@
 import { useState, ReactNode, useCallback, useEffect } from 'react'
 import { UsersExistSchema } from './schema'
-import { getApiHost } from '../config'
 import { AuthContext } from './auth-context-value'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -17,8 +16,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSetupCheckLoading(true)
     try {
       // --- Use the dedicated setup status endpoint ---
-      const endpoint = '/users/db-has-users'
-      const response = await fetch(`${getApiHost()}${endpoint}`, {
+      const endpoint = '/api/v1/users/db-has-users'
+      const response = await fetch(endpoint, {
         method: 'GET',
       })
       if (response.ok) {
@@ -29,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNeedsSetup(needsSetup)
       } else {
         // Handle errors fetching setup status (e.g., backend not ready?)
-        console.error('Unexpected response from /users/db-has-users:', response.status)
+        console.error('Unexpected response from /api/v1/users/db-has-users:', response.status)
         // Decide fallback: assume setup not needed? Or block? For safety, maybe assume not needed or show error.
         setNeedsSetup(false) // Fallback: Assume setup not needed on error
       }
@@ -41,12 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Check authentication status by making a request to /auth-test
+  // Check authentication status by making a request to /api/v1/auth-test
   const checkAuthStatus = useCallback(async () => {
     setAuthCheckLoading(true)
     try {
-      const endpoint = '/auth-test'
-      const response = await fetch(`${getApiHost()}${endpoint}`, {
+      const endpoint = '/api/v1/auth-test'
+      const response = await fetch(endpoint, {
         method: 'GET',
         credentials: 'include',
       })
@@ -56,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(false) // Explicitly handle the 401
       } else {
         // Handle other errors (e.g., 500, network issues)
-        console.error('Unexpected response from /auth-test:', response.status)
+        console.error('Unexpected response from /api/v1/auth-test:', response.status)
         setIsAuthenticated(false) // Assume not authenticated in case of other errors
       }
     } catch (error) {
@@ -81,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      const endpoint = '/sign-out'
-      const response = await fetch(`${getApiHost()}${endpoint}`, {
+      const endpoint = '/api/v1/sign-out'
+      const response = await fetch(endpoint, {
         method: 'POST',
         credentials: 'include',
       })

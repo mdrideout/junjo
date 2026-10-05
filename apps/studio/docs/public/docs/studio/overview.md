@@ -197,8 +197,8 @@ follow the application's instrumentation and privacy settings.
 
 The SDK's evidence resolution returns paths such as `detail_path` and
 `trace_path`. Prefer those returned paths when producing a report. Combine
-them with the **Studio web UI origin**, which may differ from the backend API
-origin used by the CLI.
+them with the **Studio origin** that readers open in a browser. A deployed
+Studio serves the web UI from the same origin as the API the CLI uses.
 
 For reports that link to datasets and runs directly, use these route templates
 with actual IDs from your Studio instance. URL-encode path segments and query
@@ -324,11 +324,11 @@ telemetry destination.
 
 ## Architecture Details
 
-The backend stores canonical evaluation and account records in SQLite and
-queries received telemetry. Ingestion receives OTLP traces and writes the
-shared WAL and Parquet storage. The frontend presents those records to people.
-See the [Docker reference](/docs/studio/docker-reference/) for service,
-credential, networking, and storage boundaries.
+The backend stores canonical evaluation and account records in SQLite,
+queries received telemetry, and serves the web UI that presents those records
+to people. Ingestion receives OTLP traces and writes the shared WAL and
+Parquet storage. See the [Docker reference](/docs/studio/docker-reference/)
+for service, credential, networking, and storage boundaries.
 
 ## Troubleshooting
 
@@ -354,7 +354,7 @@ needs, so check that policy when a targeted scenario is absent. See the
 
 ### Docker Compose not starting
 
-Check the selected distribution's setup, required secrets, service logs, and
+Check the selected distribution's setup, required settings, service logs, and
 host port conflicts. Preserve the data directory during diagnosis. The
 [deployment guide](/docs/studio/deployment/) and [Docker troubleshooting](/docs/studio/docker-reference/#troubleshooting)
 provide the operator steps.

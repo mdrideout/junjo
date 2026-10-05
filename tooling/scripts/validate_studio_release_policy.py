@@ -21,7 +21,7 @@ TWO_PART_STUDIO_TAG_PATTERN = re.compile(
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 IMAGE_DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 REPOSITORY_PATTERN = re.compile(r"^[a-z0-9_.-]+/[a-z0-9_.-]+$")
-EXPECTED_SERVICES = ("backend", "frontend", "ingestion")
+EXPECTED_SERVICES = ("backend", "ingestion")
 EXPECTED_DISTRIBUTIONS = ("minimal", "vm-caddy")
 
 

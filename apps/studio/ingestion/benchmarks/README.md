@@ -5,10 +5,11 @@ OTLP ingestion service with a benchmark-only Compose overlay. The overlay
 allocates half a CPU to each service and 800 MiB of combined container memory,
 approximating the supported one-vCPU/1GB host after OS overhead.
 
-Run from `apps/studio` through the backend's locked Python environment:
+The harness has its own locked Python project in this directory. Run from
+`apps/studio/ingestion/benchmarks`:
 
 ```bash
-uv run --project backend python ingestion/benchmarks/auth_path_benchmark.py \
+uv run python auth_path_benchmark.py \
   --verify-delivery --wal-probe-spans 0 --output /tmp/junjo-auth-benchmark.json
 ```
 
@@ -21,6 +22,11 @@ Revocation results distinguish the last successfully accepted export from the
 first rejection response; only the former measures the authorization window,
 while the latter also includes the authoritative invalid lookup and response
 latency after expiry.
+
+Use `--first-user-path` and `--api-keys-path` when the backend under test
+serves those two setup routes somewhere else. They are recorded under
+`setup_paths` and are not part of the compared workload, so results from
+backends with different setup routes remain comparable.
 
 Use `--cache-ttl-seconds 0` for the no-cache comparison and `--skip-build` when
 the current images have already been built. Other flags expose the bounded
@@ -88,16 +94,16 @@ report the comparison as inconclusive and use a quieter measurement host.
 CPU-affinity experiments belong in a separate overlay and separate comparison;
 they do not replace the original resource-profile results. With `--output`,
 the harness also saves service logs beside the JSON before removing its stack.
-The Rust service uses log level `warn`; Python uses `warning`.
+Both services log at level `warn`.
 
 The older `e2e_test_apps/orchestration/benchmark.py` headline counts generated
 spans, which can exceed delivered spans when its exporter queue drops work.
 That headline alone is not performance acceptance evidence.
 
-Run benchmark correctness checks through the backend environment:
+Run benchmark correctness checks from this directory:
 
 ```bash
-uv run --project backend python -m pytest -q ingestion/benchmarks/test_delivery.py
+uv run pytest -q test_delivery.py
 ```
 
 `--key-topology shared` reuses one credential across exporters, while
@@ -120,8 +126,8 @@ for measured candidates, rejected experiments and remaining acceptance limits.
 Run the repository-owned candidate matrix after building the current images:
 
 ```bash
-uv run --project backend python ingestion/benchmarks/auth_path_matrix.py \
-  --output ../../docs/roadmaps/STUDIO_INGESTION_API_KEY_AUTHORIZATION_MATRIX.json
+uv run python auth_path_matrix.py \
+  --output ../../../../docs/roadmaps/STUDIO_INGESTION_API_KEY_AUTHORIZATION_MATRIX.json
 ```
 
 The matrix varies TTL, cache capacity, validation concurrency, pending-request
@@ -130,6 +136,112 @@ count, key topology, synchronization, and span batch size. Every scenario uses
 the counting proxy and the same aggregate one-vCPU allocation. The 1-second
 deadline scenario is an expected fail-fast result; all other candidates must
 complete every logical export and query.
+
+The counting proxy is `auth_backend_proxy.py`. Compose builds its image from
+the `Dockerfile` in this directory, which generates the proxy's gRPC stubs
+from `proto/auth.proto`. The stubs are not checked in.
+
+## Real-world runs
+
+A change to the query path, the backend, or ingestion is measured from where
+a person and an application use Studio, while ingestion processes spans. The
+root `AGENTS.md` states that requirement. This section owns the procedure.
+
+Queries sent to the API, and queries sent after ingestion has finished, do
+not show what Studio's pages do while spans arrive. On a live deployment
+every query also reads the hot snapshot of unflushed spans, concurrent pages
+share the backend's query memory, and a busy backend slows the API key
+validation that ingestion asks it for.
+
+`real_world.py` runs the harness with four things at once:
+
+- **Load.** The exporters send Studio-shaped traces (`--span-shape studio`):
+  a Workflow root span with every other span as its child, two in six of them
+  LLM spans, written to three services and stamped with the time of export.
+  By default 50 exporters each send one 32-span trace every 100 ms for 90
+  seconds, which offers 16,000 spans a second and 1,440,000 in all.
+- **The real frontend.** `frontend/e2e/live-load.mjs` signs in and drives four
+  browser tabs through the pages a person uses: the services page, the Traces
+  page as it opens with "Has LLM Spans" checked, the Traces page with every
+  trace, one trace's detail, and the Workflow executions page. It records
+  what each page showed and how long that took, and the status and time of
+  every API response.
+- **The real SDK.** `tooling/scripts/validate_agent_studio_e2e.py` runs a
+  deterministic Agent composition with the Python SDK, exports its spans to
+  the same ingestion service, and checks Studio's APIs for the run. The
+  frontend's `test:e2e:agent-live` proof then finds the run in a browser.
+  These repeat, one run after another, until 30 seconds before the tabs stop.
+- **Freshness.** `--freshness-probe` exports a three-span trace every two
+  seconds and asks for it every 100 ms until all three spans are returned.
+  That is the time from an accepted span to a readable one.
+
+The harness starts the browser tabs and the SDK runs through
+`--side-command`, together with the exporters, and waits for the command
+before it measures the containers. The command gets the Studio origin, the
+ingestion port, the services, the first user's credentials, and a path for
+its JSON output in its environment: `JUNJO_BENCHMARK_STUDIO_URL`,
+`JUNJO_BENCHMARK_INGESTION_PORT`, `JUNJO_BENCHMARK_SERVICES`,
+`JUNJO_STUDIO_E2E_EXISTING_EMAIL`, `JUNJO_STUDIO_E2E_EXISTING_PASSWORD`, and
+`JUNJO_BENCHMARK_SIDE_OUTPUT`. The result holds that output under
+`side_activity`.
+
+It needs what those parts need: the frontend's dependencies and Playwright's
+Chromium (`npm ci` and `npm exec playwright install chromium` in
+`frontend/`), and `uv` for the SDK's project.
+
+Build the baseline and the candidate images first and select each with
+`JUNJO_BENCHMARK_COMPOSE_OVERLAY`, as "Comparing production candidates"
+describes. Then run each build, alternating, at least three times:
+
+```bash
+uv run python real_world.py --skip-build \
+  --label baseline --output /tmp/junjo-real-world/baseline-1.json
+uv run python real_world.py --skip-build \
+  --label candidate --output /tmp/junjo-real-world/candidate-1.json
+```
+
+Each run prints its own numbers and writes the harness result, the services'
+logs, and the harness's log beside each other. Print the runs side by side,
+one column per build:
+
+```bash
+uv run python real_world_report.py \
+  baseline=/tmp/junjo-real-world/baseline-1.json,/tmp/junjo-real-world/baseline-2.json \
+  candidate=/tmp/junjo-real-world/candidate-1.json,/tmp/junjo-real-world/candidate-2.json
+```
+
+Repeat the comparison at a heavier rate, where ingestion and the backend
+compete for the profile's one vCPU. `--export-interval-ms 25` offers four
+times the spans.
+
+Compare a run with its neighbours, not with a run from another hour. The
+backend spends its whole CPU quota in these runs, so the page loads a run
+completes follow how fast the host's CPUs were during it. Ingestion does the
+same work in every run at one rate, so its CPU seconds show that speed: when
+they rise, page loads fall for every build. A build that looks slower in
+runs where ingestion's CPU seconds are also higher has not been shown to be
+slower.
+
+The harness checks still decide whether a run counts: every export succeeded,
+every acknowledged span is in canonical storage, neither service was killed
+for memory or restarted, both stopped in order, and the browser activity ran
+to its end. Everything the pages and the SDK experienced is reported and not
+gated: page outcomes and latency, API responses that were 5xx, the default
+Traces view coming back empty or shorter than the full list, SDK runs shown,
+freshness, exports refused and retried, export latency, and each service's
+CPU and peak memory. Every trace the exporters send has LLM spans, so the
+default view and the full list hold the same traces, and a shorter default
+view is missing some. The script sets no thresholds. Compare the candidate with the baseline from the same
+round, and bring a difference in either direction to the maintainer with the
+numbers.
+
+What these runs do not show:
+
+- The exporters' traces are one root with flat children. Only the SDK's run
+  has the nesting, events, and Store state of a real Workflow or Agent.
+- Four tabs are one person moving quickly. They are not many people.
+- A run lasts 90 seconds, so it sees the first cold flushes and the first
+  indexer cycles. It does not show a deployment with weeks of cold files.
 
 ## Historical transport baselines
 
@@ -152,3 +264,10 @@ and `--cache-ttl-seconds 600` for the unmodified worktree. Use
 patched worktree. Both runs should use `--skip-revocation`; the historical
 600-second behavior is measured only as a warm-path performance baseline and
 is not restored to the active source tree.
+
+The pinned revision predates the Rust backend. Its Python backend serves the
+two setup routes at other paths and needs settings this overlay no longer
+provides. Pass `--first-user-path /users/create-first-user` and
+`--api-keys-path /api_keys`, and set `JUNJO_BENCHMARK_COMPOSE_OVERLAY` to a
+Compose file that gives the `backend` service `JUNJO_LOG_LEVEL: warning` and
+the two session secrets named in that revision's `.env.example`.

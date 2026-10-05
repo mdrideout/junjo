@@ -63,7 +63,7 @@ describe('API Contract: execution resolution', () => {
     expect(operation.responses['422']).toMatchObject({
       content: {
         'application/json': {
-          schema: { $ref: '#/components/schemas/HTTPValidationError' },
+          schema: { $ref: '#/components/schemas/ErrorResponse' },
         },
       },
     })

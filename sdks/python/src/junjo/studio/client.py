@@ -16,6 +16,9 @@ from pydantic import BaseModel, SecretStr, TypeAdapter, ValidationError
 from .comparison import RunComparison, project_run_comparison
 from .errors import (
     AttemptEvidenceUnavailable,
+    CliSignInDenied,
+    CliSignInExpired,
+    CliSignInPending,
     ExecutionEvidencePending,
     ExecutionIdentityAmbiguous,
     StudioAuthenticationError,
@@ -39,12 +42,18 @@ from .models import (
     AttemptResultWrite,
     CaseCreate,
     CaseRead,
+    CliSignInStart,
+    CliSignInStarted,
+    CliSignInToken,
+    CliSignInTokenRequest,
     ConflictResponse,
+    CurrentTokenRead,
     CursorText,
     DatasetCreate,
     DatasetDetail,
     DatasetList,
     DatasetRead,
+    ErrorResponse,
     EvidenceMembershipList,
     ExecutionEvidenceReference,
     ExecutionResolutionConflict,
@@ -85,7 +94,8 @@ class StudioClient:
     Evaluation operations use a separately scoped Studio control/query token.
     Ingestion API keys and Studio account passwords are not accepted by this
     interface. A token may be omitted only for unauthenticated capability and
-    health inspection.
+    health inspection, and for starting and collecting the CLI browser sign-in
+    that obtains a token.
 
     The client reuses one :class:`httpx.AsyncClient` for its lifetime.  It
     applies explicit connection and timeout limits, consumes response streams
@@ -211,6 +221,106 @@ class StudioClient:
             "/health",
             StudioHealth,
         )
+
+    async def start_cli_sign_in(self, request: CliSignInStart) -> CliSignInStarted:
+        """Start a CLI browser sign-in and return its device code and user code.
+
+        This is the first step of the browser sign-in that ``junjo auth login``
+        performs. It needs no token: the terminal that asks has no credential
+        yet. Show ``user_code`` to a person, send them to ``verification_path``
+        on the same Studio origin with the user code as the ``code`` query
+        parameter, and call :meth:`collect_cli_sign_in_token` with
+        ``device_code`` every ``interval`` seconds until ``expires_in`` seconds
+        have passed.
+
+        :param request: Name the terminal reports for itself and the scopes the
+            minted developer access token will hold.
+        :return: The device code, the user code, the approval page path, the
+            sign-in lifetime, and the polling interval.
+        :raises StudioValidationError: If Studio rejects the name or scopes.
+        """
+
+        return await self._model_request(
+            "POST",
+            "/api/v1/cli-sign-ins",
+            CliSignInStarted,
+            json=request.model_dump(mode="json"),
+        )
+
+    async def collect_cli_sign_in_token(self, device_code: str) -> CliSignInToken:
+        """Collect the developer access token of an approved CLI browser sign-in.
+
+        The device code is the credential, so this needs no token. Studio
+        returns the token once: a second call with the same device code raises
+        :class:`CliSignInExpired`. An undecided, denied, or expired sign-in is
+        an expected outcome of polling and is raised as its own typed error
+        rather than as a generic request failure.
+
+        :param device_code: Device code returned by :meth:`start_cli_sign_in`.
+        :return: The minted developer access token, its identifier, and scopes.
+        :raises CliSignInPending: If nobody has approved or denied the sign-in
+            yet. Wait for the interval and collect again.
+        :raises CliSignInDenied: If a person denied the sign-in.
+        :raises CliSignInExpired: If the device code is unknown, already used,
+            or expired.
+        """
+
+        request = CliSignInTokenRequest(device_code=device_code)
+        path = "/api/v1/cli-sign-ins/token"
+        response = await self._request(
+            "POST",
+            path,
+            json=request.model_dump(mode="json"),
+            max_response_bytes=self._max_control_response_bytes,
+        )
+        if response.status_code == 400:
+            code = self._parse(response, ErrorResponse).code
+            if code == "authorization_pending":
+                raise CliSignInPending()
+            if code == "access_denied":
+                raise CliSignInDenied()
+            if code == "expired_token":
+                raise CliSignInExpired()
+            raise StudioContractError("Studio answered a CLI sign-in with an unsupported outcome code.")
+        self._raise_for_status(response, method="POST", path=path)
+        return self._parse(response, CliSignInToken)
+
+    async def get_current_token(self) -> CurrentTokenRead:
+        """Return what Studio knows about the token this client authenticates with.
+
+        Any valid developer access token may ask, whatever its scopes. Studio
+        does not repeat the token value. ``junjo auth status`` uses this to
+        report whether Studio accepts a credential.
+
+        :return: The token's identifier, name, scopes, expiry, and creation
+            time.
+        :raises StudioAuthenticationError: If the token was revoked, has
+            expired, or was never valid, or if the client has no token.
+        """
+
+        return await self._model_request(
+            "GET",
+            "/api/v1/evaluation-tokens/current",
+            CurrentTokenRead,
+        )
+
+    async def delete_current_token(self) -> None:
+        """Revoke the token this client authenticates with.
+
+        Studio deletes the token, and it stops working at once: every later
+        request from this client is rejected. ``junjo auth logout`` uses this
+        before it deletes the stored credential.
+
+        :raises StudioAuthenticationError: If Studio already rejects the token.
+        """
+
+        path = "/api/v1/evaluation-tokens/current"
+        response = await self._request(
+            "DELETE",
+            path,
+            max_response_bytes=self._max_control_response_bytes,
+        )
+        self._raise_for_status(response, method="DELETE", path=path)
 
     async def create_dataset(self, request: DatasetCreate) -> DatasetRead:
         """Create or retrieve a dataset by application key and dataset key."""

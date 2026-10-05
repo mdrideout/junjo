@@ -16,6 +16,15 @@ from urllib.parse import urlparse
 
 ENV_KEY_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$")
 
+# No container limits for a development build. To Compose, 0 and -1 mean
+# unlimited.
+DEVELOPMENT_CONTAINER_LIMITS: dict[str, str] = {
+    "JUNJO_BACKEND_MEM_RESERVATION": "0",
+    "JUNJO_BACKEND_MEM_LIMIT": "0",
+    "JUNJO_BACKEND_MEMSWAP_LIMIT": "0",
+    "JUNJO_BACKEND_PIDS_LIMIT": "-1",
+}
+
 PROFILE_DEFAULTS: dict[str, dict[str, str]] = {
     "1g": {
         "JUNJO_BACKEND_MEM_RESERVATION": "300m",
@@ -69,8 +78,6 @@ PROFILE_DISPLAY_LABELS: dict[str, str] = {
 
 SECRET_PLACEHOLDERS = {
     "",
-    "your_base64_secret_here",
-    "your_base64_key_here",
     "your_internal_grpc_token_here",
 }
 
@@ -143,7 +150,7 @@ def update_env_lines(lines: list[str], updates: dict[str, str]) -> list[str]:
 
 
 def mask_value(key: str, value: str) -> str:
-    if key in {"JUNJO_SESSION_SECRET", "JUNJO_SECURE_COOKIE_KEY", "JUNJO_INTERNAL_GRPC_TOKEN"}:
+    if key == "JUNJO_INTERNAL_GRPC_TOKEN":
         return "<redacted>"
     return value
 
@@ -259,30 +266,9 @@ def prompt_text(prompt: str, default: str | None = None, required: bool = False)
         print("Value is required.")
 
 
-def prompt_yes_no(prompt: str, default: bool = True) -> bool:
-    default_hint = "Y/n" if default else "y/N"
-    while True:
-        raw = input(f"{prompt} [{default_hint}]: ").strip().lower()
-        if not raw:
-            return default
-        if raw in {"y", "yes"}:
-            return True
-        if raw in {"n", "no"}:
-            return False
-        print("Please answer yes or no.")
-
-
 def validate_url(url: str) -> bool:
     parsed = urlparse(url)
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
-
-
-def registrable_domain(url: str) -> str:
-    host = (urlparse(url).hostname or "").lower().strip(".")
-    parts = host.split(".")
-    if len(parts) < 2:
-        return host
-    return ".".join(parts[-2:])
 
 
 def infer_profile(current: dict[str, str]) -> str:
@@ -292,6 +278,13 @@ def infer_profile(current: dict[str, str]) -> str:
     if mem_limit in {"1200m", "1536m", "1500m"}:
         return "2g"
     if mem_limit in {"2500m", "3g", "3072m"}:
+        return "4g"
+    # A development build has no container limit to read. Its query tuning
+    # still names the profile.
+    spill_pool = current.get("JUNJO_DF_SPILL_POOL_MB", "")
+    if spill_pool == PROFILE_DEFAULTS["2g"]["JUNJO_DF_SPILL_POOL_MB"]:
+        return "2g"
+    if spill_pool == PROFILE_DEFAULTS["4g"]["JUNJO_DF_SPILL_POOL_MB"]:
         return "4g"
     return "1g"
 
@@ -359,26 +352,31 @@ def run_setup(args: argparse.Namespace) -> int:
         )
         profile = profile_default if args.profile else prompt_profile(profile_default)
 
+    # The Vite development server is in the Compose profile "development".
+    # A development build needs both settings, so they are always set together.
+    compose_profiles = "development" if build_target == "development" else ""
+
     updates: dict[str, str] = {
         "JUNJO_ENV": target_env,
         "JUNJO_BUILD_TARGET": build_target,
+        "COMPOSE_PROFILES": compose_profiles,
     }
     updates.update(PROFILE_DEFAULTS[profile])
+    if build_target == "development":
+        # The development container compiles the backend, and the compiler
+        # needs several GB. The profile's container limits would stop the
+        # build, so a development build runs without them. The profile's
+        # query tuning still applies.
+        updates.update(DEVELOPMENT_CONTAINER_LIMITS)
 
-    # Production URLs
+    # Production ingestion URL
     if target_env == "production":
-        prod_frontend = args.prod_frontend_url or current.get("JUNJO_PROD_FRONTEND_URL", "")
-        prod_backend = args.prod_backend_url or current.get("JUNJO_PROD_BACKEND_URL", "")
         prod_ingestion = args.prod_ingestion_url or current.get("JUNJO_PROD_INGESTION_URL", "")
 
         if not non_interactive:
-            prod_frontend = prompt_text("Frontend URL", prod_frontend, required=True)
-            prod_backend = prompt_text("Backend URL", prod_backend, required=True)
             prod_ingestion = prompt_text("Ingestion URL", prod_ingestion, required=True)
 
         try:
-            updates["JUNJO_PROD_FRONTEND_URL"] = require_url(prod_frontend, "JUNJO_PROD_FRONTEND_URL")
-            updates["JUNJO_PROD_BACKEND_URL"] = require_url(prod_backend, "JUNJO_PROD_BACKEND_URL")
             updates["JUNJO_PROD_INGESTION_URL"] = require_url(
                 prod_ingestion, "JUNJO_PROD_INGESTION_URL"
             )
@@ -386,25 +384,10 @@ def run_setup(args: argparse.Namespace) -> int:
             print(f"Error: {e}")
             return 1
 
-        frontend_domain = registrable_domain(updates["JUNJO_PROD_FRONTEND_URL"])
-        backend_domain = registrable_domain(updates["JUNJO_PROD_BACKEND_URL"])
-        if frontend_domain and backend_domain and frontend_domain != backend_domain:
-            print(
-                "\nWarning: frontend/backend registrable domains differ. "
-                "Session cookies may fail with SameSite=Strict."
-            )
-            print(f"  frontend domain: {frontend_domain}")
-            print(f"  backend domain:  {backend_domain}")
-            if not non_interactive and not prompt_yes_no("Continue anyway?", default=False):
-                print("Aborted.")
-                return 1
-
-    # Security secrets
-    for secret_key in ("JUNJO_SESSION_SECRET", "JUNJO_SECURE_COOKIE_KEY", "JUNJO_INTERNAL_GRPC_TOKEN"):
-        existing = current.get(secret_key, "")
-        needs_generation = args.force_secrets or existing in SECRET_PLACEHOLDERS
-        if needs_generation:
-            updates[secret_key] = generate_secret()
+    # Internal gRPC token shared by the backend and ingestion
+    existing_token = current.get("JUNJO_INTERNAL_GRPC_TOKEN", "")
+    if args.force_secrets or existing_token in SECRET_PLACEHOLDERS:
+        updates["JUNJO_INTERNAL_GRPC_TOKEN"] = generate_secret()
 
     swap_state = detect_swap_enabled()
     if swap_state is False:
@@ -437,6 +420,7 @@ def run_setup(args: argparse.Namespace) -> int:
     summary_order = [
         "JUNJO_ENV",
         "JUNJO_BUILD_TARGET",
+        "COMPOSE_PROFILES",
         "JUNJO_BACKEND_MEM_RESERVATION",
         "JUNJO_BACKEND_MEM_LIMIT",
         "JUNJO_BACKEND_MEMSWAP_LIMIT",
@@ -449,11 +433,7 @@ def run_setup(args: argparse.Namespace) -> int:
         "JUNJO_DF_SPILL_ENABLED",
         "JUNJO_DF_SPILL_POOL_MB",
         "JUNJO_DF_SPILL_PATH",
-        "JUNJO_PROD_FRONTEND_URL",
-        "JUNJO_PROD_BACKEND_URL",
         "JUNJO_PROD_INGESTION_URL",
-        "JUNJO_SESSION_SECRET",
-        "JUNJO_SECURE_COOKIE_KEY",
         "JUNJO_INTERNAL_GRPC_TOKEN",
     ]
     for key in summary_order:
@@ -476,19 +456,19 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument(
         "--non-interactive",
         action="store_true",
-        help="Run without prompts (requires production URLs when --env production).",
+        help="Run without prompts (requires --prod-ingestion-url when --env production).",
     )
     setup.add_argument("--dry-run", action="store_true", help="Show actions without writing files.")
-    setup.add_argument("--force-secrets", action="store_true", help="Regenerate security secrets.")
+    setup.add_argument(
+        "--force-secrets", action="store_true", help="Regenerate the internal gRPC token."
+    )
     setup.add_argument("--env", choices=["development", "production"], help="Set JUNJO_ENV.")
     setup.add_argument(
         "--build-target",
         choices=["development", "production"],
-        help="Set JUNJO_BUILD_TARGET.",
+        help="Set JUNJO_BUILD_TARGET and the matching COMPOSE_PROFILES.",
     )
     setup.add_argument("--profile", choices=["1g", "2g", "4g"], help="Memory tuning profile.")
-    setup.add_argument("--prod-frontend-url", help="Set JUNJO_PROD_FRONTEND_URL.")
-    setup.add_argument("--prod-backend-url", help="Set JUNJO_PROD_BACKEND_URL.")
     setup.add_argument("--prod-ingestion-url", help="Set JUNJO_PROD_INGESTION_URL.")
 
     return parser

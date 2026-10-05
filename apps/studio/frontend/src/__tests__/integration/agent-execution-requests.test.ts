@@ -127,14 +127,8 @@ describe('Agent semantic API requests', () => {
     server.use(
       http.get(`${API_BASE}/api/v1/agent-executions`, () => HttpResponse.json(
         {
-          detail: [
-            {
-              type: 'timezone_aware',
-              loc: ['query', 'start_time'],
-              msg: 'Input should have timezone info',
-              input: '2026-07-14T00:00:00',
-            },
-          ],
+          code: 'invalid_request',
+          message: 'start_time: Input should have timezone info',
         },
         { status: 422 },
       )),

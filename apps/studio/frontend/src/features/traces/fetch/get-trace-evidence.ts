@@ -1,10 +1,9 @@
-import { getApiHost } from '../../../config'
 import { TraceEvidenceSchema, type TraceEvidence } from '../schemas/trace-evidence'
 import { TraceIdSchema } from '../../agent-executions/schemas/agent-execution'
 
 export async function getTraceEvidence(traceId: string): Promise<TraceEvidence> {
   const validatedTraceId = TraceIdSchema.parse(traceId)
-  const response = await fetch(`${getApiHost()}/api/v1/trace-evidence/${validatedTraceId}`, {
+  const response = await fetch(`/api/v1/trace-evidence/${validatedTraceId}`, {
     credentials: 'include',
   })
 

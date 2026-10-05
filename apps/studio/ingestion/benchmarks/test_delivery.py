@@ -9,7 +9,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from auth_path_benchmark import export_worker
+from auth_path_benchmark import (
+    STUDIO_SERVICE_NAMES,
+    export_worker,
+    make_studio_export_request,
+)
 from compare_results import compare
 from delivery import verify_delivery, workload_trace_id
 
@@ -64,6 +68,7 @@ async def test_partial_success_is_not_counted_as_successful_delivery():
         timing="synchronized",
         cadence_mode="start-to-start",
         max_retries=0,
+        span_shape="plain",
     )
     response = SimpleNamespace(
         HasField=lambda _: True, partial_success=SimpleNamespace(rejected_spans=1)
@@ -94,6 +99,31 @@ async def test_partial_success_is_not_counted_as_successful_delivery():
         )
     assert final == {"PARTIAL_SUCCESS": 1}
     assert not acknowledged
+
+
+def test_a_studio_shaped_trace_is_one_workflow_root_with_llm_spans_under_it():
+    request = make_studio_export_request(32, 4)
+    resource_spans = request.resource_spans[0]
+    spans = resource_spans.scope_spans[0].spans
+    attributes = [
+        {item.key: item.value.string_value for item in span.attributes}
+        for span in spans
+    ]
+
+    assert (
+        resource_spans.resource.attributes[0].value.string_value
+        == (STUDIO_SERVICE_NAMES[4 % len(STUDIO_SERVICE_NAMES)])
+    )
+    # Delivery verification rewrites span identifiers to 1..n. The trace keeps
+    # its shape only if those are the identifiers it already has.
+    assert [int.from_bytes(span.span_id, "big") for span in spans] == list(range(1, 33))
+    assert spans[0].parent_span_id == b""
+    assert attributes[0]["junjo.span_type"] == "workflow"
+    assert all(span.parent_span_id == spans[0].span_id for span in spans[1:])
+    # Two of every six children are LLM spans, one in each convention.
+    assert sum("openinference.span.kind" in item for item in attributes) == 5
+    assert sum("gen_ai.operation.name" in item for item in attributes) == 5
+    assert all(span.start_time_unix_nano < span.end_time_unix_nano for span in spans)
 
 
 def test_comparison_refuses_failed_runs_even_if_they_report_high_throughput():

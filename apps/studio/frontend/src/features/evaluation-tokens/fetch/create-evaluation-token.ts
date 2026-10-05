@@ -1,4 +1,3 @@
-import { getApiHost } from '../../../config'
 import {
   EvaluationTokenCreateSchema,
   EvaluationTokenReadSchema,
@@ -10,7 +9,7 @@ export async function createEvaluationToken(
   request: EvaluationTokenCreate,
 ): Promise<EvaluationTokenRead> {
   const payload = EvaluationTokenCreateSchema.parse(request)
-  const response = await fetch(`${getApiHost()}/api/v1/evaluation-tokens`, {
+  const response = await fetch('/api/v1/evaluation-tokens', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

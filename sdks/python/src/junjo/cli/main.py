@@ -1,4 +1,4 @@
-"""JSON-first command line interface for Junjo evaluation workflows."""
+"""JSON-first command line interface for Junjo evaluation workflows and Studio sign-in."""
 
 from __future__ import annotations
 
@@ -40,6 +40,8 @@ from ..studio import (
     AttemptStatus,
     CaseCreate,
     CaseOrigin,
+    CliSignInDenied,
+    CliSignInExpired,
     DatasetCreate,
     ExecutableType,
     ExecutionEvidencePending,
@@ -56,8 +58,11 @@ from ..studio import (
     StudioTransientError,
     StudioValidationError,
     TargetKind,
+    TokenScope,
 )
 from ..telemetry.otel_schema import JUNJO_TELEMETRY_CONTRACT_VERSION
+from . import auth
+from .credentials import CredentialFileError, read_stored_credential, studio_origin
 from .interface import (
     DEFAULT_STUDIO_BACKEND_BASE_URL,
     EVALUATION_CONFIG,
@@ -128,6 +133,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
     command = arguments.command_path
+    if command.startswith("auth."):
+        return await _dispatch_auth(arguments)
     if command == "eval.explain":
         interface = build_evaluation_interface(_parser())
         if arguments.format == "json":
@@ -196,9 +203,10 @@ async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
             )
         )
 
-    token = _studio_token()
+    base_url = _studio_backend_base_url(arguments.studio_backend_base_url)
+    token = _studio_token(base_url)
     async with StudioClient(
-        base_url=_studio_backend_base_url(arguments.studio_backend_base_url),
+        base_url=base_url,
         token=token,
     ) as client:
         return await _dispatch_studio(
@@ -206,6 +214,39 @@ async def _dispatch(arguments: argparse.Namespace) -> CommandResult:
             client=client,
             harness=harness,
         )
+
+
+async def _dispatch_auth(arguments: argparse.Namespace) -> CommandResult:
+    command = arguments.command_path
+    base_url = _studio_backend_base_url(arguments.studio_backend_base_url)
+    origin = _studio_origin(base_url)
+    environment_token = _environment_token()
+    if command == "auth.login":
+        return CommandResult(
+            await auth.login(
+                base_url=base_url,
+                origin=origin,
+                client_name=arguments.name,
+                scopes=(None if arguments.scope is None else tuple(TokenScope(item) for item in arguments.scope)),
+                open_browser=not arguments.no_browser,
+                environment_token_set=environment_token is not None,
+            )
+        )
+    if command == "auth.logout":
+        logout = await auth.logout(
+            base_url=base_url,
+            origin=origin,
+            environment_token_set=environment_token is not None,
+        )
+        return CommandResult(logout, _logout_exit_code(logout))
+    if command == "auth.status":
+        status = await auth.status(
+            base_url=base_url,
+            origin=origin,
+            environment_token=environment_token,
+        )
+        return CommandResult(status, _status_exit_code(status))
+    raise AssertionError(f"Unhandled auth command {command}.")
 
 
 async def _dispatch_studio(
@@ -830,6 +871,64 @@ def _parser() -> JsonArgumentParser:
     membership.add_argument("--trace-id", help="Required only for otel_span evidence.")
     membership.add_argument("--span-id", help="Required only for otel_span evidence.")
     _add_pagination(membership)
+
+    authentication = products.add_parser(
+        "auth",
+        help="Sign this terminal in to Junjo AI Studio and manage its stored credential.",
+        description="Sign this terminal in to Junjo AI Studio and manage its stored credential.",
+    )
+    authentication.add_argument(
+        "--studio-backend-base-url",
+        help=(
+            f"{base_url_config.purpose} Overrides {base_url_config.environment}; default: {base_url_config.default}."
+        ),
+    )
+    auth_commands = authentication.add_subparsers(dest="auth_command", required=True)
+    login = _command(
+        auth_commands,
+        "login",
+        command_path="auth.login",
+        summary="Sign in through the browser and store a developer access token for this Studio origin.",
+        authentication="none",
+        harness="not_used",
+        executes_evaluation_target=False,
+        response="AuthLogin",
+    )
+    login.add_argument(
+        "--scope",
+        action="append",
+        choices=tuple(item.value for item in TokenScope),
+        help="Scope to ask for; repeat for each scope (default: every scope).",
+    )
+    login.add_argument(
+        "--name",
+        help="Name shown on the approval page and given to the token (default: junjo CLI on <hostname>).",
+    )
+    login.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Print the approval page address without opening a browser.",
+    )
+    _command(
+        auth_commands,
+        "logout",
+        command_path="auth.logout",
+        summary="Revoke the stored developer access token for this Studio origin and delete the stored copy.",
+        authentication="stored_credential",
+        harness="not_used",
+        executes_evaluation_target=False,
+        response="AuthLogout",
+    )
+    _command(
+        auth_commands,
+        "status",
+        command_path="auth.status",
+        summary="Report where the developer access token comes from and whether Studio accepts it.",
+        authentication="optional",
+        harness="not_used",
+        executes_evaluation_target=False,
+        response="AuthStatus",
+    )
     return parser
 
 
@@ -1033,11 +1132,38 @@ def _studio_backend_base_url(explicit: str | None) -> str:
     return value
 
 
-def _studio_token() -> str:
+def _studio_origin(base_url: str) -> str:
+    try:
+        return studio_origin(base_url)
+    except ValueError as error:
+        raise CliUsageError(str(error)) from error
+
+
+def _environment_token() -> str | None:
     token = os.getenv("JUNJO_AI_STUDIO_CLI_TOKEN")
     if token is None or not token.strip():
-        raise CliUsageError("JUNJO_AI_STUDIO_CLI_TOKEN is required for evaluation control and queries.")
+        return None
     return token
+
+
+def _studio_token(base_url: str) -> str:
+    """Resolve the developer access token: the environment variable first, then the stored credential.
+
+    The stored credential is not read when the environment variable provides a
+    token, so automation that sets the variable never depends on the file.
+    """
+
+    token = _environment_token()
+    if token is not None:
+        return token
+    origin = _studio_origin(base_url)
+    stored = read_stored_credential(origin)
+    if stored is None:
+        raise CliUsageError(
+            f"A developer access token is required for {origin}. "
+            "Run `junjo auth login` to sign in through the browser, or set JUNJO_AI_STUDIO_CLI_TOKEN."
+        )
+    return stored.token.get_secret_value()
 
 
 def _require_application(
@@ -1095,6 +1221,20 @@ def _run_exit_code(detail: object) -> int:
     return EXIT_OK
 
 
+def _logout_exit_code(logout: auth.AuthLogout) -> int:
+    if logout.revocation == "unreachable":
+        return EXIT_TRANSIENT
+    return EXIT_OK
+
+
+def _status_exit_code(status: auth.AuthStatus) -> int:
+    if status.studio_check == "accepted":
+        return EXIT_OK
+    if status.studio_check == "unreachable":
+        return EXIT_TRANSIENT
+    return EXIT_AUTHENTICATION
+
+
 def _emit_success(*, command: str, data: object) -> None:
     _write_json(
         {
@@ -1134,7 +1274,7 @@ def _handle_error(*, command: str, error: BaseException) -> int:
         ...,
     ] = (
         (
-            (CliUsageError, ValidationError, StudioValidationError),
+            (CliUsageError, ValidationError, StudioValidationError, CredentialFileError),
             "usage_or_validation",
             EXIT_USAGE,
         ),
@@ -1143,6 +1283,8 @@ def _handle_error(*, command: str, error: BaseException) -> int:
             "authentication",
             EXIT_AUTHENTICATION,
         ),
+        (CliSignInDenied, "access_denied", EXIT_AUTHENTICATION),
+        (CliSignInExpired, "expired_token", EXIT_AUTHENTICATION),
         (
             (StudioConflictError, ExecutionIdentityAmbiguous),
             "conflict",

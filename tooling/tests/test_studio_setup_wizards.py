@@ -21,17 +21,10 @@ from unittest import mock
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SECRET_KEYS = (
-    "JUNJO_SESSION_SECRET",
-    "JUNJO_SECURE_COOKIE_KEY",
-    "JUNJO_INTERNAL_GRPC_TOKEN",
-)
-PRODUCTION_HOSTNAME = "studio.example.test"
-PRODUCTION_URLS = {
-    "JUNJO_PROD_FRONTEND_URL": f"https://{PRODUCTION_HOSTNAME}",
-    "JUNJO_PROD_BACKEND_URL": f"https://api.{PRODUCTION_HOSTNAME}",
-    "JUNJO_PROD_INGESTION_URL": f"https://ingestion.{PRODUCTION_HOSTNAME}",
-}
+SECRET_KEYS = ("JUNJO_INTERNAL_GRPC_TOKEN",)
+STUDIO_HOSTNAME = "studio.example.test"
+INGESTION_HOSTNAME = "otlp.example.test"
+PRODUCTION_INGESTION_URL = f"https://{INGESTION_HOSTNAME}"
 
 
 @dataclass(frozen=True)
@@ -48,22 +41,39 @@ class Wizard:
                 "production",
                 "--build-target",
                 "production",
-                "--prod-frontend-url",
-                PRODUCTION_URLS["JUNJO_PROD_FRONTEND_URL"],
-                "--prod-backend-url",
-                PRODUCTION_URLS["JUNJO_PROD_BACKEND_URL"],
                 "--prod-ingestion-url",
-                PRODUCTION_URLS["JUNJO_PROD_INGESTION_URL"],
+                PRODUCTION_INGESTION_URL,
             ]
         arguments = [
             "--env",
             "production",
             "--hostname",
-            PRODUCTION_HOSTNAME,
+            STUDIO_HOSTNAME,
+            "--ingestion-hostname",
+            INGESTION_HOSTNAME,
         ]
         if self.name == "vm-caddy":
             arguments.extend(["--cloudflare-token", cloudflare_token])
         return arguments
+
+    def invalid_production_arguments(self) -> list[list[str]]:
+        if self.name == "root":
+            return [["--env", "production", "--prod-ingestion-url", "not-a-url"]]
+        argument_sets = [
+            ["--env", "production", "--hostname", "localhost"],
+            [
+                "--env",
+                "production",
+                "--hostname",
+                STUDIO_HOSTNAME,
+                "--ingestion-hostname",
+                "localhost",
+            ],
+        ]
+        if self.name == "vm-caddy":
+            for arguments in argument_sets:
+                arguments.extend(["--cloudflare-token", "invalid-host-test-token"])
+        return argument_sets
 
 
 WIZARDS = (
@@ -173,15 +183,36 @@ class StudioSetupWizardTests(unittest.TestCase):
                 self.assert_success(result)
                 environment = parse_environment(root / ".env")
                 self.assertEqual(environment["JUNJO_ENV"], "development")
-                self.assertEqual(environment["JUNJO_BACKEND_MEM_RESERVATION"], "700m")
-                self.assertEqual(environment["JUNJO_BACKEND_MEM_LIMIT"], "1200m")
                 self.assertEqual(environment["JUNJO_DF_TARGET_PARTITIONS"], "2")
                 self.assertEqual(environment["JUNJO_DF_SPILL_POOL_MB"], "384")
                 if wizard.name == "root":
                     self.assertEqual(environment["JUNJO_BUILD_TARGET"], "development")
+                    self.assertEqual(environment["COMPOSE_PROFILES"], "development")
+                    # A development build compiles the backend inside its
+                    # container, so it runs without container limits.
+                    self.assertEqual(environment["JUNJO_BACKEND_MEM_RESERVATION"], "0")
+                    self.assertEqual(environment["JUNJO_BACKEND_MEM_LIMIT"], "0")
+                    self.assertEqual(environment["JUNJO_BACKEND_MEMSWAP_LIMIT"], "0")
+                    self.assertEqual(environment["JUNJO_BACKEND_PIDS_LIMIT"], "-1")
+                else:
+                    self.assertEqual(
+                        environment["JUNJO_BACKEND_MEM_RESERVATION"], "700m"
+                    )
+                    self.assertEqual(environment["JUNJO_BACKEND_MEM_LIMIT"], "1200m")
                 self.assert_generated_secrets(environment, result)
                 self.assertEqual(private_file_mode(root / ".env"), 0o600)
                 self.assertFalse((root / ".env.bak").exists())
+
+                if wizard.name == "root":
+                    # With no container limit to read, a rerun finds the
+                    # profile in the query tuning and keeps it.
+                    again = self.run_setup(
+                        root, "--env", "development", "--build-target", "development"
+                    )
+                    self.assert_success(again)
+                    rerun = parse_environment(root / ".env")
+                    self.assertEqual(rerun["JUNJO_DF_SPILL_POOL_MB"], "384")
+                    self.assertEqual(rerun["JUNJO_BACKEND_MEM_LIMIT"], "0")
 
     def test_production_setup_writes_exact_urls_without_logging_credentials(self) -> None:
         cloudflare_token = "setup-test-cloudflare-token-never-log"
@@ -200,16 +231,67 @@ class StudioSetupWizardTests(unittest.TestCase):
                 self.assertEqual(environment["JUNJO_BACKEND_MEM_RESERVATION"], "1200m")
                 self.assertEqual(environment["JUNJO_BACKEND_MEM_LIMIT"], "2500m")
                 self.assertEqual(environment["JUNJO_DF_TARGET_PARTITIONS"], "4")
-                for key, expected in PRODUCTION_URLS.items():
-                    self.assertEqual(environment[key], expected)
+                self.assertEqual(
+                    environment["JUNJO_PROD_INGESTION_URL"], PRODUCTION_INGESTION_URL
+                )
                 self.assert_generated_secrets(environment, result)
                 self.assertEqual(private_file_mode(root / ".env"), 0o600)
                 output = result.stdout + result.stderr
                 self.assertNotIn(cloudflare_token, output)
+                if wizard.name == "root":
+                    self.assertEqual(environment["JUNJO_BUILD_TARGET"], "production")
+                    self.assertEqual(environment["COMPOSE_PROFILES"], "")
+                else:
+                    self.assertIn(f"Studio:    https://{STUDIO_HOSTNAME}:443", output)
+                    self.assertIn(f"Ingestion: {PRODUCTION_INGESTION_URL}:443", output)
                 if wizard.name == "vm-caddy":
                     self.assertEqual(
                         environment["CLOUDFLARE_API_TOKEN"], cloudflare_token
                     )
+
+    def test_setup_writes_exactly_the_settings_it_reports(self) -> None:
+        cloudflare_token = "setup-test-cloudflare-token-never-log"
+        for wizard in WIZARDS:
+            with self.subTest(wizard=wizard.name), self.copied_wizard(wizard) as root:
+                (root / ".env").write_text("SENTINEL=unchanged\n", encoding="utf-8")
+                result = self.run_setup(
+                    root,
+                    *wizard.production_arguments(cloudflare_token=cloudflare_token),
+                    "--profile",
+                    "4g",
+                )
+
+                self.assert_success(result)
+                expected = {
+                    "SENTINEL",
+                    "JUNJO_ENV",
+                    "JUNJO_PROD_INGESTION_URL",
+                    "JUNJO_INTERNAL_GRPC_TOKEN",
+                    *load_wizard_module(root, wizard).PROFILE_DEFAULTS["4g"],
+                }
+                if wizard.name == "root":
+                    expected.update({"JUNJO_BUILD_TARGET", "COMPOSE_PROFILES"})
+                if wizard.name == "vm-caddy":
+                    expected.add("CLOUDFLARE_API_TOKEN")
+                self.assertEqual(set(parse_environment(root / ".env")), expected)
+
+    def test_distribution_ingestion_hostname_defaults_to_the_ingestion_subdomain(
+        self,
+    ) -> None:
+        for wizard in WIZARDS:
+            if wizard.name == "root":
+                continue
+            with self.subTest(wizard=wizard.name), self.copied_wizard(wizard) as root:
+                arguments = ["--env", "production", "--hostname", STUDIO_HOSTNAME]
+                if wizard.name == "vm-caddy":
+                    arguments.extend(["--cloudflare-token", "default-host-test-token"])
+                result = self.run_setup(root, *arguments)
+
+                self.assert_success(result)
+                self.assertEqual(
+                    parse_environment(root / ".env")["JUNJO_PROD_INGESTION_URL"],
+                    f"https://ingestion.{STUDIO_HOSTNAME}",
+                )
 
     def test_missing_production_inputs_fail_without_writing_environment(self) -> None:
         for wizard in WIZARDS:
@@ -221,36 +303,23 @@ class StudioSetupWizardTests(unittest.TestCase):
 
     def test_invalid_production_inputs_fail_without_writing_environment(self) -> None:
         for wizard in WIZARDS:
-            with self.subTest(wizard=wizard.name), self.copied_wizard(wizard) as root:
-                if wizard.name == "root":
-                    arguments = [
-                        "--env",
-                        "production",
-                        "--prod-frontend-url",
-                        "not-a-url",
-                        "--prod-backend-url",
-                        PRODUCTION_URLS["JUNJO_PROD_BACKEND_URL"],
-                        "--prod-ingestion-url",
-                        PRODUCTION_URLS["JUNJO_PROD_INGESTION_URL"],
-                    ]
-                else:
-                    arguments = ["--env", "production", "--hostname", "localhost"]
-                    if wizard.name == "vm-caddy":
-                        arguments.extend(
-                            ["--cloudflare-token", "invalid-host-test-token"]
-                        )
-                result = self.run_setup(root, *arguments)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertFalse((root / ".env").exists())
+            for arguments in wizard.invalid_production_arguments():
+                with (
+                    self.subTest(wizard=wizard.name, arguments=arguments),
+                    self.copied_wizard(wizard) as root,
+                ):
+                    result = self.run_setup(root, *arguments)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertFalse((root / ".env").exists())
 
-                sentinel = b"JUNJO_ENV=development\nSENTINEL=unchanged\n"
-                (root / ".env").write_bytes(sentinel)
-                os.chmod(root / ".env", 0o644)
-                result = self.run_setup(root, *arguments)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertEqual((root / ".env").read_bytes(), sentinel)
-                self.assertEqual(private_file_mode(root / ".env"), 0o644)
-                self.assertFalse((root / ".env.bak").exists())
+                    sentinel = b"JUNJO_ENV=development\nSENTINEL=unchanged\n"
+                    (root / ".env").write_bytes(sentinel)
+                    os.chmod(root / ".env", 0o644)
+                    result = self.run_setup(root, *arguments)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual((root / ".env").read_bytes(), sentinel)
+                    self.assertEqual(private_file_mode(root / ".env"), 0o644)
+                    self.assertFalse((root / ".env.bak").exists())
 
     def test_vm_production_requires_cloudflare_token(self) -> None:
         wizard = next(item for item in WIZARDS if item.name == "vm-caddy")
@@ -260,7 +329,7 @@ class StudioSetupWizardTests(unittest.TestCase):
                 "--env",
                 "production",
                 "--hostname",
-                PRODUCTION_HOSTNAME,
+                STUDIO_HOSTNAME,
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("--cloudflare-token is required", result.stdout)

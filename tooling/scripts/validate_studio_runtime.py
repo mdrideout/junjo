@@ -15,7 +15,21 @@ from typing import Any
 
 
 DEFAULT_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-BASE_SERVICES = frozenset({"backend", "frontend", "ingestion"})
+# The backend serves the Studio UI and API. The frontend service is the Vite
+# development server and joins the runtime only through its Compose profile.
+BASE_SERVICES = frozenset({"backend", "ingestion"})
+DEVELOPMENT_PROFILE = "development"
+# Settings and the port that the single-origin backend retired. They must not
+# return to the root runtime sources.
+RETIRED_NAMES = (
+    "JUNJO_ALLOW_ORIGINS",
+    "JUNJO_PROD_BACKEND_URL",
+    "JUNJO_PROD_FRONTEND_URL",
+    "JUNJO_SECURE_COOKIE_KEY",
+    "JUNJO_SESSION_SECRET",
+    "RUN_MIGRATIONS",
+    "26153",
+)
 ENV_ASSIGNMENT = re.compile(r"^\s*(?:#\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*=.*$")
 INGESTION_HEALTHCHECK = {
     "test": ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"],
@@ -61,18 +75,19 @@ def write_safe_environment(
     runtime_environment: str,
     build_target: str,
 ) -> None:
-    """Materialize a non-secret environment from the committed template."""
+    """Materialize a non-secret environment from the committed template.
+
+    A development build is paired with the development Compose profile. Every
+    other build leaves the profile empty, so the Vite server stays out.
+    """
     updates = {
+        "COMPOSE_PROFILES": (
+            DEVELOPMENT_PROFILE if build_target == "development" else ""
+        ),
         "JUNJO_BUILD_TARGET": build_target,
         "JUNJO_ENV": runtime_environment,
         "JUNJO_HOST_DB_DATA_PATH": "./.dbdata",
-        "JUNJO_PROD_BACKEND_URL": "https://api.studio.example.test",
-        "JUNJO_PROD_FRONTEND_URL": "https://studio.example.test",
         "JUNJO_PROD_INGESTION_URL": "https://ingestion.studio.example.test",
-        "JUNJO_SECURE_COOKIE_KEY": (
-            "YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE="
-        ),
-        "JUNJO_SESSION_SECRET": "YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=",
         "JUNJO_INTERNAL_GRPC_TOKEN": "validation-internal-grpc-token-32-bytes",
     }
     lines = template.read_text(encoding="utf-8").splitlines()
@@ -91,6 +106,66 @@ def write_safe_environment(
         if key not in written:
             output.append(f"{key}={value}")
     destination.write_text("\n".join(output) + "\n", encoding="utf-8")
+
+
+def require_no_retired_names(source: Path) -> None:
+    """Reject a root runtime source that names a retired setting or port."""
+    text = source.read_text(encoding="utf-8")
+    for name in RETIRED_NAMES:
+        require(name not in text, f"{source.name} must not mention retired {name}")
+
+
+def template_setting(template: Path, key: str) -> str:
+    """Return the value the environment template actively assigns to one key."""
+    values = re.findall(
+        rf"^{key}=(.*)$", template.read_text(encoding="utf-8"), flags=re.MULTILINE
+    )
+    require(len(values) == 1, f"{template.name} must assign {key} exactly once")
+    return values[0].strip().strip('"')
+
+
+def require_paired_build_settings(template: Path) -> None:
+    """Require the template to select a build target and its profile together.
+
+    The development build has no UI without the Vite server, and the
+    production build serves the UI itself, so one setting alone is wrong.
+    """
+    build_target = template_setting(template, "JUNJO_BUILD_TARGET")
+    profiles = template_setting(template, "COMPOSE_PROFILES")
+    require(
+        (build_target, profiles)
+        in {("development", DEVELOPMENT_PROFILE), ("production", "")},
+        f"{template.name} must pair JUNJO_BUILD_TARGET=development with "
+        f"COMPOSE_PROFILES={DEVELOPMENT_PROFILE}, or JUNJO_BUILD_TARGET=production "
+        f"with an empty COMPOSE_PROFILES; found {build_target!r} and {profiles!r}",
+    )
+
+
+# What "no limit" is to Compose for each backend container limit.
+UNLIMITED_BACKEND_CONTAINER = {
+    "JUNJO_BACKEND_MEM_RESERVATION": "0",
+    "JUNJO_BACKEND_MEM_LIMIT": "0",
+    "JUNJO_BACKEND_MEMSWAP_LIMIT": "0",
+    "JUNJO_BACKEND_PIDS_LIMIT": "-1",
+}
+
+
+def require_unlimited_development_build(template: Path) -> None:
+    """Require a development template to leave the backend container unlimited.
+
+    The development container compiles the backend. Under a production memory
+    profile the compiler is killed and the backend never starts.
+    """
+    if template_setting(template, "JUNJO_BUILD_TARGET") != "development":
+        return
+    for key, unlimited in UNLIMITED_BACKEND_CONTAINER.items():
+        value = template_setting(template, key)
+        require(
+            value == unlimited,
+            f"{template.name} selects a development build, which compiles the "
+            f"backend inside its container, so it must set {key}={unlimited}; "
+            f"found {value!r}",
+        )
 
 
 def render_compose(
@@ -241,6 +316,32 @@ def require_mounts(
         )
 
 
+def validate_development_frontend(frontend: dict[str, Any], project_root: Path) -> None:
+    """Validate the Vite development server that fronts the development backend."""
+    require(
+        frontend.get("profiles") == [DEVELOPMENT_PROFILE],
+        f"frontend must run only in the {DEVELOPMENT_PROFILE} profile",
+    )
+    # The Vite server has one stage. It never follows JUNJO_BUILD_TARGET.
+    require_build(frontend, "frontend", project_root, "development")
+    require_exact_ports(frontend, "frontend", {(26151, "26151", "tcp")})
+    require_dependency(frontend, "frontend", "backend")
+    require_environment(
+        frontend,
+        "frontend",
+        {"JUNJO_DEV_BACKEND_URL": "http://backend:26154"},
+    )
+    require_mounts(
+        frontend,
+        "frontend",
+        project_root,
+        {
+            "/app": ("bind", "frontend", False),
+            "/app/node_modules": ("volume", "frontend-modules", False),
+        },
+    )
+
+
 def validate_base_runtime(
     rendered: dict[str, Any],
     *,
@@ -248,14 +349,23 @@ def validate_base_runtime(
     project_name: str,
     build_target: str,
 ) -> None:
-    """Validate the root source runtime independently of release distributions."""
+    """Validate the root source runtime independently of release distributions.
+
+    The development build runs with the development profile, which adds the
+    Vite server. Every other build runs the backend and ingestion only.
+    """
+    development = build_target == "development"
+    expected_services = set(BASE_SERVICES)
+    if development:
+        expected_services.add("frontend")
     services = rendered.get("services")
     require(isinstance(services, dict), "root runtime services must be an object")
     require(
-        set(services) == set(BASE_SERVICES),
-        f"root runtime services must be exactly {sorted(BASE_SERVICES)}",
+        set(services) == expected_services,
+        f"root {build_target} runtime services must be exactly "
+        f"{sorted(expected_services)}; found {sorted(services)}",
     )
-    for service_name in BASE_SERVICES:
+    for service_name in expected_services:
         service = services[service_name]
         require(isinstance(service, dict), f"{service_name} must be an object")
         require("container_name" not in service, f"{service_name} must be project-scoped")
@@ -268,20 +378,14 @@ def validate_base_runtime(
             service.get("networks") == {"junjo-network": None},
             f"{service_name} must use only junjo-network",
         )
-        require_build(service, service_name, project_root, build_target)
 
     backend = services["backend"]
-    frontend = services["frontend"]
     ingestion = services["ingestion"]
+    require_build(backend, "backend", project_root, build_target)
+    require_build(ingestion, "ingestion", project_root, build_target)
     require_exact_ports(backend, "backend", {(26154, "26154", "tcp")})
     require_exact_ports(ingestion, "ingestion", {(26155, "26155", "tcp")})
-    require_exact_ports(
-        frontend,
-        "frontend",
-        {(26151, "26151", "tcp"), (26153, "26153", "tcp")},
-    )
     require_dependency(ingestion, "ingestion", "backend")
-    require_dependency(frontend, "frontend", "backend")
     require_environment(
         backend,
         "backend",
@@ -292,7 +396,7 @@ def validate_base_runtime(
             "JUNJO_METADATA_DB_PATH": "/app/.dbdata/sqlite/metadata.db",
             "JUNJO_PARQUET_STORAGE_PATH": "/app/.dbdata/spans/parquet",
             "JUNJO_SQLITE_PATH": "/app/.dbdata/sqlite/junjo.db",
-            "RUN_MIGRATIONS": "true",
+            "PORT": "26154",
         },
     )
     require_environment(
@@ -323,7 +427,18 @@ def validate_base_runtime(
         project_root,
         {
             "/app/.dbdata": ("bind", ".dbdata", False),
-            "/app/app": ("bind", "backend/app", False),
+            "/app/backend/Cargo.lock": ("bind", "backend/Cargo.lock", True),
+            "/app/backend/Cargo.toml": ("bind", "backend/Cargo.toml", True),
+            "/app/backend/evidence": ("bind", "backend/evidence", True),
+            "/app/backend/schema": ("bind", "backend/schema", True),
+            "/app/backend/server": ("bind", "backend/server", True),
+            "/app/backend/target": ("volume", "backend-target-cache", False),
+            "/app/proto": ("bind", "proto", True),
+            "/usr/local/cargo/registry": (
+                "volume",
+                "backend-cargo-cache",
+                False,
+            ),
         },
     )
     require_mounts(
@@ -345,22 +460,18 @@ def validate_base_runtime(
             ),
         },
     )
-    require_mounts(
-        frontend,
-        "frontend",
-        project_root,
-        {
-            "/app": ("bind", "frontend", False),
-            "/app/node_modules": ("volume", "frontend-modules", False),
-        },
-    )
+    if development:
+        validate_development_frontend(services["frontend"], project_root)
 
     volumes = rendered.get("volumes")
     expected_volume_names = {
-        "frontend-modules",
+        "backend-cargo-cache",
+        "backend-target-cache",
         "ingestion-cargo-cache",
         "ingestion-target-cache",
     }
+    if development:
+        expected_volume_names.add("frontend-modules")
     require(
         isinstance(volumes, dict) and set(volumes) == expected_volume_names,
         f"root runtime named volumes must be exactly {sorted(expected_volume_names)}",
@@ -398,10 +509,10 @@ def validate_monitoring_overlay(
     require(isinstance(base_services, dict), "base services must be an object")
     require(isinstance(services, dict), "monitored services must be an object")
     require(
-        set(services) == set(BASE_SERVICES) | {"cadvisor"},
+        set(services) == set(base_services) | {"cadvisor"},
         "monitoring overlay must add only cadvisor",
     )
-    for service_name in BASE_SERVICES:
+    for service_name in base_services:
         require(
             services[service_name] == base_services[service_name],
             f"monitoring overlay must not change {service_name}",
@@ -479,6 +590,9 @@ def validate_runtime_source(repository_root: Path) -> None:
     required_files = (".env.example", "compose.yaml", "compose.monitoring.yaml")
     for filename in required_files:
         require((studio_root / filename).is_file(), f"Studio runtime file is missing: {filename}")
+        require_no_retired_names(studio_root / filename)
+    require_paired_build_settings(studio_root / ".env.example")
+    require_unlimited_development_build(studio_root / ".env.example")
 
     for runtime_environment, build_target in (
         ("development", "development"),

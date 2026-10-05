@@ -7538,6 +7538,191 @@
       "kind": "attribute",
       "public_name": "junjo.studio.AttemptEvidenceStoreSummary.sequence_end",
       "anchor": "junjo.studio.AttemptEvidenceStoreSummary.sequence_end"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.start_cli_sign_in",
+      "anchor": "junjo.studio.StudioClient.start_cli_sign_in"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.collect_cli_sign_in_token",
+      "anchor": "junjo.studio.StudioClient.collect_cli_sign_in_token"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.get_current_token",
+      "anchor": "junjo.studio.StudioClient.get_current_token"
+    },
+    {
+      "kind": "method",
+      "public_name": "junjo.studio.StudioClient.delete_current_token",
+      "anchor": "junjo.studio.StudioClient.delete_current_token"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.TokenScope",
+      "anchor": "junjo.studio.TokenScope"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.TokenScope.EVALUATION_READ",
+      "anchor": "junjo.studio.TokenScope.EVALUATION_READ"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.TokenScope.EVALUATION_WRITE",
+      "anchor": "junjo.studio.TokenScope.EVALUATION_WRITE"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.TokenScope.EVIDENCE_READ",
+      "anchor": "junjo.studio.TokenScope.EVIDENCE_READ"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.ErrorResponse",
+      "anchor": "junjo.studio.ErrorResponse"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.ErrorResponse.code",
+      "anchor": "junjo.studio.ErrorResponse.code"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.ErrorResponse.message",
+      "anchor": "junjo.studio.ErrorResponse.message"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.CliSignInStart",
+      "anchor": "junjo.studio.CliSignInStart"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInStart.client_name",
+      "anchor": "junjo.studio.CliSignInStart.client_name"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInStart.scopes",
+      "anchor": "junjo.studio.CliSignInStart.scopes"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.CliSignInStarted",
+      "anchor": "junjo.studio.CliSignInStarted"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInStarted.device_code",
+      "anchor": "junjo.studio.CliSignInStarted.device_code"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInStarted.user_code",
+      "anchor": "junjo.studio.CliSignInStarted.user_code"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInStarted.verification_path",
+      "anchor": "junjo.studio.CliSignInStarted.verification_path"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInStarted.expires_in",
+      "anchor": "junjo.studio.CliSignInStarted.expires_in"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInStarted.interval",
+      "anchor": "junjo.studio.CliSignInStarted.interval"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.CliSignInTokenRequest",
+      "anchor": "junjo.studio.CliSignInTokenRequest"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInTokenRequest.device_code",
+      "anchor": "junjo.studio.CliSignInTokenRequest.device_code"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.CliSignInToken",
+      "anchor": "junjo.studio.CliSignInToken"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInToken.access_token",
+      "anchor": "junjo.studio.CliSignInToken.access_token"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInToken.token_type",
+      "anchor": "junjo.studio.CliSignInToken.token_type"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInToken.token_id",
+      "anchor": "junjo.studio.CliSignInToken.token_id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInToken.scopes",
+      "anchor": "junjo.studio.CliSignInToken.scopes"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CliSignInToken.expires_at",
+      "anchor": "junjo.studio.CliSignInToken.expires_at"
+    },
+    {
+      "kind": "class",
+      "public_name": "junjo.studio.CurrentTokenRead",
+      "anchor": "junjo.studio.CurrentTokenRead"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CurrentTokenRead.id",
+      "anchor": "junjo.studio.CurrentTokenRead.id"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CurrentTokenRead.name",
+      "anchor": "junjo.studio.CurrentTokenRead.name"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CurrentTokenRead.scopes",
+      "anchor": "junjo.studio.CurrentTokenRead.scopes"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CurrentTokenRead.expires_at",
+      "anchor": "junjo.studio.CurrentTokenRead.expires_at"
+    },
+    {
+      "kind": "attribute",
+      "public_name": "junjo.studio.CurrentTokenRead.created_at",
+      "anchor": "junjo.studio.CurrentTokenRead.created_at"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.CliSignInPending",
+      "anchor": "junjo.studio.CliSignInPending"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.CliSignInDenied",
+      "anchor": "junjo.studio.CliSignInDenied"
+    },
+    {
+      "kind": "exception",
+      "public_name": "junjo.studio.CliSignInExpired",
+      "anchor": "junjo.studio.CliSignInExpired"
     }
   ]
 }

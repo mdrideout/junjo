@@ -1,6 +1,6 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Compile protos from shared proto directory (parent of ingestion/)
-    // This ensures the Rust service uses the same proto definitions as Python backend
+    // This ensures ingestion uses the same proto definitions as the backend
     //
     // Both proto files use `package ingestion;` so they merge into a single module:
     // - ingestion.proto: InternalIngestionService (PrepareHotSnapshot, FlushWAL)

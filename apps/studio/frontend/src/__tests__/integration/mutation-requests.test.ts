@@ -7,12 +7,12 @@ import { flushWal } from '../../features/settings/fetch/flush-wal'
 
 describe('API Request Validation: Mutation Operations', () => {
   describe('User Management', () => {
-    it('DELETE /users/{user_id} sends string ID in path parameter', async () => {
+    it('DELETE /api/v1/users/{user_id} sends string ID in path parameter', async () => {
       let capturedUserId: string | undefined
 
       // Intercept the request and capture the parameter
       server.use(
-        http.delete(`${API_BASE}/users/:user_id`, ({ params }) => {
+        http.delete(`${API_BASE}/api/v1/users/:user_id`, ({ params }) => {
           capturedUserId = params.user_id as string
           return HttpResponse.json({ message: 'User deleted successfully' })
         }),
@@ -27,11 +27,11 @@ describe('API Request Validation: Mutation Operations', () => {
       expect(capturedUserId).toBe('usr_2k4h6j8m9n0p1q2r')
     })
 
-    it('DELETE /users/{user_id} handles user ID with special characters', async () => {
+    it('DELETE /api/v1/users/{user_id} handles user ID with special characters', async () => {
       let capturedUserId: string | undefined
 
       server.use(
-        http.delete(`${API_BASE}/users/:user_id`, ({ params }) => {
+        http.delete(`${API_BASE}/api/v1/users/:user_id`, ({ params }) => {
           capturedUserId = params.user_id as string
           return HttpResponse.json({ message: 'User deleted successfully' })
         }),
@@ -47,11 +47,11 @@ describe('API Request Validation: Mutation Operations', () => {
   })
 
   describe('API Keys', () => {
-    it('DELETE /api_keys/{id} sends string ID in path parameter', async () => {
+    it('DELETE /api/v1/api-keys/{id} sends string ID in path parameter', async () => {
       let capturedId: string | undefined
 
       server.use(
-        http.delete(`${API_BASE}/api_keys/:id`, ({ params }) => {
+        http.delete(`${API_BASE}/api/v1/api-keys/:id`, ({ params }) => {
           capturedId = params.id as string
           return new HttpResponse(null, { status: 204 })
         }),
@@ -66,11 +66,11 @@ describe('API Request Validation: Mutation Operations', () => {
       expect(capturedId).toBe('key_abc123xyz789')
     })
 
-    it('DELETE /api_keys/{id} handles API key ID with prefix', async () => {
+    it('DELETE /api/v1/api-keys/{id} handles API key ID with prefix', async () => {
       let capturedId: string | undefined
 
       server.use(
-        http.delete(`${API_BASE}/api_keys/:id`, ({ params }) => {
+        http.delete(`${API_BASE}/api/v1/api-keys/:id`, ({ params }) => {
           capturedId = params.id as string
           return new HttpResponse(null, { status: 204 })
         }),
@@ -86,12 +86,12 @@ describe('API Request Validation: Mutation Operations', () => {
   })
 
   describe('Admin Operations', () => {
-    it('POST /api/admin/flush-wal sends POST request with credentials', async () => {
+    it('POST /api/v1/admin/flush-wal sends POST request with credentials', async () => {
       let requestReceived = false
       let requestMethod: string | undefined
 
       server.use(
-        http.post(`${API_BASE}/api/admin/flush-wal`, ({ request }) => {
+        http.post(`${API_BASE}/api/v1/admin/flush-wal`, ({ request }) => {
           requestReceived = true
           requestMethod = request.method
           return HttpResponse.json({
@@ -109,11 +109,11 @@ describe('API Request Validation: Mutation Operations', () => {
       expect(result.message).toBe('WAL flush completed')
     })
 
-    it('POST /api/admin/flush-wal handles failure response', async () => {
+    it('POST /api/v1/admin/flush-wal handles failure response', async () => {
       server.use(
-        http.post(`${API_BASE}/api/admin/flush-wal`, () => {
+        http.post(`${API_BASE}/api/v1/admin/flush-wal`, () => {
           return HttpResponse.json(
-            { detail: 'WAL flush failed' },
+            { code: 'wal_flush_failed', message: 'WAL flush failed' },
             { status: 500 },
           )
         }),
@@ -124,11 +124,11 @@ describe('API Request Validation: Mutation Operations', () => {
   })
 
   describe('Request Body Validation', () => {
-    it('POST /api_keys sends correct request body structure', async () => {
+    it('POST /api/v1/api-keys sends correct request body structure', async () => {
       let capturedBody: { name: string } = { name: '' }
 
       server.use(
-        http.post(`${API_BASE}/api_keys`, async ({ request }) => {
+        http.post(`${API_BASE}/api/v1/api-keys`, async ({ request }) => {
           capturedBody = (await request.json()) as { name: string }
           return HttpResponse.json({
             id: 'key_123',
@@ -141,7 +141,7 @@ describe('API Request Validation: Mutation Operations', () => {
 
       // Make request via fetch (simulating what CreateApiKeyDialog does)
       const testName = 'Test API Key'
-      await fetch(`${API_BASE}/api_keys`, {
+      await fetch(`${API_BASE}/api/v1/api-keys`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -159,14 +159,14 @@ describe('API Request Validation: Mutation Operations', () => {
       expect(capturedBody.name.length).toBeGreaterThan(0)
     })
 
-    it('POST /users sends correct request body structure', async () => {
+    it('POST /api/v1/users sends correct request body structure', async () => {
       let capturedBody: { email: string; password: string } = {
         email: '',
         password: '',
       }
 
       server.use(
-        http.post(`${API_BASE}/users`, async ({ request }) => {
+        http.post(`${API_BASE}/api/v1/users`, async ({ request }) => {
           capturedBody = (await request.json()) as {
             email: string
             password: string
@@ -179,7 +179,7 @@ describe('API Request Validation: Mutation Operations', () => {
       const testEmail = 'newuser@example.com'
       const testPassword = 'securePassword123'
 
-      await fetch(`${API_BASE}/users`, {
+      await fetch(`${API_BASE}/api/v1/users`, {
         method: 'POST',
         credentials: 'include',
         headers: {

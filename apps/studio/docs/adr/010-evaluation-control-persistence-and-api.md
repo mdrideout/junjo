@@ -1,5 +1,13 @@
 # ADR-010: Evaluation control persistence and API
 
+Amended 2026-10-03 by
+[ADR-011](011-rust-backend-and-single-origin-studio.md) and
+[ADR-012](012-studio-authentication.md). ADR-011's one SQL schema file
+supersedes the Alembic single-revision baseline described below. ADR-012's
+server-side session supersedes the encrypted browser session cookie. The
+evaluation records, their constraints, and the control API decided below are
+unchanged.
+
 ## Status
 
 Accepted
@@ -52,6 +60,10 @@ existing application data. The evaluation release replaces the prior Alembic
 history with one initial revision generated from the complete current model
 metadata. That single revision creates users, ingestion API keys, evaluation
 tokens, datasets, cases, runs, and attempts together.
+
+ADR-011 supersedes that mechanism. One desired-state SQL schema file now
+creates those tables, and there are no migration files while Studio has no
+upgrade contract. The greenfield position above is unchanged.
 
 Existing Studio data volumes are intentionally incompatible with this reset.
 Developers and preview deployments must delete their Studio application data
@@ -192,7 +204,7 @@ or finalize Attempts. `created_by_user_id` is audit provenance, not an
 object-level access-control boundary. This matches Studio's current
 shared-resource model rather than implying creator ownership.
 
-Human users manage developer access tokens through an ordinary encrypted
+Human users manage developer access tokens through an ordinary server-side
 Studio browser session. The management surface returns each stored bearer
 credential so it can be copied again and deletes the credential when the user
 removes it. This deliberately matches Studio's existing Application Telemetry
@@ -273,8 +285,8 @@ an evaluation run records results.
 - Coding agents receive a bounded query surface through the SDK/CLI without
   granting Studio access to application source or execution credentials.
 - Existing pre-evaluation Studio application data must be deleted once at this
-  greenfield cutover; subsequent schema changes start from the single initial
-  revision.
+  greenfield cutover; subsequent schema changes started from the single initial
+  revision until ADR-011 replaced it with one schema file.
 
 ## Rejected alternatives
 

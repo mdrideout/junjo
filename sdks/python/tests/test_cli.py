@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 from pydantic import BaseModel, ConfigDict
 
+from junjo.cli.credentials import StoredCredential, credentials_path, store_credential
 from junjo.cli.main import EXIT_CONFLICT, EXIT_EVALUATION, EXIT_OK, EXIT_SUBJECT, EXIT_USAGE
 from junjo.evaluation import (
     EvaluationHarness,
@@ -206,6 +207,67 @@ def test_explain_json_is_generated_from_command_and_argument_metadata(capsys) ->
     assert span_argument["repeatable"] is True
     assert commands["junjo eval run execute"]["executes_evaluation_target"] is True
     assert payload["data"]["configuration"][0]["pyproject"] == ("[tool.junjo.evaluation].harness")
+
+
+def test_explain_includes_the_auth_commands_and_the_stored_credential_source(capsys) -> None:
+    json_exit = cli.main(["eval", "explain", "--format", "json"])
+    interface = _payload(capsys)["data"]
+    markdown_exit = cli.main(["eval", "explain"])
+    markdown = capsys.readouterr().out
+
+    assert (json_exit, markdown_exit) == (EXIT_OK, EXIT_OK)
+    assert interface["interface_version"] == 2
+    commands = {item["command"]: item for item in interface["commands"]}
+    login = commands["junjo auth login"]
+    assert {key: login[key] for key in ("authentication", "harness", "executes_evaluation_target", "response")} == {
+        "authentication": "none",
+        "harness": "not_used",
+        "executes_evaluation_target": False,
+        "response": "AuthLogin",
+    }
+    arguments = {item["name"]: item for item in login["arguments"]}
+    assert arguments["scope"]["flags"] == ["--scope"]
+    assert arguments["scope"]["repeatable"] is True
+    assert arguments["scope"]["required"] is False
+    assert arguments["scope"]["choices"] == ["evaluation:read", "evaluation:write", "evidence:read"]
+    assert arguments["name"]["flags"] == ["--name"]
+    assert arguments["no_browser"]["flags"] == ["--no-browser"]
+    assert arguments["no_browser"]["default"] is False
+    assert commands["junjo auth logout"]["authentication"] == "stored_credential"
+    assert commands["junjo auth logout"]["response"] == "AuthLogout"
+    assert commands["junjo auth status"]["authentication"] == "optional"
+    assert commands["junjo auth status"]["response"] == "AuthStatus"
+    assert commands["junjo eval dataset list"]["authentication"] == "JUNJO_AI_STUDIO_CLI_TOKEN"
+
+    token = interface["configuration"][2]
+    assert token["name"] == "Developer access token"
+    assert token["environment"] == "JUNJO_AI_STUDIO_CLI_TOKEN"
+    assert [item["stored_credential"] for item in interface["configuration"]] == [
+        None,
+        None,
+        "junjo auth login",
+    ]
+
+    assert (
+        "Sources, highest precedence first: `JUNJO_AI_STUDIO_CLI_TOKEN`, `credential stored by junjo auth login`."
+    ) in markdown
+    assert (
+        "Sources, highest precedence first: `--harness module:object`, `[tool.junjo.evaluation].harness`."
+    ) in markdown
+    for command in ("login", "logout", "status"):
+        assert f"### `junjo auth {command}`" in markdown
+    assert "- `--scope` (repeatable): Scope to ask for; repeat for each scope (default: every scope)." in markdown
+
+
+def test_auth_help_uses_argparse_normally_without_an_internal_error(capsys) -> None:
+    exit_code = cli.main(["auth", "--help"])
+
+    captured = capsys.readouterr()
+    assert exit_code == EXIT_OK
+    assert "Sign this terminal in to Junjo AI Studio and manage its stored credential." in captured.out
+    assert "{login,logout,status}" in captured.out
+    assert '"ok":false' not in captured.out
+    assert captured.err == ""
 
 
 def test_skill_path_is_local_and_requires_no_harness_or_studio(
@@ -410,11 +472,14 @@ def test_backend_base_url_flag_overrides_the_environment_variable(
     assert FakeStudioClient.configuration == {"base_url": "http://explicit.test:26154"}
 
 
-def test_control_commands_require_environment_token_without_echoing_it(
+def test_control_commands_without_a_token_name_both_ways_to_provide_one(
     monkeypatch,
     capsys,
 ) -> None:
+    FakeStudioClient.configuration = None
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
     monkeypatch.delenv("JUNJO_AI_STUDIO_CLI_TOKEN", raising=False)
+    monkeypatch.delenv("JUNJO_AI_STUDIO_BACKEND_BASE_URL", raising=False)
 
     exit_code = cli.main(
         [
@@ -429,7 +494,153 @@ def test_control_commands_require_environment_token_without_echoing_it(
     payload = _payload(capsys)
     assert exit_code == EXIT_USAGE
     assert payload["error"]["code"] == "usage_or_validation"
-    assert "JUNJO_AI_STUDIO_CLI_TOKEN" in payload["error"]["message"]
+    assert payload["error"]["message"] == (
+        "A developer access token is required for http://localhost:26154. "
+        "Run `junjo auth login` to sign in through the browser, or set JUNJO_AI_STUDIO_CLI_TOKEN."
+    )
+    assert FakeStudioClient.configuration is None
+
+
+DATASET_CREATE = ("dataset", "create", "--key", "places", "--name", "Local places")
+
+
+def _evaluation_command(*arguments: str) -> list[str]:
+    return ["eval", "--harness", f"{__name__}:HARNESS", *arguments]
+
+
+def test_environment_token_wins_and_the_credential_file_is_never_read(
+    monkeypatch,
+    capsys,
+) -> None:
+    # Any attempt to read this file fails: it is not valid, and others can read it.
+    path = credentials_path()
+    path.parent.mkdir(mode=0o700)
+    path.write_text("not json", encoding="utf-8")
+    path.chmod(0o644)
+    FakeStudioClient.configuration = None
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.setenv("JUNJO_AI_STUDIO_CLI_TOKEN", "jcli_test-token")
+    monkeypatch.delenv("JUNJO_AI_STUDIO_BACKEND_BASE_URL", raising=False)
+
+    exit_code = cli.main(_evaluation_command(*DATASET_CREATE))
+
+    payload = _payload(capsys)
+    assert exit_code == EXIT_OK
+    assert payload == {
+        "command": "eval.dataset.create",
+        "data": {"application_key": "cli_test", "id": "dataset-id", "key": "places"},
+        "ok": True,
+        "schema_version": 1,
+    }
+    assert FakeStudioClient.configuration == {
+        "base_url": "http://localhost:26154",
+        "token": "jcli_test-token",
+    }
+    assert path.read_text(encoding="utf-8") == "not json"
+
+
+def test_stored_credential_is_used_when_the_environment_variable_is_absent_or_blank(
+    monkeypatch,
+    capsys,
+) -> None:
+    store_credential(
+        "http://localhost:26154",
+        StoredCredential(token="jcli_stored-token", token_id="stored-token"),
+    )
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.delenv("JUNJO_AI_STUDIO_BACKEND_BASE_URL", raising=False)
+
+    for blank in (None, "", "   "):
+        FakeStudioClient.configuration = None
+        if blank is None:
+            monkeypatch.delenv("JUNJO_AI_STUDIO_CLI_TOKEN", raising=False)
+        else:
+            monkeypatch.setenv("JUNJO_AI_STUDIO_CLI_TOKEN", blank)
+
+        exit_code = cli.main(_evaluation_command(*DATASET_CREATE))
+
+        payload = _payload(capsys)
+        assert exit_code == EXIT_OK
+        assert "jcli_stored-token" not in json.dumps(payload)
+        assert FakeStudioClient.configuration == {
+            "base_url": "http://localhost:26154",
+            "token": "jcli_stored-token",
+        }
+
+
+def test_stored_credentials_are_selected_by_the_resolved_studio_origin(
+    monkeypatch,
+    capsys,
+) -> None:
+    store_credential(
+        "http://localhost:26154",
+        StoredCredential(token="jcli_local-token", token_id="local-token"),
+    )
+    store_credential(
+        "https://studio.example.com",
+        StoredCredential(token="jcli_remote-token", token_id="remote-token"),
+    )
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.delenv("JUNJO_AI_STUDIO_CLI_TOKEN", raising=False)
+    monkeypatch.delenv("JUNJO_AI_STUDIO_BACKEND_BASE_URL", raising=False)
+
+    FakeStudioClient.configuration = None
+    remote_exit = cli.main(
+        _evaluation_command("--studio-backend-base-url", "https://Studio.Example.com/", *DATASET_CREATE)
+    )
+    _payload(capsys)
+    remote_configuration = FakeStudioClient.configuration
+
+    FakeStudioClient.configuration = None
+    local_exit = cli.main(_evaluation_command(*DATASET_CREATE))
+    _payload(capsys)
+    local_configuration = FakeStudioClient.configuration
+
+    FakeStudioClient.configuration = None
+    other_exit = cli.main(_evaluation_command("--studio-backend-base-url", "http://127.0.0.1:26154", *DATASET_CREATE))
+    other_payload = _payload(capsys)
+
+    assert (remote_exit, local_exit, other_exit) == (EXIT_OK, EXIT_OK, EXIT_USAGE)
+    assert remote_configuration == {
+        "base_url": "https://Studio.Example.com/",
+        "token": "jcli_remote-token",
+    }
+    assert local_configuration == {
+        "base_url": "http://localhost:26154",
+        "token": "jcli_local-token",
+    }
+    assert other_payload["error"]["message"].startswith(
+        "A developer access token is required for http://127.0.0.1:26154. "
+    )
+    assert FakeStudioClient.configuration is None
+
+
+def test_an_unusable_credential_file_is_reported_when_no_environment_token_is_set(
+    monkeypatch,
+    capsys,
+) -> None:
+    path = credentials_path()
+    path.parent.mkdir(mode=0o700)
+    path.write_text("not json", encoding="utf-8")
+    path.chmod(0o600)
+    FakeStudioClient.configuration = None
+    monkeypatch.setattr(cli, "StudioClient", FakeStudioClient)
+    monkeypatch.delenv("JUNJO_AI_STUDIO_CLI_TOKEN", raising=False)
+    monkeypatch.delenv("JUNJO_AI_STUDIO_BACKEND_BASE_URL", raising=False)
+
+    exit_code = cli.main(_evaluation_command(*DATASET_CREATE))
+
+    payload = _payload(capsys)
+    assert exit_code == EXIT_USAGE
+    assert payload["error"] == {
+        "code": "usage_or_validation",
+        "message": (
+            f"The credential file {path} is not a valid Junjo credential file. "
+            "Correct it or delete it, then run `junjo auth login`."
+        ),
+    }
+    assert FakeStudioClient.configuration is None
+    assert path.read_text(encoding="utf-8") == "not json"
 
 
 def test_run_list_requires_an_application_scoped_dataset(capsys) -> None:

@@ -4,10 +4,8 @@ import { ActionButton } from '../../components/actions/action-button'
 import { Modal, ModalFooter } from '../../components/overlays/modal'
 import { useAppDispatch } from '../../root-store/hooks'
 import { UsersStateActions } from './slice'
-import { getApiHost } from '../../config'
 
 interface ApiErrorResponse {
-  detail?: string | Array<{ msg?: string; message?: string }>
   message?: string
 }
 
@@ -32,8 +30,8 @@ export default function CreateUserDialog() {
 
     // Perform setup
     try {
-      const endpoint = '/users'
-      const response = await fetch(`${getApiHost()}${endpoint}`, {
+      const endpoint = '/api/v1/users'
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -44,18 +42,7 @@ export default function CreateUserDialog() {
         const errorData = (await response.json()) as ApiErrorResponse
         console.log('Error response:', errorData)
 
-        // Try detail field (handles both Pydantic array and custom string)
-        if (errorData.detail) {
-          if (Array.isArray(errorData.detail)) {
-            // Pydantic validation errors (422)
-            const errors = errorData.detail.map((err) => err.msg || err.message).join('. ')
-            throw new Error(errors || 'Validation failed.')
-          }
-          // Custom error string (400, 409, etc.)
-          throw new Error(errorData.detail)
-        }
-
-        // Try message field (fallback)
+        // Error bodies are {code, message}; show the message
         if (errorData.message) {
           throw new Error(errorData.message)
         }

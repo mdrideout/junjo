@@ -87,7 +87,7 @@ The test app uses the getting_started workflow structure:
 
 After running, verify telemetry in Junjo AI Studio:
 
-1. Open the Junjo AI Studio web UI for your active build target (`http://localhost:26151` for development, `http://localhost:26153` for production)
+1. Open the Junjo AI Studio web UI for your active build target (`http://localhost:26151` for development, `http://localhost:26154` for production)
 2. Navigate to the service you specified
 3. Check that workflows appear with correct service name
 4. Inspect workflow graph structure and state transitions

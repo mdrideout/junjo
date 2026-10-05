@@ -32,7 +32,7 @@ describe('users state', () => {
   it('keeps a fresh result, while stale and forced requests refresh it', async () => {
     let requestCount = 0
     server.use(
-      http.get(`${API_BASE}/users`, () => {
+      http.get(`${API_BASE}/api/v1/users`, () => {
         requestCount += 1
         return HttpResponse.json([USER])
       }),
@@ -62,10 +62,10 @@ describe('users state', () => {
   it('keeps a deletion failure visible without refreshing the list', async () => {
     let listRequestCount = 0
     server.use(
-      http.delete(`${API_BASE}/users/:userId`, () =>
-        HttpResponse.json({ message: 'Delete failed' }, { status: 500 }),
+      http.delete(`${API_BASE}/api/v1/users/:userId`, () =>
+        HttpResponse.json({ code: 'internal_error', message: 'Delete failed' }, { status: 500 }),
       ),
-      http.get(`${API_BASE}/users`, () => {
+      http.get(`${API_BASE}/api/v1/users`, () => {
         listRequestCount += 1
         return HttpResponse.json([])
       }),

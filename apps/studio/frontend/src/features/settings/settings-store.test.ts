@@ -22,7 +22,7 @@ describe('settings state', () => {
 
   it('stores an unsuccessful flush response as one failed transition', async () => {
     server.use(
-      http.post(`${API_BASE}/api/admin/flush-wal`, () =>
+      http.post(`${API_BASE}/api/v1/admin/flush-wal`, () =>
         HttpResponse.json({ success: false, message: 'Nothing flushed' }),
       ),
     )

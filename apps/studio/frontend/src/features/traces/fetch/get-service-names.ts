@@ -1,12 +1,10 @@
-import { getApiHost } from '../../../config'
 import z from 'zod'
 
 export const fetchServiceNames = async (): Promise<string[]> => {
-  // Use Python backend endpoint
+  // Use the backend's service discovery endpoint
   const endpoint = '/api/v1/observability/services'
-  const apiHost = getApiHost()
 
-  const response = await fetch(`${apiHost}${endpoint}`, {
+  const response = await fetch(endpoint, {
     method: 'GET',
     credentials: 'include',
     headers: {

@@ -1,428 +1,108 @@
-# Junjo AI Studio - Backend Service
+# Junjo AI Studio backend
 
-FastAPI backend service for the Junjo AI Studio LLM observability platform.
+The Studio backend: one Rust service that serves the HTTP API, the Studio UI,
+and the internal gRPC service that ingestion calls. Its governing documents
+are:
 
-## Overview
+- [Studio backend Rust migration plan](../../../docs/roadmaps/STUDIO_BACKEND_RUST_MIGRATION.md)
+- [Studio ADR-011: Rust backend and single-origin Studio](../docs/adr/011-rust-backend-and-single-origin-studio.md)
+- [Studio ADR-012: Studio authentication](../docs/adr/012-studio-authentication.md)
 
-The backend service provides:
-- **HTTP REST API** for frontend and programmatic access
-- **User authentication** with session management
-- **Span querying & analytics** using DataFusion (Parquet) + SQLite metadata index
-- **Internal gRPC server** for authentication (port 50053)
+## Current state
 
-**Tech Stack**: Python 3.13+, FastAPI, SQLAlchemy, SQLite, DataFusion, Loguru
+The migration plan's status section says which work packages are done.
 
----
+- `evidence` holds payload parsing, Store reconstruction, Workflow and Agent
+  diagnostics, and trace evidence. It reproduces the generated projection
+  files, text for text, and the invalid-fixture outcomes from the shared
+  telemetry fixtures.
+- `server` holds the HTTP API, UI serving, the internal `ValidateApiKey` gRPC
+  service, the metadata indexer, and the two-tier span queries. Its measured
+  comparison with the Python backend it replaced is recorded in
+  [the measurement slice evidence](../../../docs/roadmaps/evidence/studio-backend-rust-2026-10-03/README.md)
+  and [the final image evidence](../../../docs/roadmaps/evidence/studio-backend-rust-final-2026-10-04/README.md).
 
-## Running the Backend
+## Layout
 
-### Primary Method: Docker Compose
+- `schema/`: the only schema sources, one SQL file per database.
+- `evidence/`: the pure evidence library. It performs no I/O. Its tests read
+  the shared fixtures in `contracts/telemetry/fixtures`.
+- `server/`: the `junjo-backend` binary. Each feature under
+  `server/src/features` owns its routes, its SQL statements, and its tests.
+- `Dockerfile`: built with `apps/studio` as the context, like ingestion.
+- `dev-entrypoint.sh`: what the development image runs. It starts the backend
+  under `cargo-watch` and forwards a stop signal to it, so the backend shuts
+  down cleanly. That container compiles the backend, so it needs several GB
+  of memory and runs without the production container limits.
 
-For running the full Junjo AI Studio stack from this repository, see the [root README.md](../README.md#source-development). The backend is part of the complete Docker Compose setup with all three services (backend, ingestion, frontend).
+## Logging
 
-```bash
-# From the Studio root (apps/studio)
-docker compose up --build
+`JUNJO_LOG_LEVEL` and `JUNJO_LOG_FORMAT` set the level and the format. At
+`info` the backend writes no line per request. A line logged while a request
+is handled names the request's method and path. To log every request and
+response, set `RUST_LOG=info,tower_http=debug`: `RUST_LOG` overrides the
+configured level.
 
-# Restart backend only, after the stack is running
-docker compose restart backend
+## Databases
 
-# View backend logs from another terminal
-docker compose logs -f backend
-```
+[Studio ADR-011](../docs/adr/011-rust-backend-and-single-origin-studio.md)
+owns the SQLite and schema decisions. Working with them:
 
-The backend will be available at:
-- **API**: http://localhost:26154
-- **Health Check**: http://localhost:26154/health
-- **gRPC (internal)**: `50053` on the Compose network only
+- `schema/junjo.sql` is the application database: users, sessions, API keys,
+  developer access tokens, CLI sign-ins, and evaluation data.
+  `schema/metadata.sql` is the metadata index, which is derived from the cold
+  Parquet files.
+- To change a schema, edit its file and raise the matching version constant in
+  `server/src/db/mod.rs` in the same change. There are no migration files.
+- After a version change, an existing `junjo.db` is refused at startup. Reset
+  the local data directory as
+  [TESTING.md](../TESTING.md#local-agent-e2e-identity) describes. An existing
+  `metadata.db` is deleted and rebuilt by the indexer.
+- Each feature keeps its SQL beside its code and lists every statement in
+  `ALL_STATEMENTS`. Tests prepare each listed statement against the schema, so
+  add a new statement to its list.
+- Write through a database's writer connection and read through its reader. A
+  write is one closure that runs to completion on the writer. The metadata
+  writer belongs to the indexer thread, so request code only reads the index.
+- Tests create their own temporary databases.
 
----
+## Commands
 
-### Secondary Method: Direct Execution with uv (Testing/Debugging)
-
-Run the backend directly only for backend-focused testing or debugging. The supported full-stack workflow for this repository is Docker Compose. Direct execution is useful when:
-- Working on backend-specific features
-- Running integration tests locally
-- Debugging without Docker overhead
-
-#### Prerequisites
-
-- **Python 3.13+**
-- **[uv](https://github.com/astral-sh/uv)** (fast package manager)
-- **`.env` file** configured (see root README)
-
-#### Setup
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Install dependencies (includes dev tools: pytest, ruff)
-uv sync --all-extras
-
-# Or install only production dependencies
-uv sync
-```
-
-**Note**: `--all-extras` installs development dependencies (pytest, pytest-asyncio, httpx, ruff). Required for running tests and linters.
-
-#### Start the Backend
-
-```bash
-# Option 1: Using uv run (recommended)
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 26154
-
-# Option 2: Via main module
-uv run python -m app.main
-
-# Option 3: With activated virtual environment
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 26154
-```
-
-The backend will be available at:
-- **API**: http://localhost:26154
-- **Health Check**: http://localhost:26154/health
-
-**Important**: The backend automatically starts its internal gRPC server on port 50053 via the FastAPI lifespan manager. No additional steps needed.
-
-#### Quick Test
+Run from this directory. The pinned toolchain installs itself on first use.
+The server's build script compiles the shared protos, so `protoc` 30.2 must be
+on your `PATH`; see [PROTO_VERSIONS.md](../PROTO_VERSIONS.md).
 
 ```bash
-# Test health endpoint
-curl http://localhost:26154/health
-
-# Test ping endpoint
-curl http://localhost:26154/ping
+cargo test --locked
 ```
 
----
-
-## Testing
-
-### Test Script Organization
-
-**Backend-specific tests:**
-```bash
-# Run the complete backend pytest collection
-./backend/scripts/run-backend-tests.sh
-
-# Run contract tests (schema validation)
-./backend/scripts/validate_rest_api_contracts.sh
-```
-
-**All project tests:**
-```bash
-# Run everything (backend, frontend, contract, proto validation)
-./run-all-tests.sh
-```
-
-### Automated Test Script (Recommended)
-
-The easiest way to run the complete backend pytest collection, including gRPC
-integration tests:
+The cross-service tests build the ingestion release binary, which takes
+minutes on a clean checkout. [TESTING.md](../TESTING.md#backend-test-layers)
+describes the test layers.
 
 ```bash
-# From the Studio root (apps/studio)
-./backend/scripts/run-backend-tests.sh
-
-# Or from backend directory
-cd backend
-./scripts/run-backend-tests.sh
+cargo clippy --all-targets --locked -- -D warnings
 ```
-
-This script automatically:
-- Sets up temporary databases
-- Runs every collected backend test once
-- Uses pytest fixtures for services required by integration tests
-- Provides a pass/fail summary
-
-The collection includes unit, integration, security, concurrency,
-error-recovery, semantic/query, and gRPC integration coverage. The gRPC tests
-use an in-process fixture tied to the isolated test database.
-
-This is the **recommended approach** for running the full test suite locally, as it matches the behavior of CI/CD pipelines.
-
----
-
-### Test Categories
-
-Tests use pytest markers for organization:
-
-- **`unit`**: Fast, isolated unit tests (no external dependencies)
-- **`integration`**: Integration tests (require running backend service)
-- **`requires_grpc_server`**: Tests requiring gRPC server on port 50053
-- **`security`**: Security tests (auth bypass, SQL injection)
-- **`concurrency`**: Concurrency and race condition tests
-- **`error_recovery`**: Error recovery and resilience tests
-
-### Running Tests
-
-#### Unit Tests (Fast, No Dependencies)
 
 ```bash
-# Run all unit tests (excludes integration tests)
-uv run pytest -m "not integration" -v
-
-# Run specific test file
-uv run pytest tests/test_main.py -v
-
-# Run with coverage
-uv run pytest -m "not integration" --cov=app --cov-report=term-missing
+cargo fmt --check
 ```
 
-#### Integration Tests
-
-Most integration tests use in-process test fixtures. The `requires_grpc_server` tests start an isolated gRPC server on port 50053.
+Print the OpenAPI document the binary serves:
 
 ```bash
-cd backend
-uv run pytest -m "integration" -v
+cargo run -q -p junjo-backend -- openapi
 ```
 
-Do not start `uvicorn` or `docker compose up` just to run these tests; the gRPC tests need to bind their own isolated test server.
-
-#### All Tests
+Export that document to the committed contract and run the frontend contract
+tests against it:
 
 ```bash
-# Run everything
-uv run pytest -v
-```
-
-### GitHub Actions CI
-
-Tests run automatically on pull requests and pushes to main/master branches.
-
-**Workflow**: [`studio-backend-tests.yml`](../../../.github/workflows/studio-backend-tests.yml)
-
-**What runs in CI**:
-- **Linting**: ruff check and format validation
-- **Unit tests**: Fast execution with no external dependencies
-- **Integration tests**: Full test suite with temporary databases
-- **gRPC tests**: Backend server integration tests
-
-**Environment Configuration**:
-
-CI uses hardcoded test values for security settings (these protect only ephemeral test data):
-```yaml
-JUNJO_SESSION_SECRET: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-JUNJO_SECURE_COOKIE_KEY: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="  # Base64-encoded 32 bytes
-```
-
----
-
-## Development Tools
-
-### Linting and Formatting
-
-```bash
-# Run ruff linter
-uv run ruff check app/
-
-# Auto-fix issues
-uv run ruff check app/ --fix
-
-# Format code
-uv run ruff format app/
-```
-
-### Code Quality Checks
-
-```bash
-# Run all checks before committing
-uv run ruff check app/
-uv run pytest -m "not integration" -v
-```
-
----
-
-## API Schema Validation (Contract Testing)
-
-The backend uses **contract testing** to ensure frontend and backend schemas stay in sync.
-
-### How It Works
-
-1. **Backend Pydantic schemas** include `Field(examples=[...])` for realistic test data
-2. **OpenAPI schema** is auto-generated from Pydantic schemas
-3. **Frontend contract tests** validate Zod schemas can parse OpenAPI-generated mocks
-4. **Tests fail** if schemas drift (field added/removed/changed)
-
-### Running Schema Validation
-
-```bash
-# From backend directory
 ./scripts/validate_rest_api_contracts.sh
 ```
 
-This script:
-1. Exports OpenAPI schema from FastAPI (no server needed)
-2. Copies schema to frontend
-3. Runs frontend contract tests
-
-**GitHub Actions**: The schema validation workflow runs automatically on PRs that modify schema files.
-
-### Frontend Contract Tests
-
-Frontend tests use [openapi-backend](https://github.com/anttiviljami/openapi-backend) to generate mocks from the OpenAPI spec:
-
-```typescript
-// Generate mock from backend OpenAPI schema
-const { mock } = generateMock('list_users_users_get')
-
-// Try to parse with frontend Zod schema
-const result = ListUsersResponseSchema.parse(mock)
-// ✅ Pass = schemas match
-// ❌ Fail = schema drift detected
-```
-
-**Tests location**: `frontend/src/__tests__/contracts/`
-
-### What Gets Caught
-
-- ✅ Backend adds new required field → Test fails
-- ✅ Backend changes field type → Test fails
-- ✅ Frontend has wrong field name → Test fails
-- ✅ Field examples generate realistic data
-
-### Adding Examples to Schemas
-
-When creating new Pydantic response schemas, add `Field(examples=[...])`:
-
-```python
-class YourSchema(BaseModel):
-    id: str = Field(
-        examples=["your_prefix_abc123"],
-        description="Unique identifier"
-    )
-    name: str = Field(
-        examples=["Example Name"],
-        description="Human-readable name"
-    )
-```
-
-These examples:
-- Appear in the OpenAPI spec
-- Generate realistic test mocks
-- Improve API documentation
-
-**See**: `scripts/README_SCHEMA_VALIDATION.md` for detailed documentation.
-
----
-
-## Project Structure
-
-```
-backend/
-├── app/
-│   ├── config/                 # Settings and configuration
-│   │   ├── settings.py         # Pydantic settings (env vars)
-│   │   └── logger.py           # Loguru setup
-│   ├── features/               # Feature modules
-│   │   ├── auth/               # Authentication & sessions
-│   │   ├── api_keys/           # API key management
-│   │   ├── otel_spans/         # Span querying
-│   │   └── span_ingestion/     # Span ingestion from gRPC
-│   ├── common/                 # Shared utilities
-│   │   ├── audit.py            # Audit logging
-│   │   └── responses.py        # Common response models
-│   ├── db_sqlite/              # SQLite (users, API keys, metadata index)
-│   ├── grpc_server.py          # Internal gRPC server
-│   └── main.py                 # FastAPI app entry point
-├── tests/                      # Test suite
-│   ├── test_main.py            # Basic tests
-│   ├── integration/            # Integration tests
-│   ├── security/               # Security tests
-│   └── error_recovery/         # Error recovery tests
-├── pyproject.toml              # Dependencies & tool config
-└── README.md                   # This file
-```
-
----
-
-## Configuration
-
-The backend reads configuration from environment variables (`.env` file at the Studio root).
-
-**See the [root README.md](../README.md#configuration) for complete configuration details.**
-
-### Key Backend-Specific Variables
+Build the image from `apps/studio`:
 
 ```bash
-# Ports
-# Backend HTTP uses port 26154 in Docker Compose and direct debug runs.
-# Internal auth gRPC remains on port 50053.
-
-# Database storage (where files are stored on host machine)
-JUNJO_HOST_DB_DATA_PATH=./.dbdata  # Local: ./.dbdata | Production: /mnt/data
-# Note: Container paths are set automatically in compose.yaml
-
-# Logging
-JUNJO_LOG_LEVEL=info            # debug | info | warn | error
-JUNJO_LOG_FORMAT=text           # json | text
+docker build -f backend/Dockerfile --target production -t junjo-ai-studio-app .
 ```
-
-Configuration is loaded using **Pydantic Settings** with precedence:
-1. Environment variables
-2. `.env` file
-3. Default values in `app/config/settings.py`
-
----
-
-## Troubleshooting
-
-### Port Already in Use
-
-```bash
-# Compose workflow: check what's using the published backend port
-lsof -i :26154
-
-# Kill the process
-kill -9 <PID>
-
-# Direct uvicorn runs can use a different port explicitly
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 1324
-```
-
-### Module Import Errors
-
-If you see `ModuleNotFoundError: No module named 'app'`:
-
-```bash
-# Ensure you're in the backend directory
-cd backend
-
-# Reinstall dependencies
-uv sync --all-extras
-
-# Run with PYTHONPATH set
-PYTHONPATH=. uv run uvicorn app.main:app --reload
-```
-
-### Virtual Environment Issues
-
-```bash
-# Remove and recreate virtual environment
-rm -rf .venv
-uv venv --python 3.13
-uv sync --all-extras
-```
-
-### Integration Test Failures
-
-**Symptom**: `pytest -m "requires_grpc_server"` fails with connection errors
-
-**Solution**: Ensure port 50053 is free so the isolated test gRPC server can bind.
-
-```bash
-# Check for a conflicting process
-lsof -i :50053
-```
-
----
-
-## Additional Resources
-
-- **[Root README](../README.md)** - Full Junjo AI Studio documentation
-- **[Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build)** - Image-based deployment starting point
-- **[Junjo AI Studio Deployment Example](https://github.com/mdrideout/junjo-ai-studio-deployment-example)** - End-to-end deployment example
-- **[Junjo Python Library](https://github.com/mdrideout/junjo/tree/master/sdks/python)** - AI graph workflow framework

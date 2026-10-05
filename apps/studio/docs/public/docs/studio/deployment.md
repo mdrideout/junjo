@@ -3,10 +3,11 @@ title: "Self-host Junjo AI Studio with Docker Compose"
 description: "Deploy lightweight Studio services, preserve your datasets and telemetry, and connect your application and coding agent for recursive self improvement."
 ---
 
-Junjo AI Studio runs as three lightweight containerized services: the
-frontend, backend, and ingestion service. Deploy them alongside your application
-or on a separate host. Your application runs its own models, tools, and
-evaluators; Studio stores the shared experiment data and execution evidence.
+Junjo AI Studio runs as two lightweight containerized services: the Studio
+application, which serves the web UI and the HTTP API, and the ingestion
+service. Deploy them alongside your application or on a separate host. Your
+application runs its own models, tools, and evaluators; Studio stores the
+shared experiment data and execution evidence.
 
 ## Upgrading to Studio 0.85.0
 
@@ -19,6 +20,18 @@ Follow the [canonical reset procedure](https://github.com/mdrideout/junjo/blob/m
 It covers the shared SQLite, WAL, and Parquet data directory. `docker compose
 down --volumes` does not clear host-mounted application data.
 
+## Upgrading from Studio 0.85.0 or earlier
+
+Releases after Studio 0.85.0 serve the web UI and the HTTP API from one
+application container. Upgrading to one of them from Studio 0.85.0 or earlier
+is a breaking change to the deployment as well as its data: the data directory
+is reset, two containers replace three, the separate API hostname and port
+`26153` go away, six settings are removed, and everyone signs in again.
+
+Follow [Upgrading from Studio 0.85.0 or earlier](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md#upgrading-from-studio-0850-or-earlier)
+in the reset procedure before starting the new release on an existing
+deployment.
+
 ## Minimal Build Template (Recommended Starting Point)
 
 Use the [Junjo AI Studio minimal distribution](https://github.com/mdrideout/junjo-ai-studio-minimal-build)
@@ -28,14 +41,14 @@ reverse proxy and TLS when making the services remotely accessible.
 
 1. Clone or download the distribution.
 2. Run its `./scripts/junjo setup` wizard. Choose the environment and memory
-   profile; it generates the required secrets and reports your service URLs.
-   The distribution's README also documents manual `.env` setup.
+   profile; it generates the required internal token and reports your service
+   URLs. The distribution's README also documents manual `.env` setup.
 3. Start it with `docker compose up -d` from the distribution directory.
 4. Open the web UI at the address printed by setup. With default local host
-   ports, this is `http://localhost:26153`.
+   ports, this is `http://localhost:26154`.
 
 For an existing Compose stack, use the distribution's versioned Compose file
-as the configuration source. Preserve the backend/ingestion shared storage,
+as the configuration source. Preserve the application/ingestion shared storage,
 private RPC settings, and service-specific environment overrides. The
 [Docker reference](/docs/studio/docker-reference/) explains these boundaries.
 
@@ -48,12 +61,11 @@ files; copying an older Compose snippet can lose required configuration.
 
 The [VM/Caddy distribution](https://github.com/mdrideout/junjo-ai-studio-deployment-example)
 walks through a fresh VM, DNS, Docker Compose, persistent storage, and automatic
-HTTPS. It includes the three Studio services and Caddy routing for:
+HTTPS. It includes the two Studio services and Caddy routing for:
 
 | Destination | Example public address |
 | --- | --- |
-| Studio web UI | `https://junjo.example.com` |
-| Backend API for browser, CLI, and SDK | `https://api.junjo.example.com` |
+| Studio web UI and HTTP API for browser, CLI, and SDK | `https://junjo.example.com` |
 | OTLP/gRPC ingestion | `https://ingestion.junjo.example.com` |
 
 Studio runs well on a 1GB RAM VM with the supported small-host profile. Model
@@ -65,9 +77,9 @@ See [performance and deployment sizing](/docs/studio/performance-and-deployment/
 for measured spans per second under explicit CPU and memory limits, the storage
 pipeline, and guidance on growing beyond the initial host profile.
 
-Use the distribution's setup and Caddy configuration together. In production,
-the frontend and backend must share a registrable domain for Studio's browser
-session cookies. The canonical source lives in
+Use the distribution's setup and Caddy configuration together. The web UI and
+the HTTP API are one origin, so production needs one hostname for Studio and
+one for ingestion. The canonical source lives in
 [apps/studio/deployments/vm-caddy](https://github.com/mdrideout/junjo/tree/master/apps/studio/deployments/vm-caddy).
 
 ## Connect your application and coding agent
@@ -107,10 +119,15 @@ scopes needed for the task:
 - `evidence:read` to investigate execution evidence.
 
 Configure `JUNJO_AI_STUDIO_CLI_TOKEN` with that token and
-`JUNJO_AI_STUDIO_BACKEND_BASE_URL` with the **backend API origin**. With the
-default local distribution, the origin is `http://localhost:26154`. For a
-remote deployment, use its HTTPS API origin, such as
-`https://api.junjo.example.com`.
+`JUNJO_AI_STUDIO_BACKEND_BASE_URL` with the **Studio origin**, the same address
+as the web UI. With the default local distribution, the origin is
+`http://localhost:26154`. For a remote deployment, use its HTTPS origin, such
+as `https://junjo.example.com`.
+
+A person at a terminal can run `junjo auth login` instead of creating and
+copying a token: Studio shows an approval page, and the CLI stores the token
+it is given. The environment variable still takes precedence. See
+[Credentials stay separate](/docs/python/evaluation/#credentials-stay-separate).
 
 The SDK accepts plain HTTP only for loopback. A VM address or Docker service
 hostname is not loopback; use HTTPS for that control connection, or a local
@@ -142,10 +159,11 @@ alone is not proof of remote storage.
 
 ## Preserve the experiment history
 
-Backend and ingestion use the same persistent host data directory. It holds
-canonical accounts, credentials, datasets, runs, and results as well as trace
-storage and the telemetry index. Preserve the whole data directory and the
-deployment configuration when moving or replacing containers.
+The application and ingestion services use the same persistent host data
+directory. It holds canonical accounts, credentials, datasets, runs, and
+results as well as trace storage and the telemetry index. Preserve the whole
+data directory and the deployment configuration when moving or replacing
+containers.
 
 The storage backing this directory is under your control. Choose and operate
 it according to the same data-protection requirements as your production

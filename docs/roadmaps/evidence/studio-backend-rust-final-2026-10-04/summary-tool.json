@@ -1,0 +1,4854 @@
+[
+ {
+  "file": "tool-adopted-heavy-1",
+  "label": "adopted-heavy-1",
+  "recorded_at_utc": "2026-10-04T20:02:22Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 98,
+  "default_views_short": 37,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 269,
+  "exports_failed": 0,
+  "export_p95_ms": 11.866749729961157,
+  "export_p99_ms": 72.09962513297796,
+  "page_loads": 494,
+  "pages": {
+   "services": {
+    "loads": 100,
+    "empty": 0,
+    "p50_ms": 364,
+    "p95_ms": 673
+   },
+   "traces, default view": {
+    "loads": 100,
+    "empty": 35,
+    "p50_ms": 984,
+    "p95_ms": 1789
+   },
+   "traces, all": {
+    "loads": 98,
+    "empty": 0,
+    "p50_ms": 707,
+    "p95_ms": 1447
+   },
+   "trace detail": {
+    "loads": 98,
+    "empty": 0,
+    "p50_ms": 293,
+    "p95_ms": 507
+   },
+   "workflows": {
+    "loads": 98,
+    "empty": 0,
+    "p50_ms": 1201,
+    "p95_ms": 1825
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1090,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 147,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.311481416225433,
+   7.341511833947152,
+   8.961579207796603,
+   8.806324041914195,
+   9.639864958357066
+  ],
+  "browser_proof_seconds": [
+   2.8413220830261707,
+   3.5596924582496285,
+   3.5226601250469685,
+   4.226537917274982,
+   4.650700541678816
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 477.7865409851074,
+  "readable_p95_ms": 888.6480829678476,
+  "readable_slowest_ms": 1173.5363751649857,
+  "backend_cpu_seconds": 44.101459,
+  "backend_peak_memory_mib": 188.51171875,
+  "ingestion_cpu_seconds": 24.363964,
+  "ingestion_peak_memory_mib": 82.41015625,
+  "queries_run_again_after_a_snapshot_change": 1,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-heavy-2",
+  "label": "adopted-heavy-2",
+  "recorded_at_utc": "2026-10-04T20:37:13Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 70,
+  "default_views_short": 45,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 289,
+  "exports_failed": 0,
+  "export_p95_ms": 57.96233285218477,
+  "export_p99_ms": 124.2894995957613,
+  "page_loads": 349,
+  "pages": {
+   "services": {
+    "loads": 71,
+    "empty": 0,
+    "p50_ms": 454,
+    "p95_ms": 894
+   },
+   "traces, default view": {
+    "loads": 71,
+    "empty": 38,
+    "p50_ms": 1413,
+    "p95_ms": 2387
+   },
+   "traces, all": {
+    "loads": 70,
+    "empty": 0,
+    "p50_ms": 1084,
+    "p95_ms": 1870
+   },
+   "trace detail": {
+    "loads": 69,
+    "empty": 0,
+    "p50_ms": 397,
+    "p95_ms": 1007
+   },
+   "workflows": {
+    "loads": 68,
+    "empty": 0,
+    "p50_ms": 1613,
+    "p95_ms": 2588
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 769,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 162,
+  "sdk_runs": 4,
+  "sdk_runs_shown": 4,
+  "sdk_to_studio_seconds": [
+   7.3617948750033975,
+   9.629601665772498,
+   10.017918500117958,
+   10.838773333001882
+  ],
+  "browser_proof_seconds": [
+   4.580263833981007,
+   6.033806249964982,
+   4.2660675421357155,
+   5.161253875121474
+  ],
+  "probes": 34,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 604.6683746390045,
+  "readable_p95_ms": 1274.4102077558637,
+  "readable_slowest_ms": 1725.9655832313001,
+  "backend_cpu_seconds": 44.04421,
+  "backend_peak_memory_mib": 190.50390625,
+  "ingestion_cpu_seconds": 34.76478899999999,
+  "ingestion_peak_memory_mib": 83.57421875,
+  "queries_run_again_after_a_snapshot_change": 5,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-heavy-3",
+  "label": "adopted-heavy-3",
+  "recorded_at_utc": "2026-10-04T21:33:33Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 90,
+  "default_views_short": 47,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 189,
+  "exports_failed": 0,
+  "export_p95_ms": 23.65720784291625,
+  "export_p99_ms": 72.10887502878904,
+  "page_loads": 448,
+  "pages": {
+   "services": {
+    "loads": 91,
+    "empty": 0,
+    "p50_ms": 363,
+    "p95_ms": 778
+   },
+   "traces, default view": {
+    "loads": 91,
+    "empty": 43,
+    "p50_ms": 994,
+    "p95_ms": 2181
+   },
+   "traces, all": {
+    "loads": 90,
+    "empty": 0,
+    "p50_ms": 675,
+    "p95_ms": 2179
+   },
+   "trace detail": {
+    "loads": 88,
+    "empty": 0,
+    "p50_ms": 296,
+    "p95_ms": 624
+   },
+   "workflows": {
+    "loads": 88,
+    "empty": 0,
+    "p50_ms": 1090,
+    "p95_ms": 2406
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 988,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 157,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.089770833030343,
+   7.292630875017494,
+   7.335582499857992,
+   8.257389166858047,
+   9.278435334097594
+  ],
+  "browser_proof_seconds": [
+   3.0249636666849256,
+   3.419690417125821,
+   4.38571733282879,
+   3.224040334112942,
+   4.304558999836445
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 411.17999982088804,
+  "readable_p95_ms": 787.3224592767656,
+  "readable_slowest_ms": 1093.7757501378655,
+  "backend_cpu_seconds": 44.335249,
+  "backend_peak_memory_mib": 188.10546875,
+  "ingestion_cpu_seconds": 26.609908,
+  "ingestion_peak_memory_mib": 85.10546875,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-heavy-4",
+  "label": "adopted-heavy-4",
+  "recorded_at_utc": "2026-10-04T21:53:33Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 101,
+  "default_views_short": 45,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 314,
+  "exports_failed": 0,
+  "export_p95_ms": 10.872249957174063,
+  "export_p99_ms": 68.51991731673479,
+  "page_loads": 503,
+  "pages": {
+   "services": {
+    "loads": 102,
+    "empty": 0,
+    "p50_ms": 384,
+    "p95_ms": 786
+   },
+   "traces, default view": {
+    "loads": 101,
+    "empty": 35,
+    "p50_ms": 1006,
+    "p95_ms": 1820
+   },
+   "traces, all": {
+    "loads": 101,
+    "empty": 0,
+    "p50_ms": 764,
+    "p95_ms": 1413
+   },
+   "trace detail": {
+    "loads": 100,
+    "empty": 0,
+    "p50_ms": 287,
+    "p95_ms": 513
+   },
+   "workflows": {
+    "loads": 99,
+    "empty": 0,
+    "p50_ms": 1104,
+    "p95_ms": 1709
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1107,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 149,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   4.896174000110477,
+   7.731697625014931,
+   8.539644417352974,
+   8.14730070810765,
+   7.660706916823983
+  ],
+  "browser_proof_seconds": [
+   3.08678966620937,
+   3.8544760840013623,
+   3.67822983302176,
+   4.113916667178273,
+   4.455169999971986
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 421.15225037559867,
+  "readable_p95_ms": 1223.9215830340981,
+  "readable_slowest_ms": 1495.5754159018397,
+  "backend_cpu_seconds": 43.886241999999996,
+  "backend_peak_memory_mib": 187.76953125,
+  "ingestion_cpu_seconds": 23.401595,
+  "ingestion_peak_memory_mib": 81.796875,
+  "queries_run_again_after_a_snapshot_change": 7,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-heavy-5",
+  "label": "adopted-heavy-5",
+  "recorded_at_utc": "2026-10-04T21:55:18Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 100,
+  "default_views_short": 39,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 291,
+  "exports_failed": 0,
+  "export_p95_ms": 9.817834012210369,
+  "export_p99_ms": 66.16379180923104,
+  "page_loads": 504,
+  "pages": {
+   "services": {
+    "loads": 103,
+    "empty": 0,
+    "p50_ms": 347,
+    "p95_ms": 740
+   },
+   "traces, default view": {
+    "loads": 103,
+    "empty": 30,
+    "p50_ms": 919,
+    "p95_ms": 1615
+   },
+   "traces, all": {
+    "loads": 100,
+    "empty": 0,
+    "p50_ms": 702,
+    "p95_ms": 1302
+   },
+   "trace detail": {
+    "loads": 99,
+    "empty": 0,
+    "p50_ms": 289,
+    "p95_ms": 610
+   },
+   "workflows": {
+    "loads": 99,
+    "empty": 0,
+    "p50_ms": 1208,
+    "p95_ms": 1998
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1114,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 151,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.300026666838676,
+   7.439249542076141,
+   8.861899625044316,
+   8.800104749854654,
+   8.099252957850695
+  ],
+  "browser_proof_seconds": [
+   2.788033625110984,
+   3.2384012090042233,
+   3.6046062079258263,
+   3.989450375083834,
+   4.184054667130113
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 467.4000833183527,
+  "readable_p95_ms": 1106.0249591246247,
+  "readable_slowest_ms": 1300.235791131854,
+  "backend_cpu_seconds": 43.885123,
+  "backend_peak_memory_mib": 187.8125,
+  "ingestion_cpu_seconds": 23.397922,
+  "ingestion_peak_memory_mib": 84.6171875,
+  "queries_run_again_after_a_snapshot_change": 7,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-1",
+  "label": "adopted-standard-1",
+  "recorded_at_utc": "2026-10-04T19:46:40Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 202,
+  "default_views_short": 30,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 164,
+  "exports_failed": 0,
+  "export_p95_ms": 10.733374860137701,
+  "export_p99_ms": 41.42808308824897,
+  "page_loads": 1013,
+  "pages": {
+   "services": {
+    "loads": 204,
+    "empty": 0,
+    "p50_ms": 286,
+    "p95_ms": 495
+   },
+   "traces, default view": {
+    "loads": 203,
+    "empty": 12,
+    "p50_ms": 430,
+    "p95_ms": 877
+   },
+   "traces, all": {
+    "loads": 202,
+    "empty": 0,
+    "p50_ms": 289,
+    "p95_ms": 584
+   },
+   "trace detail": {
+    "loads": 202,
+    "empty": 0,
+    "p50_ms": 133,
+    "p95_ms": 330
+   },
+   "workflows": {
+    "loads": 202,
+    "empty": 0,
+    "p50_ms": 467,
+    "p95_ms": 817
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2231,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 126,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.059169208165258,
+   7.961446582805365,
+   8.119879166595638,
+   6.215092999860644,
+   7.7699890420772135,
+   6.946267957799137
+  ],
+  "browser_proof_seconds": [
+   2.8661330421455204,
+   3.054264625068754,
+   2.8760578338988125,
+   3.2269984167069197,
+   3.676658334210515,
+   3.5573094999417663
+  ],
+  "probes": 34,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 476.10483411699533,
+  "readable_p95_ms": 1302.1260001696646,
+  "readable_slowest_ms": 1386.6032920777798,
+  "backend_cpu_seconds": 43.279454,
+  "backend_peak_memory_mib": 129.77734375,
+  "ingestion_cpu_seconds": 9.755781,
+  "ingestion_peak_memory_mib": 80.5390625,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-10",
+  "label": "adopted-standard-10",
+  "recorded_at_utc": "2026-10-04T21:38:15Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 221,
+  "default_views_short": 30,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 109,
+  "exports_failed": 0,
+  "export_p95_ms": 8.765166625380516,
+  "export_p99_ms": 52.43779206648469,
+  "page_loads": 1103,
+  "pages": {
+   "services": {
+    "loads": 222,
+    "empty": 0,
+    "p50_ms": 276,
+    "p95_ms": 485
+   },
+   "traces, default view": {
+    "loads": 221,
+    "empty": 8,
+    "p50_ms": 416,
+    "p95_ms": 713
+   },
+   "traces, all": {
+    "loads": 221,
+    "empty": 0,
+    "p50_ms": 264,
+    "p95_ms": 500
+   },
+   "trace detail": {
+    "loads": 220,
+    "empty": 0,
+    "p50_ms": 159,
+    "p95_ms": 311
+   },
+   "workflows": {
+    "loads": 219,
+    "empty": 0,
+    "p50_ms": 415,
+    "p95_ms": 743
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2427,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 92,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.552862457931042,
+   6.350821416825056,
+   6.1440405417233706,
+   6.66933016711846,
+   6.851647999603301,
+   6.365271457936615
+  ],
+  "browser_proof_seconds": [
+   2.833670707885176,
+   2.6491864998824894,
+   3.2442860421724617,
+   2.830420082900673,
+   3.354613124858588,
+   3.1851113331504166
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 335.9691658988595,
+  "readable_p95_ms": 1275.5182920955122,
+  "readable_slowest_ms": 1497.6270832121372,
+  "backend_cpu_seconds": 42.9853,
+  "backend_peak_memory_mib": 129.453125,
+  "ingestion_cpu_seconds": 8.9163,
+  "ingestion_peak_memory_mib": 90.9921875,
+  "queries_run_again_after_a_snapshot_change": 1,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-11",
+  "label": "adopted-standard-11",
+  "recorded_at_utc": "2026-10-04T21:43:18Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 205,
+  "default_views_short": 28,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 96,
+  "exports_failed": 0,
+  "export_p95_ms": 12.606167234480381,
+  "export_p99_ms": 45.93312460929155,
+  "page_loads": 1028,
+  "pages": {
+   "services": {
+    "loads": 207,
+    "empty": 0,
+    "p50_ms": 283,
+    "p95_ms": 511
+   },
+   "traces, default view": {
+    "loads": 207,
+    "empty": 7,
+    "p50_ms": 407,
+    "p95_ms": 805
+   },
+   "traces, all": {
+    "loads": 205,
+    "empty": 0,
+    "p50_ms": 280,
+    "p95_ms": 583
+   },
+   "trace detail": {
+    "loads": 205,
+    "empty": 0,
+    "p50_ms": 156,
+    "p95_ms": 383
+   },
+   "workflows": {
+    "loads": 204,
+    "empty": 0,
+    "p50_ms": 422,
+    "p95_ms": 803
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2264,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 126,
+  "sdk_runs": 7,
+  "sdk_runs_shown": 7,
+  "sdk_to_studio_seconds": [
+   4.631123582832515,
+   6.5295276660472155,
+   5.719140542205423,
+   6.352855458855629,
+   6.955759624950588,
+   6.935998457949609,
+   7.731452708132565
+  ],
+  "browser_proof_seconds": [
+   2.97056662524119,
+   2.649338750168681,
+   2.96538362512365,
+   3.045167916920036,
+   3.2517082919366658,
+   2.675116916652769,
+   3.283070540986955
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 306.64679128676653,
+  "readable_p95_ms": 1303.0303330160677,
+  "readable_slowest_ms": 1489.839832764119,
+  "backend_cpu_seconds": 42.954054,
+  "backend_peak_memory_mib": 133.5703125,
+  "ingestion_cpu_seconds": 9.425068999999999,
+  "ingestion_peak_memory_mib": 80.9609375,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-12",
+  "label": "adopted-standard-12",
+  "recorded_at_utc": "2026-10-04T21:44:59Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 217,
+  "default_views_short": 29,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 163,
+  "exports_failed": 0,
+  "export_p95_ms": 11.303375009447336,
+  "export_p99_ms": 49.741292372345924,
+  "page_loads": 1083,
+  "pages": {
+   "services": {
+    "loads": 218,
+    "empty": 0,
+    "p50_ms": 282,
+    "p95_ms": 481
+   },
+   "traces, default view": {
+    "loads": 218,
+    "empty": 5,
+    "p50_ms": 407,
+    "p95_ms": 727
+   },
+   "traces, all": {
+    "loads": 217,
+    "empty": 0,
+    "p50_ms": 273,
+    "p95_ms": 505
+   },
+   "trace detail": {
+    "loads": 215,
+    "empty": 0,
+    "p50_ms": 132,
+    "p95_ms": 311
+   },
+   "workflows": {
+    "loads": 215,
+    "empty": 0,
+    "p50_ms": 423,
+    "p95_ms": 709
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2385,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 94,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.643377665895969,
+   6.607036416884512,
+   7.344663291238248,
+   6.877047624904662,
+   7.057161082979292,
+   8.335160208866
+  ],
+  "browser_proof_seconds": [
+   2.7770369579084218,
+   2.8358640829101205,
+   2.9376145000569522,
+   3.1303277499973774,
+   3.376006499864161,
+   3.485373457893729
+  ],
+  "probes": 39,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 197.91420921683311,
+  "readable_p95_ms": 1164.3482502549887,
+  "readable_slowest_ms": 1303.4897078759968,
+  "backend_cpu_seconds": 43.024004999999995,
+  "backend_peak_memory_mib": 135.390625,
+  "ingestion_cpu_seconds": 9.209987,
+  "ingestion_peak_memory_mib": 78.765625,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-13",
+  "label": "adopted-standard-13",
+  "recorded_at_utc": "2026-10-04T21:50:01Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 224,
+  "default_views_short": 39,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 159,
+  "exports_failed": 0,
+  "export_p95_ms": 7.176207844167948,
+  "export_p99_ms": 34.07037490978837,
+  "page_loads": 1124,
+  "pages": {
+   "services": {
+    "loads": 227,
+    "empty": 0,
+    "p50_ms": 221,
+    "p95_ms": 437
+   },
+   "traces, default view": {
+    "loads": 225,
+    "empty": 7,
+    "p50_ms": 409,
+    "p95_ms": 791
+   },
+   "traces, all": {
+    "loads": 224,
+    "empty": 0,
+    "p50_ms": 270,
+    "p95_ms": 486
+   },
+   "trace detail": {
+    "loads": 224,
+    "empty": 0,
+    "p50_ms": 127,
+    "p95_ms": 323
+   },
+   "workflows": {
+    "loads": 224,
+    "empty": 0,
+    "p50_ms": 405,
+    "p95_ms": 803
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2476,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 98,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.741476249881089,
+   6.310865625273436,
+   6.170197084080428,
+   7.148857833817601,
+   6.980277833063155,
+   6.9383428753353655
+  ],
+  "browser_proof_seconds": [
+   2.7902801670134068,
+   3.0231202081777155,
+   3.042374999728054,
+   2.9229780416935682,
+   3.0593196670524776,
+   3.4097218750976026
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 301.5589169226587,
+  "readable_p95_ms": 1191.8905838392675,
+  "readable_slowest_ms": 1393.5869168490171,
+  "backend_cpu_seconds": 43.123431000000004,
+  "backend_peak_memory_mib": 130.61328125,
+  "ingestion_cpu_seconds": 8.564255,
+  "ingestion_peak_memory_mib": 77.1171875,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-2",
+  "label": "adopted-standard-2",
+  "recorded_at_utc": "2026-10-04T19:50:18Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 126,
+  "default_views_short": 20,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 250,
+  "exports_failed": 0,
+  "export_p95_ms": 44.05766725540161,
+  "export_p99_ms": 125.57241693139076,
+  "page_loads": 633,
+  "pages": {
+   "services": {
+    "loads": 128,
+    "empty": 0,
+    "p50_ms": 379,
+    "p95_ms": 776
+   },
+   "traces, default view": {
+    "loads": 127,
+    "empty": 7,
+    "p50_ms": 625,
+    "p95_ms": 1390
+   },
+   "traces, all": {
+    "loads": 126,
+    "empty": 0,
+    "p50_ms": 503,
+    "p95_ms": 1066
+   },
+   "trace detail": {
+    "loads": 126,
+    "empty": 0,
+    "p50_ms": 263,
+    "p95_ms": 603
+   },
+   "workflows": {
+    "loads": 126,
+    "empty": 0,
+    "p50_ms": 699,
+    "p95_ms": 1400
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1395,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 145,
+  "sdk_runs": 4,
+  "sdk_runs_shown": 4,
+  "sdk_to_studio_seconds": [
+   8.18423670809716,
+   10.169881291221827,
+   9.241659917403013,
+   9.324859709013253
+  ],
+  "browser_proof_seconds": [
+   6.289768000133336,
+   4.7756267497316,
+   4.85158724989742,
+   4.864027041941881
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 422.92583268135786,
+  "readable_p95_ms": 1505.8972910046577,
+  "readable_slowest_ms": 1658.3665409125388,
+  "backend_cpu_seconds": 43.413720999999995,
+  "backend_peak_memory_mib": 135.7890625,
+  "ingestion_cpu_seconds": 14.402704,
+  "ingestion_peak_memory_mib": 80.64453125,
+  "queries_run_again_after_a_snapshot_change": 1,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-3",
+  "label": "adopted-standard-3",
+  "recorded_at_utc": "2026-10-04T19:58:51Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 194,
+  "default_views_short": 21,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 187,
+  "exports_failed": 0,
+  "export_p95_ms": 12.156915850937366,
+  "export_p99_ms": 58.52045910432935,
+  "page_loads": 967,
+  "pages": {
+   "services": {
+    "loads": 195,
+    "empty": 0,
+    "p50_ms": 277,
+    "p95_ms": 510
+   },
+   "traces, default view": {
+    "loads": 195,
+    "empty": 6,
+    "p50_ms": 444,
+    "p95_ms": 891
+   },
+   "traces, all": {
+    "loads": 194,
+    "empty": 0,
+    "p50_ms": 290,
+    "p95_ms": 668
+   },
+   "trace detail": {
+    "loads": 192,
+    "empty": 0,
+    "p50_ms": 142,
+    "p95_ms": 385
+   },
+   "workflows": {
+    "loads": 191,
+    "empty": 0,
+    "p50_ms": 455,
+    "p95_ms": 926
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2129,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 128,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.078117165714502,
+   7.280014582909644,
+   7.547592957969755,
+   8.681999834254384,
+   7.771867707837373,
+   7.633475333917886
+  ],
+  "browser_proof_seconds": [
+   2.9313405826687813,
+   3.0519875837489963,
+   3.720327291171998,
+   4.302212332841009,
+   3.186128417029977,
+   3.6811820003204048
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 311.40120793133974,
+  "readable_p95_ms": 1283.4385000169277,
+  "readable_slowest_ms": 1499.1398341953754,
+  "backend_cpu_seconds": 43.229274,
+  "backend_peak_memory_mib": 132.7265625,
+  "ingestion_cpu_seconds": 10.188459,
+  "ingestion_peak_memory_mib": 81.640625,
+  "queries_run_again_after_a_snapshot_change": 4,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-4",
+  "label": "adopted-standard-4",
+  "recorded_at_utc": "2026-10-04T20:20:10Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 193,
+  "default_views_short": 28,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 257,
+  "exports_failed": 0,
+  "export_p95_ms": 19.533874932676554,
+  "export_p99_ms": 69.18600015342236,
+  "page_loads": 967,
+  "pages": {
+   "services": {
+    "loads": 195,
+    "empty": 0,
+    "p50_ms": 290,
+    "p95_ms": 507
+   },
+   "traces, default view": {
+    "loads": 194,
+    "empty": 7,
+    "p50_ms": 486,
+    "p95_ms": 821
+   },
+   "traces, all": {
+    "loads": 193,
+    "empty": 0,
+    "p50_ms": 287,
+    "p95_ms": 594
+   },
+   "trace detail": {
+    "loads": 193,
+    "empty": 0,
+    "p50_ms": 180,
+    "p95_ms": 315
+   },
+   "workflows": {
+    "loads": 192,
+    "empty": 0,
+    "p50_ms": 504,
+    "p95_ms": 822
+   }
+  },
+  "pages_with_error": 1,
+  "pages_not_settled": 0,
+  "api_responses": 2129,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 127,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.936762334313244,
+   6.92483887495473,
+   7.145086999982595,
+   7.558110875077546,
+   7.568568749818951,
+   7.693620957899839
+  ],
+  "browser_proof_seconds": [
+   2.915897416882217,
+   3.28948837518692,
+   3.1429287921637297,
+   3.617575875017792,
+   3.2108267094008625,
+   3.605992542114109
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 393.6653332784772,
+  "readable_p95_ms": 1100.310165900737,
+  "readable_slowest_ms": 1189.2476249486208,
+  "backend_cpu_seconds": 43.239345,
+  "backend_peak_memory_mib": 132.04296875,
+  "ingestion_cpu_seconds": 10.164212000000001,
+  "ingestion_peak_memory_mib": 93.27734375,
+  "queries_run_again_after_a_snapshot_change": 3,
+  "backend_error_lines": 0,
+  "responses_4xx": 1
+ },
+ {
+  "file": "tool-adopted-standard-5",
+  "label": "adopted-standard-5",
+  "recorded_at_utc": "2026-10-04T20:26:55Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 190,
+  "default_views_short": 34,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 131,
+  "exports_failed": 0,
+  "export_p95_ms": 10.217708069831133,
+  "export_p99_ms": 42.16033313423395,
+  "page_loads": 949,
+  "pages": {
+   "services": {
+    "loads": 191,
+    "empty": 0,
+    "p50_ms": 299,
+    "p95_ms": 549
+   },
+   "traces, default view": {
+    "loads": 191,
+    "empty": 11,
+    "p50_ms": 481,
+    "p95_ms": 806
+   },
+   "traces, all": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 288,
+    "p95_ms": 585
+   },
+   "trace detail": {
+    "loads": 189,
+    "empty": 0,
+    "p50_ms": 192,
+    "p95_ms": 318
+   },
+   "workflows": {
+    "loads": 188,
+    "empty": 0,
+    "p50_ms": 498,
+    "p95_ms": 839
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2089,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 112,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   7.021504207979888,
+   7.013912207912654,
+   7.5791043331846595,
+   6.610980334226042,
+   7.235851000063121,
+   8.225864375010133
+  ],
+  "browser_proof_seconds": [
+   3.878974249586463,
+   3.604583708103746,
+   2.9874534578993917,
+   2.8690056251361966,
+   3.573842959012836,
+   3.0574102089740336
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 382.41345901042223,
+  "readable_p95_ms": 1204.3557921424508,
+  "readable_slowest_ms": 1398.0012498795986,
+  "backend_cpu_seconds": 43.155796,
+  "backend_peak_memory_mib": 129.78515625,
+  "ingestion_cpu_seconds": 9.852357,
+  "ingestion_peak_memory_mib": 76.9921875,
+  "queries_run_again_after_a_snapshot_change": 6,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-6",
+  "label": "adopted-standard-6",
+  "recorded_at_utc": "2026-10-04T20:33:39Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 184,
+  "default_views_short": 27,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 279,
+  "exports_failed": 0,
+  "export_p95_ms": 18.029999919235706,
+  "export_p99_ms": 67.37549975514412,
+  "page_loads": 920,
+  "pages": {
+   "services": {
+    "loads": 185,
+    "empty": 0,
+    "p50_ms": 288,
+    "p95_ms": 590
+   },
+   "traces, default view": {
+    "loads": 185,
+    "empty": 7,
+    "p50_ms": 504,
+    "p95_ms": 1004
+   },
+   "traces, all": {
+    "loads": 184,
+    "empty": 0,
+    "p50_ms": 298,
+    "p95_ms": 606
+   },
+   "trace detail": {
+    "loads": 183,
+    "empty": 0,
+    "p50_ms": 184,
+    "p95_ms": 390
+   },
+   "workflows": {
+    "loads": 183,
+    "empty": 0,
+    "p50_ms": 518,
+    "p95_ms": 930
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2026,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 92,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.890766832977533,
+   6.731060000136495,
+   7.5368186249397695,
+   7.645784959197044,
+   8.76680808281526,
+   9.027788999956101
+  ],
+  "browser_proof_seconds": [
+   2.758542750030756,
+   3.0789672918617725,
+   3.2228662907145917,
+   3.8599704168736935,
+   3.451054791919887,
+   3.473452416714281
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 303.20495879277587,
+  "readable_p95_ms": 1278.6448332481086,
+  "readable_slowest_ms": 1382.978207897395,
+  "backend_cpu_seconds": 43.473998,
+  "backend_peak_memory_mib": 130.16796875,
+  "ingestion_cpu_seconds": 10.519744,
+  "ingestion_peak_memory_mib": 78.421875,
+  "queries_run_again_after_a_snapshot_change": 3,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-7",
+  "label": "adopted-standard-7",
+  "recorded_at_utc": "2026-10-04T21:16:23Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 186,
+  "default_views_short": 32,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 207,
+  "exports_failed": 0,
+  "export_p95_ms": 18.31416692584753,
+  "export_p99_ms": 61.07900012284517,
+  "page_loads": 931,
+  "pages": {
+   "services": {
+    "loads": 188,
+    "empty": 0,
+    "p50_ms": 282,
+    "p95_ms": 687
+   },
+   "traces, default view": {
+    "loads": 187,
+    "empty": 6,
+    "p50_ms": 419,
+    "p95_ms": 989
+   },
+   "traces, all": {
+    "loads": 186,
+    "empty": 0,
+    "p50_ms": 270,
+    "p95_ms": 607
+   },
+   "trace detail": {
+    "loads": 185,
+    "empty": 0,
+    "p50_ms": 172,
+    "p95_ms": 327
+   },
+   "workflows": {
+    "loads": 185,
+    "empty": 0,
+    "p50_ms": 499,
+    "p95_ms": 1018
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2051,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 116,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.309533709194511,
+   6.103817790746689,
+   7.768816292285919,
+   6.98873454099521,
+   7.411293208133429,
+   6.4092464172281325
+  ],
+  "browser_proof_seconds": [
+   2.8129402082413435,
+   2.927589500322938,
+   2.8143223328515887,
+   2.3802661248482764,
+   3.8845018330030143,
+   3.728865083772689
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 360.6150411069393,
+  "readable_p95_ms": 1110.9809577465057,
+  "readable_slowest_ms": 1281.6760409623384,
+  "backend_cpu_seconds": 40.517652999999996,
+  "backend_peak_memory_mib": 131.9375,
+  "ingestion_cpu_seconds": 9.487551,
+  "ingestion_peak_memory_mib": 90.87109375,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-8",
+  "label": "adopted-standard-8",
+  "recorded_at_utc": "2026-10-04T21:23:10Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 191,
+  "default_views_short": 33,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 144,
+  "exports_failed": 0,
+  "export_p95_ms": 10.908042080700397,
+  "export_p99_ms": 42.015583254396915,
+  "page_loads": 958,
+  "pages": {
+   "services": {
+    "loads": 194,
+    "empty": 0,
+    "p50_ms": 291,
+    "p95_ms": 507
+   },
+   "traces, default view": {
+    "loads": 193,
+    "empty": 5,
+    "p50_ms": 481,
+    "p95_ms": 823
+   },
+   "traces, all": {
+    "loads": 191,
+    "empty": 0,
+    "p50_ms": 290,
+    "p95_ms": 570
+   },
+   "trace detail": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 181,
+    "p95_ms": 324
+   },
+   "workflows": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 505,
+    "p95_ms": 893
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2112,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 94,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.727852541953325,
+   7.286669666878879,
+   7.685810334049165,
+   6.77307220781222,
+   7.520352249965072,
+   7.672242708038539
+  ],
+  "browser_proof_seconds": [
+   3.108441125135869,
+   3.8205513753928244,
+   3.2148868329823017,
+   3.1883158329874277,
+   3.131780041847378,
+   3.5002769576385617
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 394.8776670731604,
+  "readable_p95_ms": 1182.054040953517,
+  "readable_slowest_ms": 1389.444625005126,
+  "backend_cpu_seconds": 43.235315,
+  "backend_peak_memory_mib": 128.12890625,
+  "ingestion_cpu_seconds": 9.511866,
+  "ingestion_peak_memory_mib": 79.640625,
+  "queries_run_again_after_a_snapshot_change": 4,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-adopted-standard-9",
+  "label": "adopted-standard-9",
+  "recorded_at_utc": "2026-10-04T21:30:01Z",
+  "images": {
+   "backend": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 158,
+  "default_views_short": 23,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 157,
+  "exports_failed": 0,
+  "export_p95_ms": 24.82499973848462,
+  "export_p99_ms": 86.35641587898135,
+  "page_loads": 792,
+  "pages": {
+   "services": {
+    "loads": 160,
+    "empty": 0,
+    "p50_ms": 306,
+    "p95_ms": 634
+   },
+   "traces, default view": {
+    "loads": 160,
+    "empty": 6,
+    "p50_ms": 552,
+    "p95_ms": 1204
+   },
+   "traces, all": {
+    "loads": 158,
+    "empty": 0,
+    "p50_ms": 353,
+    "p95_ms": 726
+   },
+   "trace detail": {
+    "loads": 157,
+    "empty": 0,
+    "p50_ms": 200,
+    "p95_ms": 418
+   },
+   "workflows": {
+    "loads": 157,
+    "empty": 0,
+    "p50_ms": 585,
+    "p95_ms": 1103
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1746,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 125,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   6.7541312500834465,
+   7.601273042149842,
+   8.325271958019584,
+   8.447624416090548,
+   8.934744791127741
+  ],
+  "browser_proof_seconds": [
+   3.6821800000034273,
+   3.782414458692074,
+   4.936496041249484,
+   3.8650558330118656,
+   4.253697500098497
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 407.1023748256266,
+  "readable_p95_ms": 1217.5121251493692,
+  "readable_slowest_ms": 1443.5089998878539,
+  "backend_cpu_seconds": 43.305907999999995,
+  "backend_peak_memory_mib": 126.984375,
+  "ingestion_cpu_seconds": 11.628896,
+  "ingestion_peak_memory_mib": 81.296875,
+  "queries_run_again_after_a_snapshot_change": 3,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-before-heavy-1",
+  "label": "before-heavy-1",
+  "recorded_at_utc": "2026-10-04T20:00:37Z",
+  "images": {
+   "backend": "sha256:f8bd11ea18a0ef4d15b528a9c87eca72a54a2b9cda99f75889aedfec59319969",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 74,
+  "default_views_short": 41,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 282,
+  "exports_failed": 0,
+  "export_p95_ms": 12.354249600321054,
+  "export_p99_ms": 66.94766692817211,
+  "page_loads": 378,
+  "pages": {
+   "services": {
+    "loads": 77,
+    "empty": 0,
+    "p50_ms": 455,
+    "p95_ms": 979
+   },
+   "traces, default view": {
+    "loads": 76,
+    "empty": 35,
+    "p50_ms": 1252,
+    "p95_ms": 2526
+   },
+   "traces, all": {
+    "loads": 76,
+    "empty": 0,
+    "p50_ms": 984,
+    "p95_ms": 2178
+   },
+   "trace detail": {
+    "loads": 75,
+    "empty": 0,
+    "p50_ms": 303,
+    "p95_ms": 604
+   },
+   "workflows": {
+    "loads": 74,
+    "empty": 0,
+    "p50_ms": 1220,
+    "p95_ms": 2693
+   }
+  },
+  "pages_with_error": 3,
+  "pages_not_settled": 0,
+  "api_responses": 832,
+  "api_5xx": 3,
+  "requests_failed": 0,
+  "session_check_p95_ms": 220,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   6.494276832789183,
+   7.883825583849102,
+   8.800014667212963,
+   9.922963541932404,
+   10.406645374838263
+  ],
+  "browser_proof_seconds": [
+   2.9052431248128414,
+   3.5812207921408117,
+   4.285798292141408,
+   4.181271833833307,
+   4.211339917033911
+  ],
+  "probes": 34,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 514.0170827507973,
+  "readable_p95_ms": 1201.946415938437,
+  "readable_slowest_ms": 1791.5062503889203,
+  "backend_cpu_seconds": 44.189506,
+  "backend_peak_memory_mib": 245.83984375,
+  "ingestion_cpu_seconds": 25.269387,
+  "ingestion_peak_memory_mib": 79.67578125,
+  "queries_run_again_after_a_snapshot_change": 0,
+  "backend_error_lines": 6,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-before-standard-1",
+  "label": "before-standard-1",
+  "recorded_at_utc": "2026-10-04T19:44:59Z",
+  "images": {
+   "backend": "sha256:f8bd11ea18a0ef4d15b528a9c87eca72a54a2b9cda99f75889aedfec59319969",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 166,
+  "default_views_short": 29,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 280,
+  "exports_failed": 0,
+  "export_p95_ms": 16.515000257641077,
+  "export_p99_ms": 73.21741711348295,
+  "page_loads": 836,
+  "pages": {
+   "services": {
+    "loads": 168,
+    "empty": 0,
+    "p50_ms": 303,
+    "p95_ms": 679
+   },
+   "traces, default view": {
+    "loads": 168,
+    "empty": 5,
+    "p50_ms": 521,
+    "p95_ms": 1104
+   },
+   "traces, all": {
+    "loads": 168,
+    "empty": 0,
+    "p50_ms": 295,
+    "p95_ms": 802
+   },
+   "trace detail": {
+    "loads": 166,
+    "empty": 0,
+    "p50_ms": 182,
+    "p95_ms": 411
+   },
+   "workflows": {
+    "loads": 166,
+    "empty": 0,
+    "p50_ms": 501,
+    "p95_ms": 1144
+   }
+  },
+  "pages_with_error": 2,
+  "pages_not_settled": 0,
+  "api_responses": 1840,
+  "api_5xx": 2,
+  "requests_failed": 0,
+  "session_check_p95_ms": 139,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.3795399172231555,
+   6.9958107909187675,
+   7.000979374628514,
+   7.217851582914591,
+   7.8200462916865945,
+   8.696752624586225
+  ],
+  "browser_proof_seconds": [
+   3.2023715837858617,
+   3.0168150002136827,
+   3.250044458080083,
+   3.691079624928534,
+   3.701884042005986,
+   3.678260291926563
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 488.82225016131997,
+  "readable_p95_ms": 1135.5381249450147,
+  "readable_slowest_ms": 1423.6243749037385,
+  "backend_cpu_seconds": 43.351287,
+  "backend_peak_memory_mib": 162.796875,
+  "ingestion_cpu_seconds": 9.799553,
+  "ingestion_peak_memory_mib": 90.171875,
+  "queries_run_again_after_a_snapshot_change": 0,
+  "backend_error_lines": 4,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-before-standard-2",
+  "label": "before-standard-2",
+  "recorded_at_utc": "2026-10-04T19:53:47Z",
+  "images": {
+   "backend": "sha256:f8bd11ea18a0ef4d15b528a9c87eca72a54a2b9cda99f75889aedfec59319969",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 135,
+  "default_views_short": 20,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 256,
+  "exports_failed": 0,
+  "export_p95_ms": 36.556500010192394,
+  "export_p99_ms": 112.61925008147955,
+  "page_loads": 691,
+  "pages": {
+   "services": {
+    "loads": 140,
+    "empty": 0,
+    "p50_ms": 315,
+    "p95_ms": 596
+   },
+   "traces, default view": {
+    "loads": 140,
+    "empty": 7,
+    "p50_ms": 704,
+    "p95_ms": 1353
+   },
+   "traces, all": {
+    "loads": 138,
+    "empty": 0,
+    "p50_ms": 413,
+    "p95_ms": 969
+   },
+   "trace detail": {
+    "loads": 136,
+    "empty": 0,
+    "p50_ms": 225,
+    "p95_ms": 504
+   },
+   "workflows": {
+    "loads": 137,
+    "empty": 0,
+    "p50_ms": 708,
+    "p95_ms": 1194
+   }
+  },
+  "pages_with_error": 3,
+  "pages_not_settled": 0,
+  "api_responses": 1525,
+  "api_5xx": 3,
+  "requests_failed": 0,
+  "session_check_p95_ms": 185,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.340181541163474,
+   7.737922333180904,
+   9.185909749940038,
+   8.053274916950613,
+   7.7849097503349185
+  ],
+  "browser_proof_seconds": [
+   3.4537785411812365,
+   3.3245312911458313,
+   4.2118698339909315,
+   4.215380874928087,
+   4.2842457089573145
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 616.9108343310654,
+  "readable_p95_ms": 1371.557750273496,
+  "readable_slowest_ms": 1556.688374839723,
+  "backend_cpu_seconds": 43.731883,
+  "backend_peak_memory_mib": 166.80078125,
+  "ingestion_cpu_seconds": 12.107888,
+  "ingestion_peak_memory_mib": 81.6875,
+  "queries_run_again_after_a_snapshot_change": 0,
+  "backend_error_lines": 6,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-before-standard-3",
+  "label": "before-standard-3",
+  "recorded_at_utc": "2026-10-04T19:57:10Z",
+  "images": {
+   "backend": "sha256:f8bd11ea18a0ef4d15b528a9c87eca72a54a2b9cda99f75889aedfec59319969",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 160,
+  "default_views_short": 29,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 247,
+  "exports_failed": 0,
+  "export_p95_ms": 22.515167016535997,
+  "export_p99_ms": 68.88291612267494,
+  "page_loads": 808,
+  "pages": {
+   "services": {
+    "loads": 163,
+    "empty": 0,
+    "p50_ms": 317,
+    "p95_ms": 683
+   },
+   "traces, default view": {
+    "loads": 163,
+    "empty": 6,
+    "p50_ms": 527,
+    "p95_ms": 1098
+   },
+   "traces, all": {
+    "loads": 161,
+    "empty": 0,
+    "p50_ms": 367,
+    "p95_ms": 800
+   },
+   "trace detail": {
+    "loads": 161,
+    "empty": 0,
+    "p50_ms": 197,
+    "p95_ms": 415
+   },
+   "workflows": {
+    "loads": 160,
+    "empty": 0,
+    "p50_ms": 580,
+    "p95_ms": 1097
+   }
+  },
+  "pages_with_error": 2,
+  "pages_not_settled": 0,
+  "api_responses": 1780,
+  "api_5xx": 2,
+  "requests_failed": 0,
+  "session_check_p95_ms": 146,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.3140793750062585,
+   7.085143082775176,
+   7.659511707723141,
+   7.830183875281364,
+   8.933380958158523
+  ],
+  "browser_proof_seconds": [
+   3.3142829998396337,
+   2.9402154167182744,
+   3.9601418753154576,
+   3.771225542295724,
+   4.2419256661087275
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 468.6433752067387,
+  "readable_p95_ms": 1320.0409170240164,
+  "readable_slowest_ms": 1480.0890837796032,
+  "backend_cpu_seconds": 43.59711,
+  "backend_peak_memory_mib": 158.96484375,
+  "ingestion_cpu_seconds": 11.095219,
+  "ingestion_peak_memory_mib": 78.28515625,
+  "queries_run_again_after_a_snapshot_change": 0,
+  "backend_error_lines": 5,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-heavy-1",
+  "label": "tree2-heavy-1",
+  "recorded_at_utc": "2026-10-04T21:31:47Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 95,
+  "default_views_short": 0,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 293,
+  "exports_failed": 0,
+  "export_p95_ms": 15.873083844780922,
+  "export_p99_ms": 76.91325014457107,
+  "page_loads": 473,
+  "pages": {
+   "services": {
+    "loads": 95,
+    "empty": 0,
+    "p50_ms": 310,
+    "p95_ms": 705
+   },
+   "traces, default view": {
+    "loads": 95,
+    "empty": 0,
+    "p50_ms": 1014,
+    "p95_ms": 1864
+   },
+   "traces, all": {
+    "loads": 95,
+    "empty": 0,
+    "p50_ms": 801,
+    "p95_ms": 1417
+   },
+   "trace detail": {
+    "loads": 94,
+    "empty": 0,
+    "p50_ms": 286,
+    "p95_ms": 540
+   },
+   "workflows": {
+    "loads": 94,
+    "empty": 0,
+    "p50_ms": 1307,
+    "p95_ms": 1882
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1041,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 140,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.226942957844585,
+   7.211440375074744,
+   9.061324333772063,
+   8.808890582993627,
+   8.606646874919534
+  ],
+  "browser_proof_seconds": [
+   2.9852904160507023,
+   3.3207060834392905,
+   3.8980222502723336,
+   3.8050643750466406,
+   4.040665207896382
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 532.0937503129244,
+  "readable_p95_ms": 1115.5325002036989,
+  "readable_slowest_ms": 1268.9620000310242,
+  "backend_cpu_seconds": 44.132202,
+  "backend_peak_memory_mib": 186.140625,
+  "ingestion_cpu_seconds": 24.742649999999998,
+  "ingestion_peak_memory_mib": 81.16015625,
+  "queries_run_again_after_a_snapshot_change": 4,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-heavy-2",
+  "label": "tree2-heavy-2",
+  "recorded_at_utc": "2026-10-04T21:51:47Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 98,
+  "default_views_short": 0,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 284,
+  "exports_failed": 0,
+  "export_p95_ms": 11.345207691192627,
+  "export_p99_ms": 71.26474985852838,
+  "page_loads": 495,
+  "pages": {
+   "services": {
+    "loads": 101,
+    "empty": 0,
+    "p50_ms": 366,
+    "p95_ms": 670
+   },
+   "traces, default view": {
+    "loads": 100,
+    "empty": 0,
+    "p50_ms": 1050,
+    "p95_ms": 1900
+   },
+   "traces, all": {
+    "loads": 98,
+    "empty": 0,
+    "p50_ms": 796,
+    "p95_ms": 1406
+   },
+   "trace detail": {
+    "loads": 98,
+    "empty": 0,
+    "p50_ms": 285,
+    "p95_ms": 507
+   },
+   "workflows": {
+    "loads": 98,
+    "empty": 0,
+    "p50_ms": 1114,
+    "p95_ms": 1823
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1093,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 148,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.415776959154755,
+   6.581060542259365,
+   8.479411874897778,
+   8.563053749967366,
+   9.393255833070725
+  ],
+  "browser_proof_seconds": [
+   3.0373263331130147,
+   3.216377082746476,
+   3.511094707995653,
+   4.139894667081535,
+   3.4306317502632737
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 427.7443327009678,
+  "readable_p95_ms": 1210.5025839991868,
+  "readable_slowest_ms": 1403.644165955484,
+  "backend_cpu_seconds": 44.014076,
+  "backend_peak_memory_mib": 183.22265625,
+  "ingestion_cpu_seconds": 23.617440000000002,
+  "ingestion_peak_memory_mib": 75.8828125,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-heavy-3",
+  "label": "tree2-heavy-3",
+  "recorded_at_utc": "2026-10-04T21:57:04Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 85,
+  "default_views_short": 0,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 291,
+  "exports_failed": 0,
+  "export_p95_ms": 10.131374932825565,
+  "export_p99_ms": 59.9973751232028,
+  "page_loads": 425,
+  "pages": {
+   "services": {
+    "loads": 86,
+    "empty": 0,
+    "p50_ms": 370,
+    "p95_ms": 811
+   },
+   "traces, default view": {
+    "loads": 86,
+    "empty": 0,
+    "p50_ms": 1194,
+    "p95_ms": 2762
+   },
+   "traces, all": {
+    "loads": 85,
+    "empty": 0,
+    "p50_ms": 773,
+    "p95_ms": 1320
+   },
+   "trace detail": {
+    "loads": 84,
+    "empty": 0,
+    "p50_ms": 280,
+    "p95_ms": 618
+   },
+   "workflows": {
+    "loads": 84,
+    "empty": 0,
+    "p50_ms": 1308,
+    "p95_ms": 2790
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 937,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 162,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.134662125259638,
+   6.840657584369183,
+   8.889001790899783,
+   5.466911000199616,
+   8.4124166672118,
+   8.292854667175561
+  ],
+  "browser_proof_seconds": [
+   2.45755112497136,
+   3.2099778749980032,
+   4.0389486672356725,
+   4.0973673751577735,
+   4.317881334107369,
+   4.742417332716286
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 474.7667503543198,
+  "readable_p95_ms": 1010.0402091629803,
+  "readable_slowest_ms": 1199.2092500440776,
+  "backend_cpu_seconds": 41.902350000000006,
+  "backend_peak_memory_mib": 185.859375,
+  "ingestion_cpu_seconds": 23.390285,
+  "ingestion_peak_memory_mib": 80.609375,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-standard-1",
+  "label": "tree2-standard-1",
+  "recorded_at_utc": "2026-10-04T21:19:45Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 189,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 169,
+  "exports_failed": 0,
+  "export_p95_ms": 10.883584152907133,
+  "export_p99_ms": 62.521500047296286,
+  "page_loads": 945,
+  "pages": {
+   "services": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 280,
+    "p95_ms": 495
+   },
+   "traces, default view": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 499,
+    "p95_ms": 1023
+   },
+   "traces, all": {
+    "loads": 189,
+    "empty": 0,
+    "p50_ms": 288,
+    "p95_ms": 594
+   },
+   "trace detail": {
+    "loads": 188,
+    "empty": 0,
+    "p50_ms": 180,
+    "p95_ms": 408
+   },
+   "workflows": {
+    "loads": 188,
+    "empty": 0,
+    "p50_ms": 450,
+    "p95_ms": 922
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2081,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 121,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.8560345829464495,
+   6.282461707945913,
+   7.328833790961653,
+   6.836937791202217,
+   6.699352459050715,
+   8.74411195795983
+  ],
+  "browser_proof_seconds": [
+   2.8981672911904752,
+   2.9855388328433037,
+   3.156377791892737,
+   3.4688121248036623,
+   3.6881940001621842,
+   3.9181736251339316
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 477.1485412493348,
+  "readable_p95_ms": 1396.8435837887228,
+  "readable_slowest_ms": 1694.5097502321005,
+  "backend_cpu_seconds": 43.31189,
+  "backend_peak_memory_mib": 127.48828125,
+  "ingestion_cpu_seconds": 9.628917999999999,
+  "ingestion_peak_memory_mib": 78.78125,
+  "queries_run_again_after_a_snapshot_change": 3,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-standard-2",
+  "label": "tree2-standard-2",
+  "recorded_at_utc": "2026-10-04T21:21:28Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 155,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 238,
+  "exports_failed": 0,
+  "export_p95_ms": 18.981334287673235,
+  "export_p99_ms": 90.41941678151488,
+  "page_loads": 779,
+  "pages": {
+   "services": {
+    "loads": 158,
+    "empty": 0,
+    "p50_ms": 294,
+    "p95_ms": 591
+   },
+   "traces, default view": {
+    "loads": 158,
+    "empty": 0,
+    "p50_ms": 681,
+    "p95_ms": 1229
+   },
+   "traces, all": {
+    "loads": 155,
+    "empty": 0,
+    "p50_ms": 318,
+    "p95_ms": 683
+   },
+   "trace detail": {
+    "loads": 154,
+    "empty": 0,
+    "p50_ms": 196,
+    "p95_ms": 398
+   },
+   "workflows": {
+    "loads": 154,
+    "empty": 0,
+    "p50_ms": 602,
+    "p95_ms": 1107
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1719,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 143,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.306475332938135,
+   7.145729249808937,
+   8.396834666840732,
+   8.96079258294776,
+   9.82272204104811
+  ],
+  "browser_proof_seconds": [
+   3.542078958824277,
+   3.894861875101924,
+   3.9429705422371626,
+   3.5505301668308675,
+   4.715887125115842
+  ],
+  "probes": 34,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 575.4652498289943,
+  "readable_p95_ms": 1404.5550408773124,
+  "readable_slowest_ms": 1873.8095830194652,
+  "backend_cpu_seconds": 43.920885,
+  "backend_peak_memory_mib": 135.75,
+  "ingestion_cpu_seconds": 11.562992,
+  "ingestion_peak_memory_mib": 85.078125,
+  "queries_run_again_after_a_snapshot_change": 9,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-standard-3",
+  "label": "tree2-standard-3",
+  "recorded_at_utc": "2026-10-04T21:28:19Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 134,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 136,
+  "exports_failed": 0,
+  "export_p95_ms": 30.25383409112692,
+  "export_p99_ms": 84.79895815253258,
+  "page_loads": 673,
+  "pages": {
+   "services": {
+    "loads": 136,
+    "empty": 0,
+    "p50_ms": 343,
+    "p95_ms": 784
+   },
+   "traces, default view": {
+    "loads": 136,
+    "empty": 0,
+    "p50_ms": 745,
+    "p95_ms": 1516
+   },
+   "traces, all": {
+    "loads": 134,
+    "empty": 0,
+    "p50_ms": 386,
+    "p95_ms": 881
+   },
+   "trace detail": {
+    "loads": 134,
+    "empty": 0,
+    "p50_ms": 203,
+    "p95_ms": 667
+   },
+   "workflows": {
+    "loads": 133,
+    "empty": 0,
+    "p50_ms": 614,
+    "p95_ms": 1177
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1483,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 154,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   6.637909958139062,
+   7.7979556252248585,
+   11.049614833202213,
+   9.865299833007157,
+   8.69055095827207
+  ],
+  "browser_proof_seconds": [
+   3.867274499963969,
+   4.253907542210072,
+   5.8616768340580165,
+   4.089950209017843,
+   3.2828572909347713
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 325.9052080102265,
+  "readable_p95_ms": 1412.400791887194,
+  "readable_slowest_ms": 1591.614667326212,
+  "backend_cpu_seconds": 43.427251,
+  "backend_peak_memory_mib": 134.046875,
+  "ingestion_cpu_seconds": 12.669324,
+  "ingestion_peak_memory_mib": 79.375,
+  "queries_run_again_after_a_snapshot_change": 4,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-standard-4",
+  "label": "tree2-standard-4",
+  "recorded_at_utc": "2026-10-04T21:39:56Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 211,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 176,
+  "exports_failed": 0,
+  "export_p95_ms": 7.364707998931408,
+  "export_p99_ms": 45.25875020772219,
+  "page_loads": 1061,
+  "pages": {
+   "services": {
+    "loads": 214,
+    "empty": 0,
+    "p50_ms": 276,
+    "p95_ms": 462
+   },
+   "traces, default view": {
+    "loads": 214,
+    "empty": 0,
+    "p50_ms": 491,
+    "p95_ms": 799
+   },
+   "traces, all": {
+    "loads": 211,
+    "empty": 0,
+    "p50_ms": 218,
+    "p95_ms": 492
+   },
+   "trace detail": {
+    "loads": 211,
+    "empty": 0,
+    "p50_ms": 171,
+    "p95_ms": 313
+   },
+   "workflows": {
+    "loads": 211,
+    "empty": 0,
+    "p50_ms": 416,
+    "p95_ms": 730
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2339,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 91,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.541371458210051,
+   6.221373999956995,
+   5.927049334160984,
+   6.62517795804888,
+   7.355882749892771,
+   7.0624398328363895
+  ],
+  "browser_proof_seconds": [
+   2.9446437498554587,
+   2.6833785832859576,
+   3.1809646249748766,
+   2.933057333342731,
+   2.8429918750189245,
+   3.6868754159659147
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 371.41308281570673,
+  "readable_p95_ms": 1201.9704589620233,
+  "readable_slowest_ms": 1381.1877081170678,
+  "backend_cpu_seconds": 43.138681,
+  "backend_peak_memory_mib": 126.4921875,
+  "ingestion_cpu_seconds": 8.734,
+  "ingestion_peak_memory_mib": 80.57421875,
+  "queries_run_again_after_a_snapshot_change": 1,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-standard-5",
+  "label": "tree2-standard-5",
+  "recorded_at_utc": "2026-10-04T21:41:37Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 205,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 234,
+  "exports_failed": 0,
+  "export_p95_ms": 18.103207927197218,
+  "export_p99_ms": 85.82191728055477,
+  "page_loads": 1026,
+  "pages": {
+   "services": {
+    "loads": 207,
+    "empty": 0,
+    "p50_ms": 274,
+    "p95_ms": 575
+   },
+   "traces, default view": {
+    "loads": 206,
+    "empty": 0,
+    "p50_ms": 496,
+    "p95_ms": 879
+   },
+   "traces, all": {
+    "loads": 205,
+    "empty": 0,
+    "p50_ms": 277,
+    "p95_ms": 507
+   },
+   "trace detail": {
+    "loads": 204,
+    "empty": 0,
+    "p50_ms": 131,
+    "p95_ms": 314
+   },
+   "workflows": {
+    "loads": 204,
+    "empty": 0,
+    "p50_ms": 424,
+    "p95_ms": 789
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2260,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 98,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.793927249964327,
+   7.215059583075345,
+   7.452765208669007,
+   7.405678957700729,
+   7.465922167059034,
+   8.133545458316803
+  ],
+  "browser_proof_seconds": [
+   2.8053134996443987,
+   2.949963125400245,
+   3.172167500015348,
+   3.019276916049421,
+   3.280767417047173,
+   3.0364414579235017
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 461.03983325883746,
+  "readable_p95_ms": 1399.2188749834895,
+  "readable_slowest_ms": 1588.7727080844343,
+  "backend_cpu_seconds": 43.055803,
+  "backend_peak_memory_mib": 129.2890625,
+  "ingestion_cpu_seconds": 9.229137999999999,
+  "ingestion_peak_memory_mib": 76.4140625,
+  "queries_run_again_after_a_snapshot_change": 1,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-standard-6",
+  "label": "tree2-standard-6",
+  "recorded_at_utc": "2026-10-04T21:46:39Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 205,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 181,
+  "exports_failed": 0,
+  "export_p95_ms": 12.068707961589098,
+  "export_p99_ms": 42.34375013038516,
+  "page_loads": 1027,
+  "pages": {
+   "services": {
+    "loads": 207,
+    "empty": 0,
+    "p50_ms": 274,
+    "p95_ms": 495
+   },
+   "traces, default view": {
+    "loads": 207,
+    "empty": 0,
+    "p50_ms": 496,
+    "p95_ms": 910
+   },
+   "traces, all": {
+    "loads": 205,
+    "empty": 0,
+    "p50_ms": 225,
+    "p95_ms": 486
+   },
+   "trace detail": {
+    "loads": 204,
+    "empty": 0,
+    "p50_ms": 133,
+    "p95_ms": 322
+   },
+   "workflows": {
+    "loads": 204,
+    "empty": 0,
+    "p50_ms": 427,
+    "p95_ms": 777
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2263,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 96,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.720943500287831,
+   6.708603083156049,
+   7.127531624864787,
+   7.131986583117396,
+   7.466553541831672,
+   6.887262790929526
+  ],
+  "browser_proof_seconds": [
+   2.6908815409988165,
+   2.767517250031233,
+   2.649478000123054,
+   3.0396438748575747,
+   3.0276397080160677,
+   3.451762499753386
+  ],
+  "probes": 37,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 285.2529580704868,
+  "readable_p95_ms": 1258.0902501940727,
+  "readable_slowest_ms": 1271.9042911194265,
+  "backend_cpu_seconds": 43.042031,
+  "backend_peak_memory_mib": 128.16796875,
+  "ingestion_cpu_seconds": 9.162403,
+  "ingestion_peak_memory_mib": 79.50390625,
+  "queries_run_again_after_a_snapshot_change": 1,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-tree2-standard-7",
+  "label": "tree2-standard-7",
+  "recorded_at_utc": "2026-10-04T21:48:20Z",
+  "images": {
+   "backend": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 192,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 168,
+  "exports_failed": 0,
+  "export_p95_ms": 15.947666950523853,
+  "export_p99_ms": 51.59058282151818,
+  "page_loads": 961,
+  "pages": {
+   "services": {
+    "loads": 193,
+    "empty": 0,
+    "p50_ms": 304,
+    "p95_ms": 484
+   },
+   "traces, default view": {
+    "loads": 193,
+    "empty": 0,
+    "p50_ms": 556,
+    "p95_ms": 900
+   },
+   "traces, all": {
+    "loads": 192,
+    "empty": 0,
+    "p50_ms": 206,
+    "p95_ms": 483
+   },
+   "trace detail": {
+    "loads": 192,
+    "empty": 0,
+    "p50_ms": 116,
+    "p95_ms": 303
+   },
+   "workflows": {
+    "loads": 191,
+    "empty": 0,
+    "p50_ms": 501,
+    "p95_ms": 811
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2115,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 89,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.628383833914995,
+   6.466697833966464,
+   6.292429583147168,
+   7.50651695812121,
+   6.973387958947569,
+   7.25351499998942
+  ],
+  "browser_proof_seconds": [
+   2.5289379158057272,
+   2.7024672091938555,
+   3.6884999158792198,
+   2.8107689591124654,
+   2.962934209033847,
+   3.7715342501178384
+  ],
+  "probes": 34,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 431.81499978527427,
+  "readable_p95_ms": 1178.373333066702,
+  "readable_slowest_ms": 1429.9601670354605,
+  "backend_cpu_seconds": 42.129202,
+  "backend_peak_memory_mib": 130.21875,
+  "ingestion_cpu_seconds": 9.242769000000001,
+  "ingestion_peak_memory_mib": 80.6328125,
+  "queries_run_again_after_a_snapshot_change": 9,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix-heavy-1",
+  "label": "viewfix-heavy-1",
+  "recorded_at_utc": "2026-10-04T20:04:08Z",
+  "images": {
+   "backend": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 88,
+  "default_views_short": 10,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 274,
+  "exports_failed": 0,
+  "export_p95_ms": 15.721833799034357,
+  "export_p99_ms": 70.49820804968476,
+  "page_loads": 439,
+  "pages": {
+   "services": {
+    "loads": 90,
+    "empty": 0,
+    "p50_ms": 386,
+    "p95_ms": 688
+   },
+   "traces, default view": {
+    "loads": 89,
+    "empty": 4,
+    "p50_ms": 1293,
+    "p95_ms": 2182
+   },
+   "traces, all": {
+    "loads": 88,
+    "empty": 0,
+    "p50_ms": 874,
+    "p95_ms": 1564
+   },
+   "trace detail": {
+    "loads": 86,
+    "empty": 0,
+    "p50_ms": 285,
+    "p95_ms": 623
+   },
+   "workflows": {
+    "loads": 86,
+    "empty": 0,
+    "p50_ms": 1223,
+    "p95_ms": 1821
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 969,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 154,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.016015667002648,
+   7.631128957960755,
+   10.15650508319959,
+   9.156807458028197,
+   8.182864250149578
+  ],
+  "browser_proof_seconds": [
+   3.634256625082344,
+   3.8760697906836867,
+   3.7043902496807277,
+   3.819490124937147,
+   3.938365707639605
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 578.3214587718248,
+  "readable_p95_ms": 1116.645250003785,
+  "readable_slowest_ms": 1273.6039999872446,
+  "backend_cpu_seconds": 43.848299999999995,
+  "backend_peak_memory_mib": 187.47265625,
+  "ingestion_cpu_seconds": 25.808685,
+  "ingestion_peak_memory_mib": 83.015625,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix-heavy-2",
+  "label": "viewfix-heavy-2",
+  "recorded_at_utc": "2026-10-04T20:38:59Z",
+  "images": {
+   "backend": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 76,
+  "default_views_short": 6,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 259,
+  "exports_failed": 0,
+  "export_p95_ms": 20.190292038023472,
+  "export_p99_ms": 82.90462521836162,
+  "page_loads": 383,
+  "pages": {
+   "services": {
+    "loads": 78,
+    "empty": 0,
+    "p50_ms": 395,
+    "p95_ms": 732
+   },
+   "traces, default view": {
+    "loads": 78,
+    "empty": 1,
+    "p50_ms": 1594,
+    "p95_ms": 2590
+   },
+   "traces, all": {
+    "loads": 76,
+    "empty": 0,
+    "p50_ms": 1024,
+    "p95_ms": 1752
+   },
+   "trace detail": {
+    "loads": 76,
+    "empty": 0,
+    "p50_ms": 295,
+    "p95_ms": 614
+   },
+   "workflows": {
+    "loads": 75,
+    "empty": 0,
+    "p50_ms": 1326,
+    "p95_ms": 2121
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 845,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 140,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.092991167213768,
+   7.097849000245333,
+   8.582405249588192,
+   8.948361875023693,
+   8.829882958903909
+  ],
+  "browser_proof_seconds": [
+   3.6910555828362703,
+   4.107271708082408,
+   4.163302917033434,
+   4.762896915897727,
+   5.284739667084068
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 595.5276670865715,
+  "readable_p95_ms": 1146.977957803756,
+  "readable_slowest_ms": 1267.542874906212,
+  "backend_cpu_seconds": 44.070351,
+  "backend_peak_memory_mib": 191.06640625,
+  "ingestion_cpu_seconds": 28.24963,
+  "ingestion_peak_memory_mib": 79.61328125,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix-standard-1",
+  "label": "viewfix-standard-1",
+  "recorded_at_utc": "2026-10-04T19:48:31Z",
+  "images": {
+   "backend": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 143,
+  "default_views_short": 1,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 273,
+  "exports_failed": 0,
+  "export_p95_ms": 57.140250224620104,
+  "export_p99_ms": 166.8706671334803,
+  "page_loads": 721,
+  "pages": {
+   "services": {
+    "loads": 146,
+    "empty": 0,
+    "p50_ms": 304,
+    "p95_ms": 789
+   },
+   "traces, default view": {
+    "loads": 146,
+    "empty": 1,
+    "p50_ms": 613,
+    "p95_ms": 1701
+   },
+   "traces, all": {
+    "loads": 143,
+    "empty": 0,
+    "p50_ms": 285,
+    "p95_ms": 1112
+   },
+   "trace detail": {
+    "loads": 143,
+    "empty": 0,
+    "p50_ms": 198,
+    "p95_ms": 560
+   },
+   "workflows": {
+    "loads": 143,
+    "empty": 0,
+    "p50_ms": 503,
+    "p95_ms": 1632
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1591,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 145,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.287110666744411,
+   6.691604292020202,
+   8.957260665949434,
+   8.730631709098816,
+   7.76284158276394
+  ],
+  "browser_proof_seconds": [
+   3.4372164169326425,
+   3.2608785000629723,
+   4.73744683386758,
+   3.626260249875486,
+   7.913618499878794
+  ],
+  "probes": 33,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 588.2803332060575,
+  "readable_p95_ms": 1382.5695416890085,
+  "readable_slowest_ms": 1515.501624904573,
+  "backend_cpu_seconds": 43.734636,
+  "backend_peak_memory_mib": 134.859375,
+  "ingestion_cpu_seconds": 14.538159,
+  "ingestion_peak_memory_mib": 81.71484375,
+  "queries_run_again_after_a_snapshot_change": 4,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix-standard-2",
+  "label": "viewfix-standard-2",
+  "recorded_at_utc": "2026-10-04T19:52:05Z",
+  "images": {
+   "backend": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 121,
+  "default_views_short": 2,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 205,
+  "exports_failed": 0,
+  "export_p95_ms": 52.43729194626212,
+  "export_p99_ms": 120.13574969023466,
+  "page_loads": 606,
+  "pages": {
+   "services": {
+    "loads": 123,
+    "empty": 0,
+    "p50_ms": 368,
+    "p95_ms": 803
+   },
+   "traces, default view": {
+    "loads": 122,
+    "empty": 2,
+    "p50_ms": 760,
+    "p95_ms": 1597
+   },
+   "traces, all": {
+    "loads": 121,
+    "empty": 0,
+    "p50_ms": 496,
+    "p95_ms": 1100
+   },
+   "trace detail": {
+    "loads": 120,
+    "empty": 0,
+    "p50_ms": 209,
+    "p95_ms": 596
+   },
+   "workflows": {
+    "loads": 120,
+    "empty": 0,
+    "p50_ms": 746,
+    "p95_ms": 1338
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1336,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 178,
+  "sdk_runs": 4,
+  "sdk_runs_shown": 4,
+  "sdk_to_studio_seconds": [
+   7.602320875041187,
+   9.135175458155572,
+   9.279213457833976,
+   10.247010042425245
+  ],
+  "browser_proof_seconds": [
+   4.556922124698758,
+   5.454410790931433,
+   4.568297708872706,
+   4.712649166118354
+  ],
+  "probes": 33,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 609.3824580311775,
+  "readable_p95_ms": 1506.4794169738889,
+  "readable_slowest_ms": 1675.6942910142243,
+  "backend_cpu_seconds": 43.57378,
+  "backend_peak_memory_mib": 130.28125,
+  "ingestion_cpu_seconds": 15.056644,
+  "ingestion_peak_memory_mib": 78.75390625,
+  "queries_run_again_after_a_snapshot_change": 4,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix-standard-3",
+  "label": "viewfix-standard-3",
+  "recorded_at_utc": "2026-10-04T19:55:29Z",
+  "images": {
+   "backend": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 188,
+  "default_views_short": 1,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 222,
+  "exports_failed": 0,
+  "export_p95_ms": 11.99041586369276,
+  "export_p99_ms": 55.40937511250377,
+  "page_loads": 941,
+  "pages": {
+   "services": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 287,
+    "p95_ms": 496
+   },
+   "traces, default view": {
+    "loads": 189,
+    "empty": 1,
+    "p50_ms": 520,
+    "p95_ms": 974
+   },
+   "traces, all": {
+    "loads": 188,
+    "empty": 0,
+    "p50_ms": 292,
+    "p95_ms": 593
+   },
+   "trace detail": {
+    "loads": 187,
+    "empty": 0,
+    "p50_ms": 186,
+    "p95_ms": 318
+   },
+   "workflows": {
+    "loads": 187,
+    "empty": 0,
+    "p50_ms": 500,
+    "p95_ms": 805
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2073,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 106,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.304230083711445,
+   7.414946625009179,
+   7.868641625158489,
+   7.458153750281781,
+   7.18500095885247,
+   6.8203394170850515
+  ],
+  "browser_proof_seconds": [
+   2.8834362500347197,
+   3.1465598749928176,
+   3.11632570810616,
+   3.5052407500334084,
+   3.0682665831409395,
+   3.650547207798809
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 362.2132078744471,
+  "readable_p95_ms": 1211.2383749336004,
+  "readable_slowest_ms": 1431.9997504353523,
+  "backend_cpu_seconds": 43.270174000000004,
+  "backend_peak_memory_mib": 125.51171875,
+  "ingestion_cpu_seconds": 9.767429,
+  "ingestion_peak_memory_mib": 80.4453125,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix-standard-4",
+  "label": "viewfix-standard-4",
+  "recorded_at_utc": "2026-10-04T20:21:52Z",
+  "images": {
+   "backend": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 170,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 169,
+  "exports_failed": 0,
+  "export_p95_ms": 21.96208294481039,
+  "export_p99_ms": 59.34466701000929,
+  "page_loads": 849,
+  "pages": {
+   "services": {
+    "loads": 171,
+    "empty": 0,
+    "p50_ms": 290,
+    "p95_ms": 692
+   },
+   "traces, default view": {
+    "loads": 171,
+    "empty": 0,
+    "p50_ms": 528,
+    "p95_ms": 1221
+   },
+   "traces, all": {
+    "loads": 170,
+    "empty": 0,
+    "p50_ms": 283,
+    "p95_ms": 501
+   },
+   "trace detail": {
+    "loads": 169,
+    "empty": 0,
+    "p50_ms": 165,
+    "p95_ms": 322
+   },
+   "workflows": {
+    "loads": 168,
+    "empty": 0,
+    "p50_ms": 509,
+    "p95_ms": 1615
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1869,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 112,
+  "sdk_runs": 7,
+  "sdk_runs_shown": 7,
+  "sdk_to_studio_seconds": [
+   5.448571582790464,
+   7.180701958946884,
+   6.67280308296904,
+   5.652737834025174,
+   3.934721624944359,
+   6.998811125289649,
+   6.812659709248692
+  ],
+  "browser_proof_seconds": [
+   2.8198810829780996,
+   3.5893716658465564,
+   3.1874880832619965,
+   3.360588749870658,
+   3.5933552919887006,
+   2.3127124160528183,
+   2.7704174579121172
+  ],
+  "probes": 38,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 265.2959171682596,
+  "readable_p95_ms": 1173.91945887357,
+  "readable_slowest_ms": 1297.4389581941068,
+  "backend_cpu_seconds": 42.374568000000004,
+  "backend_peak_memory_mib": 130.859375,
+  "ingestion_cpu_seconds": 9.974359,
+  "ingestion_peak_memory_mib": 79.046875,
+  "queries_run_again_after_a_snapshot_change": 7,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix-standard-5",
+  "label": "viewfix-standard-5",
+  "recorded_at_utc": "2026-10-04T20:28:35Z",
+  "images": {
+   "backend": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 191,
+  "default_views_short": 1,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 287,
+  "exports_failed": 0,
+  "export_p95_ms": 16.557791735976934,
+  "export_p99_ms": 88.34279235452414,
+  "page_loads": 954,
+  "pages": {
+   "services": {
+    "loads": 192,
+    "empty": 0,
+    "p50_ms": 290,
+    "p95_ms": 502
+   },
+   "traces, default view": {
+    "loads": 192,
+    "empty": 1,
+    "p50_ms": 526,
+    "p95_ms": 902
+   },
+   "traces, all": {
+    "loads": 191,
+    "empty": 0,
+    "p50_ms": 282,
+    "p95_ms": 564
+   },
+   "trace detail": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 176,
+    "p95_ms": 320
+   },
+   "workflows": {
+    "loads": 189,
+    "empty": 0,
+    "p50_ms": 435,
+    "p95_ms": 795
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2100,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 113,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.012410833034664,
+   7.195632458198816,
+   6.983190333005041,
+   6.472215709276497,
+   7.203670999966562,
+   8.356592957861722
+  ],
+  "browser_proof_seconds": [
+   3.094171625096351,
+   3.0401048329658806,
+   3.207513749599457,
+   3.498076083138585,
+   3.723850792273879,
+   3.70539979217574
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 306.01645912975073,
+  "readable_p95_ms": 1217.8282919339836,
+  "readable_slowest_ms": 1306.0840419493616,
+  "backend_cpu_seconds": 43.260099,
+  "backend_peak_memory_mib": 131.3125,
+  "ingestion_cpu_seconds": 9.668536,
+  "ingestion_peak_memory_mib": 76.61328125,
+  "queries_run_again_after_a_snapshot_change": 5,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix-standard-6",
+  "label": "viewfix-standard-6",
+  "recorded_at_utc": "2026-10-04T20:30:17Z",
+  "images": {
+   "backend": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 191,
+  "default_views_short": 1,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 242,
+  "exports_failed": 0,
+  "export_p95_ms": 11.081915814429522,
+  "export_p99_ms": 56.99787521734834,
+  "page_loads": 956,
+  "pages": {
+   "services": {
+    "loads": 193,
+    "empty": 0,
+    "p50_ms": 292,
+    "p95_ms": 493
+   },
+   "traces, default view": {
+    "loads": 192,
+    "empty": 1,
+    "p50_ms": 518,
+    "p95_ms": 906
+   },
+   "traces, all": {
+    "loads": 191,
+    "empty": 0,
+    "p50_ms": 279,
+    "p95_ms": 510
+   },
+   "trace detail": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 180,
+    "p95_ms": 395
+   },
+   "workflows": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 491,
+    "p95_ms": 821
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2106,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 103,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.1907452922314405,
+   7.239098833873868,
+   7.926959374919534,
+   6.3346372079104185,
+   7.574908041860908,
+   8.296707625035197
+  ],
+  "browser_proof_seconds": [
+   3.072579124942422,
+   2.9783437908627093,
+   3.0537066250108182,
+   3.0208047088235617,
+   3.606764334253967,
+   3.674108542036265
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 397.2542081028223,
+  "readable_p95_ms": 1294.2231250926852,
+  "readable_slowest_ms": 1476.1493750847876,
+  "backend_cpu_seconds": 43.041360000000005,
+  "backend_peak_memory_mib": 126.99609375,
+  "ingestion_cpu_seconds": 9.322401000000001,
+  "ingestion_peak_memory_mib": 81.6875,
+  "queries_run_again_after_a_snapshot_change": 2,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix2-heavy-1",
+  "label": "viewfix2-heavy-1",
+  "recorded_at_utc": "2026-10-04T20:35:26Z",
+  "images": {
+   "backend": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 69,
+  "default_views_short": 0,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 292,
+  "exports_failed": 0,
+  "export_p95_ms": 46.64799990132451,
+  "export_p99_ms": 103.91566716134548,
+  "page_loads": 347,
+  "pages": {
+   "services": {
+    "loads": 71,
+    "empty": 0,
+    "p50_ms": 450,
+    "p95_ms": 1004
+   },
+   "traces, default view": {
+    "loads": 71,
+    "empty": 0,
+    "p50_ms": 1527,
+    "p95_ms": 2830
+   },
+   "traces, all": {
+    "loads": 69,
+    "empty": 0,
+    "p50_ms": 1121,
+    "p95_ms": 2218
+   },
+   "trace detail": {
+    "loads": 68,
+    "empty": 0,
+    "p50_ms": 395,
+    "p95_ms": 903
+   },
+   "workflows": {
+    "loads": 68,
+    "empty": 0,
+    "p50_ms": 1297,
+    "p95_ms": 2926
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 767,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 144,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.583403209224343,
+   8.37951016658917,
+   9.959918458014727,
+   10.027431833092123,
+   10.790794000029564
+  ],
+  "browser_proof_seconds": [
+   3.9515020418912172,
+   4.199870042037219,
+   4.61964812502265,
+   4.370409166906029,
+   4.958000249695033
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 578.5745829343796,
+  "readable_p95_ms": 1301.4074168168008,
+  "readable_slowest_ms": 1356.9511249661446,
+  "backend_cpu_seconds": 44.368839,
+  "backend_peak_memory_mib": 192.5,
+  "ingestion_cpu_seconds": 33.243593000000004,
+  "ingestion_peak_memory_mib": 80.203125,
+  "queries_run_again_after_a_snapshot_change": 4,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix2-heavy-2",
+  "label": "viewfix2-heavy-2",
+  "recorded_at_utc": "2026-10-04T21:35:18Z",
+  "images": {
+   "backend": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 3600,
+   "spans_per_export": 32,
+   "export_interval_ms": 25,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 86,
+  "default_views_short": 0,
+  "spans_acknowledged": 5760000,
+  "exports_refused_once": 285,
+  "exports_failed": 0,
+  "export_p95_ms": 30.742208939045668,
+  "export_p99_ms": 84.4959169626236,
+  "page_loads": 431,
+  "pages": {
+   "services": {
+    "loads": 88,
+    "empty": 0,
+    "p50_ms": 365,
+    "p95_ms": 684
+   },
+   "traces, default view": {
+    "loads": 87,
+    "empty": 0,
+    "p50_ms": 1299,
+    "p95_ms": 2309
+   },
+   "traces, all": {
+    "loads": 86,
+    "empty": 0,
+    "p50_ms": 890,
+    "p95_ms": 1594
+   },
+   "trace detail": {
+    "loads": 85,
+    "empty": 0,
+    "p50_ms": 311,
+    "p95_ms": 585
+   },
+   "workflows": {
+    "loads": 85,
+    "empty": 0,
+    "p50_ms": 1207,
+    "p95_ms": 2002
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 951,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 153,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   5.535658624954522,
+   7.974495250266045,
+   9.4640823751688,
+   9.29443820938468,
+   8.449420416727662
+  ],
+  "browser_proof_seconds": [
+   3.6105424580164254,
+   5.313185625243932,
+   3.801060499623418,
+   3.2621359168551862,
+   4.076065707951784
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 469.0864160656929,
+  "readable_p95_ms": 1019.1112081520259,
+  "readable_slowest_ms": 1443.5267080552876,
+  "backend_cpu_seconds": 43.636649999999996,
+  "backend_peak_memory_mib": 188.140625,
+  "ingestion_cpu_seconds": 26.14714,
+  "ingestion_peak_memory_mib": 80.046875,
+  "queries_run_again_after_a_snapshot_change": 0,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix2-standard-1",
+  "label": "viewfix2-standard-1",
+  "recorded_at_utc": "2026-10-04T20:23:33Z",
+  "images": {
+   "backend": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 164,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 157,
+  "exports_failed": 0,
+  "export_p95_ms": 30.38754127919674,
+  "export_p99_ms": 73.23225028812885,
+  "page_loads": 823,
+  "pages": {
+   "services": {
+    "loads": 166,
+    "empty": 0,
+    "p50_ms": 302,
+    "p95_ms": 588
+   },
+   "traces, default view": {
+    "loads": 165,
+    "empty": 0,
+    "p50_ms": 601,
+    "p95_ms": 1216
+   },
+   "traces, all": {
+    "loads": 164,
+    "empty": 0,
+    "p50_ms": 308,
+    "p95_ms": 732
+   },
+   "trace detail": {
+    "loads": 164,
+    "empty": 0,
+    "p50_ms": 200,
+    "p95_ms": 490
+   },
+   "workflows": {
+    "loads": 164,
+    "empty": 0,
+    "p50_ms": 519,
+    "p95_ms": 1007
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1813,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 114,
+  "sdk_runs": 5,
+  "sdk_runs_shown": 5,
+  "sdk_to_studio_seconds": [
+   6.5213097906671464,
+   7.061892959289253,
+   9.007930708117783,
+   8.407940709032118,
+   7.901945124845952
+  ],
+  "browser_proof_seconds": [
+   3.4319342500530183,
+   3.8249587500467896,
+   3.6688552908599377,
+   3.2810697918757796,
+   4.183811665978283
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 331.7672088742256,
+  "readable_p95_ms": 1291.350333020091,
+  "readable_slowest_ms": 1460.9157089143991,
+  "backend_cpu_seconds": 43.411336,
+  "backend_peak_memory_mib": 126.44921875,
+  "ingestion_cpu_seconds": 12.207061000000001,
+  "ingestion_peak_memory_mib": 78.8125,
+  "queries_run_again_after_a_snapshot_change": 0,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix2-standard-2",
+  "label": "viewfix2-standard-2",
+  "recorded_at_utc": "2026-10-04T20:25:14Z",
+  "images": {
+   "backend": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 172,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 277,
+  "exports_failed": 0,
+  "export_p95_ms": 16.129374969750643,
+  "export_p99_ms": 94.04562506824732,
+  "page_loads": 861,
+  "pages": {
+   "services": {
+    "loads": 174,
+    "empty": 0,
+    "p50_ms": 292,
+    "p95_ms": 503
+   },
+   "traces, default view": {
+    "loads": 173,
+    "empty": 0,
+    "p50_ms": 618,
+    "p95_ms": 1097
+   },
+   "traces, all": {
+    "loads": 172,
+    "empty": 0,
+    "p50_ms": 292,
+    "p95_ms": 695
+   },
+   "trace detail": {
+    "loads": 171,
+    "empty": 0,
+    "p50_ms": 194,
+    "p95_ms": 394
+   },
+   "workflows": {
+    "loads": 171,
+    "empty": 0,
+    "p50_ms": 510,
+    "p95_ms": 919
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1897,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 115,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.341312624979764,
+   6.881848291028291,
+   6.992438333109021,
+   7.249900291673839,
+   7.149492457974702,
+   7.5917039583437145
+  ],
+  "browser_proof_seconds": [
+   3.4236614578403533,
+   2.8839354999363422,
+   4.050530792213976,
+   3.8474249583669007,
+   3.8245442919433117,
+   3.7833891669288278
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 319.7078751400113,
+  "readable_p95_ms": 1274.153959006071,
+  "readable_slowest_ms": 1313.4689591825008,
+  "backend_cpu_seconds": 43.516465,
+  "backend_peak_memory_mib": 128.0078125,
+  "ingestion_cpu_seconds": 10.980848,
+  "ingestion_peak_memory_mib": 80.109375,
+  "queries_run_again_after_a_snapshot_change": 3,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix2-standard-3",
+  "label": "viewfix2-standard-3",
+  "recorded_at_utc": "2026-10-04T20:31:58Z",
+  "images": {
+   "backend": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 176,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 228,
+  "exports_failed": 0,
+  "export_p95_ms": 34.30325025692582,
+  "export_p99_ms": 75.03837486729026,
+  "page_loads": 881,
+  "pages": {
+   "services": {
+    "loads": 178,
+    "empty": 0,
+    "p50_ms": 296,
+    "p95_ms": 494
+   },
+   "traces, default view": {
+    "loads": 177,
+    "empty": 0,
+    "p50_ms": 543,
+    "p95_ms": 1184
+   },
+   "traces, all": {
+    "loads": 176,
+    "empty": 0,
+    "p50_ms": 288,
+    "p95_ms": 696
+   },
+   "trace detail": {
+    "loads": 175,
+    "empty": 0,
+    "p50_ms": 189,
+    "p95_ms": 396
+   },
+   "workflows": {
+    "loads": 175,
+    "empty": 0,
+    "p50_ms": 509,
+    "p95_ms": 1084
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1941,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 126,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.086652792058885,
+   7.341510499827564,
+   8.385586500167847,
+   7.380220583174378,
+   7.7217272920534015,
+   9.220166833139956
+  ],
+  "browser_proof_seconds": [
+   2.878760625142604,
+   3.142710667103529,
+   3.783703832887113,
+   3.687296458054334,
+   3.0540396249853075,
+   3.644232166931033
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 301.3788745738566,
+  "readable_p95_ms": 1216.2105408497155,
+  "readable_slowest_ms": 1386.8780001066625,
+  "backend_cpu_seconds": 43.459812,
+  "backend_peak_memory_mib": 132.9140625,
+  "ingestion_cpu_seconds": 11.052151,
+  "ingestion_peak_memory_mib": 78.015625,
+  "queries_run_again_after_a_snapshot_change": 6,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix2-standard-4",
+  "label": "viewfix2-standard-4",
+  "recorded_at_utc": "2026-10-04T21:18:03Z",
+  "images": {
+   "backend": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 191,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 253,
+  "exports_failed": 0,
+  "export_p95_ms": 14.970041811466217,
+  "export_p99_ms": 79.69924993813038,
+  "page_loads": 955,
+  "pages": {
+   "services": {
+    "loads": 192,
+    "empty": 0,
+    "p50_ms": 280,
+    "p95_ms": 486
+   },
+   "traces, default view": {
+    "loads": 192,
+    "empty": 0,
+    "p50_ms": 573,
+    "p95_ms": 916
+   },
+   "traces, all": {
+    "loads": 191,
+    "empty": 0,
+    "p50_ms": 289,
+    "p95_ms": 602
+   },
+   "trace detail": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 180,
+    "p95_ms": 382
+   },
+   "workflows": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 481,
+    "p95_ms": 883
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2103,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 90,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.232250249944627,
+   7.017979041207582,
+   6.966881708241999,
+   6.457660375162959,
+   7.4736532918177545,
+   8.11550037516281
+  ],
+  "browser_proof_seconds": [
+   2.8586114160716534,
+   3.1448663752526045,
+   3.2366310418583453,
+   3.0279744169674814,
+   3.890342833008617,
+   3.684410708025098
+  ],
+  "probes": 35,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 449.1642499342561,
+  "readable_p95_ms": 1197.3204580135643,
+  "readable_slowest_ms": 1294.286916963756,
+  "backend_cpu_seconds": 43.202668,
+  "backend_peak_memory_mib": 129.640625,
+  "ingestion_cpu_seconds": 9.877504,
+  "ingestion_peak_memory_mib": 78.671875,
+  "queries_run_again_after_a_snapshot_change": 5,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix2-standard-5",
+  "label": "viewfix2-standard-5",
+  "recorded_at_utc": "2026-10-04T21:24:52Z",
+  "images": {
+   "backend": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 191,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 159,
+  "exports_failed": 0,
+  "export_p95_ms": 16.198959201574326,
+  "export_p99_ms": 67.56779178977013,
+  "page_loads": 958,
+  "pages": {
+   "services": {
+    "loads": 194,
+    "empty": 0,
+    "p50_ms": 286,
+    "p95_ms": 500
+   },
+   "traces, default view": {
+    "loads": 193,
+    "empty": 0,
+    "p50_ms": 502,
+    "p95_ms": 910
+   },
+   "traces, all": {
+    "loads": 191,
+    "empty": 0,
+    "p50_ms": 283,
+    "p95_ms": 602
+   },
+   "trace detail": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 173,
+    "p95_ms": 388
+   },
+   "workflows": {
+    "loads": 190,
+    "empty": 0,
+    "p50_ms": 463,
+    "p95_ms": 914
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 2112,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 108,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   4.653218457940966,
+   6.539636374916881,
+   6.843545500189066,
+   6.9593681250698864,
+   7.013660624623299,
+   10.331362416036427
+  ],
+  "browser_proof_seconds": [
+   2.946286916732788,
+   2.852584040723741,
+   3.0527693331241608,
+   2.9569921670481563,
+   3.615389875136316,
+   3.7873074170202017
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 286.72050032764673,
+  "readable_p95_ms": 1384.941500145942,
+  "readable_slowest_ms": 1501.7436249181628,
+  "backend_cpu_seconds": 43.103504,
+  "backend_peak_memory_mib": 128.38671875,
+  "ingestion_cpu_seconds": 9.692076,
+  "ingestion_peak_memory_mib": 78.82421875,
+  "queries_run_again_after_a_snapshot_change": 1,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ },
+ {
+  "file": "tool-viewfix2-standard-6",
+  "label": "viewfix2-standard-6",
+  "recorded_at_utc": "2026-10-04T21:26:36Z",
+  "images": {
+   "backend": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+   "ingestion": "sha256:b25c26437bee9e4e7d03cf5637b0821765ae533e2b50a19f41faaf1281a67f5d"
+  },
+  "acceptance": {
+   "all_acknowledged_spans_persisted": true,
+   "all_exports_succeeded": true,
+   "all_queries_succeeded": true,
+   "no_oom_or_restarts": true,
+   "orderly_shutdown": true,
+   "side_command_completed": true
+  },
+  "config": {
+   "exporters": 50,
+   "exports_per_exporter": 900,
+   "spans_per_export": 32,
+   "export_interval_ms": 100,
+   "span_shape": "studio",
+   "freshness_probe": true
+  },
+  "checks_passed": true,
+  "default_views_compared": 171,
+  "default_views_short": 0,
+  "spans_acknowledged": 1440000,
+  "exports_refused_once": 176,
+  "exports_failed": 0,
+  "export_p95_ms": 20.617333240807056,
+  "export_p99_ms": 52.937083411961794,
+  "page_loads": 857,
+  "pages": {
+   "services": {
+    "loads": 173,
+    "empty": 0,
+    "p50_ms": 293,
+    "p95_ms": 510
+   },
+   "traces, default view": {
+    "loads": 173,
+    "empty": 0,
+    "p50_ms": 587,
+    "p95_ms": 1109
+   },
+   "traces, all": {
+    "loads": 171,
+    "empty": 0,
+    "p50_ms": 294,
+    "p95_ms": 735
+   },
+   "trace detail": {
+    "loads": 170,
+    "empty": 0,
+    "p50_ms": 186,
+    "p95_ms": 406
+   },
+   "workflows": {
+    "loads": 170,
+    "empty": 0,
+    "p50_ms": 500,
+    "p95_ms": 1029
+   }
+  },
+  "pages_with_error": 0,
+  "pages_not_settled": 0,
+  "api_responses": 1889,
+  "api_5xx": 0,
+  "requests_failed": 0,
+  "session_check_p95_ms": 114,
+  "sdk_runs": 6,
+  "sdk_runs_shown": 6,
+  "sdk_to_studio_seconds": [
+   5.298320500180125,
+   7.384938874747604,
+   7.9618910839781165,
+   7.341987000312656,
+   7.467541666701436,
+   8.617852083873004
+  ],
+  "browser_proof_seconds": [
+   3.1298595000989735,
+   3.2349368752911687,
+   3.1462759589776397,
+   3.1345819998532534,
+   3.975046208128333,
+   4.10983766708523
+  ],
+  "probes": 36,
+  "probes_never_readable": 0,
+  "readable_p50_ms": 387.619832996279,
+  "readable_p95_ms": 1270.6751660443842,
+  "readable_slowest_ms": 1397.326959297061,
+  "backend_cpu_seconds": 43.448856,
+  "backend_peak_memory_mib": 134.52734375,
+  "ingestion_cpu_seconds": 11.10864,
+  "ingestion_peak_memory_mib": 83.62890625,
+  "queries_run_again_after_a_snapshot_change": 4,
+  "backend_error_lines": 0,
+  "responses_4xx": 0
+ }
+]

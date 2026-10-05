@@ -27,20 +27,10 @@ on:
       - "sdks/python/tests/test_store_telemetry_v2.py"
       - "sdks/python/tests/test_telemetry_contract.py"
       - "apps/studio/ingestion/**"
-      - "apps/studio/backend/app/db_sqlite/metadata/**"
-      - "apps/studio/backend/app/features/agent_diagnostics/**"
-      - "apps/studio/backend/app/features/otel_spans/**"
-      - "apps/studio/backend/app/features/store_diagnostics/**"
-      - "apps/studio/backend/app/features/telemetry_contract/**"
-      - "apps/studio/backend/app/features/workflow_diagnostics/**"
-      - "apps/studio/backend/tests/generated/**"
-      - "apps/studio/backend/tests/generate_agent_semantic_projections.py"
-      - "apps/studio/backend/tests/test_agent_semantic_projections.py"
-      - "apps/studio/backend/tests/test_store_reconstruction.py"
-      - "apps/studio/backend/tests/test_workflow_store_diagnostics.py"
-      - "apps/studio/backend/tests/test_datafusion_query.py"
-      - "apps/studio/backend/pyproject.toml"
-      - "apps/studio/backend/uv.lock"
+      - "apps/studio/backend/evidence/**"
+      - "apps/studio/backend/Cargo.toml"
+      - "apps/studio/backend/Cargo.lock"
+      - "apps/studio/backend/rust-toolchain.toml"
       - "apps/studio/frontend/src/features/agent-executions/**"
       - "apps/studio/frontend/src/features/store-diagnostics/**"
       - "apps/studio/frontend/src/features/telemetry-contract/**"
@@ -111,24 +101,16 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      # Without a `toolchain` input the action installs the toolchain pinned by
+      # the rust-toolchain.toml in `rust-src-dir`.
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1
         with:
-          python-version: "3.13"
-      - name: Install uv
-        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "apps/studio/backend/uv.lock"
-      - name: Sync Studio backend dependencies
-        run: uv sync --all-extras --locked
-      - name: Prove canonical semantic projection and Parquet transport
-        run: |
-          uv run pytest -q \
-            tests/test_agent_semantic_projections.py \
-            tests/test_store_reconstruction.py \
-            tests/test_workflow_store_diagnostics.py \
-            tests/test_datafusion_query.py
+          rust-src-dir: apps/studio/backend
+      # The evidence crate reads the canonical fixtures and proves the
+      # committed projection files are what its assemblers produce.
+      - name: Prove canonical semantic projection
+        run: cargo test --locked -p junjo-evidence
 
   studio-consumers:
     runs-on: ubuntu-latest

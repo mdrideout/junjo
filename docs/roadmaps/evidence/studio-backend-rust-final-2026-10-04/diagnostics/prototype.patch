@@ -1,0 +1,879 @@
+diff -ru a/apps/studio/backend/server/src/config.rs b/apps/studio/backend/server/src/config.rs
+--- a/apps/studio/backend/server/src
++++ b/apps/studio/backend/server/src
+@@ -44,6 +44,12 @@
+     pub spill_enabled: bool,
+     pub spill_pool_bytes: usize,
+     pub spill_path: PathBuf,
++    /// PROTOTYPE, measurement-only. Remove cross-tier duplicates among the
++    /// newest page of each tier instead of among every matching span.
++    pub diagnostic_bounded_dedupe: bool,
++    /// PROTOTYPE, measurement-only. When a query fails and ingestion has
++    /// since replaced or removed its hot snapshot, ask again and run once more.
++    pub diagnostic_hot_retry: bool,
+ }
+ 
+ #[derive(Debug, Clone)]
+@@ -180,6 +186,8 @@
+                     get("JUNJO_DF_SPILL_PATH")
+                         .unwrap_or_else(|| "/tmp/junjo-datafusion-spill".into()),
+                 ),
++                diagnostic_bounded_dedupe: boolean(&get, "JUNJO_DIAGNOSTIC_BOUNDED_DEDUPE", false)?,
++                diagnostic_hot_retry: boolean(&get, "JUNJO_DIAGNOSTIC_HOT_RETRY", false)?,
+             },
+         })
+     }
+diff -ru a/apps/studio/backend/server/src/cross_service_tests/harness.rs b/apps/studio/backend/server/src/cross_service_tests/harness.rs
+--- a/apps/studio/backend/server/src
++++ b/apps/studio/backend/server/src
+@@ -63,8 +63,15 @@
+     directory: tempfile::TempDir,
+ }
+ 
+-/// A test application wired to its own ingestion process.
++/// A test application wired to its own ingestion process, which rebuilds the
++/// hot snapshot for every request.
+ pub async fn start() -> (TestApp, Ingestion) {
++    start_with_snapshot_reuse(Duration::ZERO).await
++}
++
++/// A test application wired to its own ingestion process, which reuses one
++/// hot snapshot for `snapshot_reuse`. A deployment reuses one for a second.
++pub async fn start_with_snapshot_reuse(snapshot_reuse: Duration) -> (TestApp, Ingestion) {
+     let mut app = test_app();
+     app.state
+         .application_db
+@@ -99,7 +106,7 @@
+             .serve_with_incoming(TcpIncoming::from(listener)),
+     );
+ 
+-    let ingestion = Ingestion::spawn(binary, backend_port);
++    let ingestion = Ingestion::spawn(binary, backend_port, snapshot_reuse);
+     app.state.ingestion =
+         IngestionClient::new("127.0.0.1", ingestion.internal_port, INTERNAL_TOKEN).unwrap();
+     app.parquet_directory = ingestion.parquet_directory.clone();
+@@ -109,7 +116,7 @@
+ impl Ingestion {
+     /// Start a process that validates API keys against the backend on
+     /// `backend_port`. Returns once the process accepts connections.
+-    fn spawn(binary: &Path, backend_port: u16) -> Self {
++    fn spawn(binary: &Path, backend_port: u16, snapshot_reuse: Duration) -> Self {
+         let directory = tempfile::tempdir().unwrap();
+         let parquet_directory = directory.path().join("parquet");
+         let log = File::create(directory.path().join("ingestion.log")).unwrap();
+@@ -130,14 +137,17 @@
+             .env("BACKEND_GRPC_HOST", "127.0.0.1")
+             .env("BACKEND_GRPC_PORT", backend_port.to_string())
+             .env("JUNJO_INTERNAL_GRPC_TOKEN", INTERNAL_TOKEN)
+-            // A snapshot is rebuilt for every request. By default ingestion
+-            // reuses one for a second, and a test would be answered with a
+-            // snapshot from before its last export or flush. Without that
+-            // reuse the next request replaces the snapshot file at once, or
+-            // removes it when the log is empty, even if an earlier request's
+-            // caller has not read it yet. A test must therefore not run two
+-            // queries at once around a flush.
+-            .env("PREPARE_HOT_SNAPSHOT_CACHE_TTL_MS", "0")
++            // Most tests have a snapshot rebuilt for every request. By
++            // default ingestion reuses one for a second, and a test would be
++            // answered with a snapshot from before its last export or flush.
++            // Without that reuse the next request replaces the snapshot file
++            // at once, or removes it when the log is empty, even if an
++            // earlier request's caller has not read it yet. A test must
++            // therefore not run two queries at once around a flush.
++            .env(
++                "PREPARE_HOT_SNAPSHOT_CACHE_TTL_MS",
++                snapshot_reuse.as_millis().to_string(),
++            )
+             .env("RUST_LOG", "info")
+             .stdin(Stdio::null())
+             .stdout(log.try_clone().unwrap())
+diff -ru a/apps/studio/backend/server/src/cross_service_tests/mod.rs b/apps/studio/backend/server/src/cross_service_tests/mod.rs
+--- a/apps/studio/backend/server/src
++++ b/apps/studio/backend/server/src
+@@ -18,4 +18,5 @@
+ mod has_llm;
+ mod hot_snapshot;
+ mod hot_snapshot_flush_race;
++mod snapshot_sharing;
+ mod transport_contract;
+Only in apps/studio/backend/server/src/cross_service_tests: snapshot_sharing.rs
+diff -ru a/apps/studio/backend/server/src/features/otel_spans/query.rs b/apps/studio/backend/server/src/features/otel_spans/query.rs
+--- a/apps/studio/backend/server/src
++++ b/apps/studio/backend/server/src
+@@ -201,6 +201,9 @@
+ pub struct QueryEngine {
+     runtime: Arc<RuntimeEnv>,
+     session_config: SessionConfig,
++    /// PROTOTYPE switches. See `DataFusionConfig`.
++    bounded_dedupe: bool,
++    pub hot_retry: bool,
+ }
+ 
+ impl QueryEngine {
+@@ -233,6 +236,8 @@
+         Ok(Self {
+             runtime: runtime.build_arc()?,
+             session_config,
++            bounded_dedupe: config.diagnostic_bounded_dedupe,
++            hot_retry: config.diagnostic_hot_retry,
+         })
+     }
+ 
+@@ -249,6 +254,11 @@
+         // A snapshot that cannot be registered is left out of the query.
+         let hot = match register_parquet(context, HOT_TABLE, &files.hot).await {
+             Ok(hot) => hot,
++            // PROTOTYPE (`hot_retry`): a snapshot that cannot be registered
++            // has been replaced under this query. Failing lets the caller
++            // ask ingestion again, where leaving it out would answer without
++            // the newest spans.
++            Err(error) if self.hot_retry => return Err(error),
+             Err(error) => {
+                 tracing::warn!(table = HOT_TABLE, %error, "skipping unreadable parquet file");
+                 false
+@@ -359,7 +369,8 @@
+     ) -> Result<Vec<RecordBatch>> {
+         let context = self.context();
+         let tiers = self.register(&context, files).await?;
+-        let Some(sql) = two_tier_sql(tiers, filter) else {
++        let page = if self.bounded_dedupe { limit } else { None };
++        let Some(sql) = two_tier_sql(tiers, filter, page) else {
+             return Ok(Vec::new());
+         };
+         let mut frame = context
+@@ -372,6 +383,40 @@
+         frame.collect().await
+     }
+ 
++    /// PROTOTYPE: run one span query. The repository asks through this so a
++    /// query can be run again over fresh sources without a closure.
++    pub async fn run(&self, sources: &QuerySources, query: SpanQuery<'_>) -> Result<Vec<Span>> {
++        match query {
++            SpanQuery::Trace { trace_id } => self.trace_spans(sources, trace_id).await,
++            SpanQuery::Span { trace_id, span_id } => Ok(self
++                .span(sources, trace_id, span_id)
++                .await?
++                .into_iter()
++                .collect()),
++            SpanQuery::Service {
++                service_name,
++                limit,
++            } => self.service_spans(sources, service_name, limit).await,
++            SpanQuery::Roots {
++                service_name,
++                limit,
++            } => self.root_spans(sources, service_name, limit).await,
++            SpanQuery::Workflows {
++                service_name,
++                limit,
++            } => self.workflow_spans(sources, service_name, limit).await,
++            SpanQuery::Agents { service_name } => self.agent_spans(sources, service_name).await,
++            SpanQuery::Executable {
++                service_name,
++                executable_type,
++                runtime_id,
++            } => {
++                self.executable_spans(sources, service_name, executable_type, runtime_id)
++                    .await
++            }
++        }
++    }
++
+     /// Every span of one trace, newest first.
+     pub async fn trace_spans(&self, sources: &QuerySources, trace_id: &str) -> Result<Vec<Span>> {
+         self.query_spans(
+@@ -514,6 +559,8 @@
+         match register_parquet(&context, HOT_TABLE, &files).await {
+             Ok(true) => {}
+             Ok(false) => return Ok(HashSet::new()),
++            // PROTOTYPE (`hot_retry`): see `register`.
++            Err(error) if self.hot_retry => return Err(error),
+             // A snapshot that cannot be read has no LLM traces to add.
+             Err(error) => {
+                 tracing::warn!(file_path = hot_snapshot, %error, "skipping unreadable parquet file");
+@@ -550,7 +597,39 @@
+     }
+ }
+ 
++/// PROTOTYPE: one span query the repository can ask for.
+ #[derive(Debug, Clone, Copy)]
++pub enum SpanQuery<'a> {
++    Trace {
++        trace_id: &'a str,
++    },
++    Span {
++        trace_id: &'a str,
++        span_id: &'a str,
++    },
++    Service {
++        service_name: &'a str,
++        limit: usize,
++    },
++    Roots {
++        service_name: &'a str,
++        limit: usize,
++    },
++    Workflows {
++        service_name: &'a str,
++        limit: usize,
++    },
++    Agents {
++        service_name: &'a str,
++    },
++    Executable {
++        service_name: &'a str,
++        executable_type: &'a str,
++        runtime_id: &'a str,
++    },
++}
++
++#[derive(Debug, Clone, Copy)]
+ struct Tiers {
+     cold: bool,
+     hot: bool,
+@@ -576,8 +655,33 @@
+ 
+ /// Build the query that merges the available tiers. `filter` is a SQL
+ /// predicate over the stored span columns whose values are bound parameters.
+-fn two_tier_sql(tiers: Tiers, filter: &str) -> Option<String> {
++///
++/// With a `page`, a listing wants only its newest `page` spans. The newest
++/// `page` of the two tiers together are among the newest `page` of each, so
++/// duplicates are removed among those candidates and not among every
++/// matching span. Both tiers are still read, and the cold copy still wins.
++fn two_tier_sql(tiers: Tiers, filter: &str, page: Option<usize>) -> Option<String> {
+     let order = "ORDER BY start_time_ns DESC";
++    if let (true, true, Some(page)) = (tiers.cold, tiers.hot, page) {
++        return Some(format!(
++            "WITH combined AS (
++                 (SELECT {SPAN_COLUMNS}, 'cold' AS _tier FROM {COLD_TABLE}
++                  WHERE {filter} {order} LIMIT {page})
++                 UNION ALL
++                 (SELECT {SPAN_COLUMNS}, 'hot' AS _tier FROM {HOT_TABLE}
++                  WHERE {filter} {order} LIMIT {page})
++             ),
++             ranked AS (
++                 SELECT *,
++                     ROW_NUMBER() OVER (
++                         PARTITION BY trace_id, span_id
++                         ORDER BY CASE _tier WHEN 'cold' THEN 0 ELSE 1 END
++                     ) AS _rn
++                 FROM combined
++             )
++             SELECT {COMBINED_SPAN_COLUMNS} FROM ranked WHERE _rn = 1 {order}"
++        ));
++    }
+     match (tiers.cold, tiers.hot) {
+         (false, false) => None,
+         // One tier needs no deduplication.
+@@ -1247,6 +1351,122 @@
+                 .await,
+             ["alpha", "beta"]
+         );
++    }
++
++    /// PROTOTYPE: the bounded form of the two-tier listing returns exactly
++    /// what the full form returns, for every page size, when spans sit in
++    /// both tiers.
++    #[tokio::test]
++    async fn bounded_deduplication_returns_the_same_pages_as_full_deduplication() {
++        let directory = tempfile::tempdir().unwrap();
++        let full = QueryEngine::new(&DataFusionConfig {
++            diagnostic_bounded_dedupe: false,
++            ..datafusion_config(directory.path())
++        })
++        .unwrap();
++        let bounded = QueryEngine::new(&DataFusionConfig {
++            diagnostic_bounded_dedupe: true,
++            ..datafusion_config(directory.path())
++        })
++        .unwrap();
++        let write = |name: &str, spans: &[TestSpan]| {
++            let path = directory.path().join(name);
++            write_span_parquet(&path, spans);
++            path.to_str().unwrap().to_string()
++        };
++
++        // 300 spans of the wanted service with distinct start times, and
++        // others of another service. Every third span is a Workflow span,
++        // and every fourth has a parent.
++        let span = |number: i64, name: &str| {
++            let service = if number % 5 == 0 {
++                "billing"
++            } else {
++                "checkout"
++            };
++            let mut span = TestSpan::new(
++                &format!("trace-{}", number / 4),
++                &format!("span-{number:04}"),
++                service,
++            )
++            .times(number * 1_000, number * 1_000 + 500);
++            span.name = name.to_string();
++            if number % 3 == 0 {
++                span.attributes = r#"{"junjo.span_type":"workflow"}"#.to_string();
++            }
++            if number % 4 == 0 {
++                span.parent_span_id = Some("parent".to_string());
++            }
++            span
++        };
++        // Cold holds 0..200 in two files. Hot holds 150..300: the spans
++        // 150..200 are in both tiers, and the hot copy has another name, so
++        // the copy that wins is visible.
++        let cold_a: Vec<TestSpan> = (0..100).map(|number| span(number, "cold")).collect();
++        let cold_b: Vec<TestSpan> = (100..200).map(|number| span(number, "cold")).collect();
++        let hot: Vec<TestSpan> = (150..300).map(|number| span(number, "hot")).collect();
++        let sources = QuerySources {
++            cold_files: vec![write("a.parquet", &cold_a), write("b.parquet", &cold_b)],
++            hot_snapshot: Some(write("hot_snapshot.parquet", &hot)),
++        };
++
++        let rows = |spans: Vec<Span>| -> Vec<(String, String)> {
++            spans
++                .into_iter()
++                .map(|span| (span.span_id, span.name))
++                .collect()
++        };
++        for limit in [1, 2, 7, 49, 50, 51, 100, 149, 150, 151, 250] {
++            let expected = rows(
++                full.service_spans(&sources, "checkout", limit)
++                    .await
++                    .unwrap(),
++            );
++            let actual = rows(
++                bounded
++                    .service_spans(&sources, "checkout", limit)
++                    .await
++                    .unwrap(),
++            );
++            assert_eq!(actual, expected, "service spans, limit {limit}");
++
++            let expected = rows(full.root_spans(&sources, "checkout", limit).await.unwrap());
++            let actual = rows(
++                bounded
++                    .root_spans(&sources, "checkout", limit)
++                    .await
++                    .unwrap(),
++            );
++            assert_eq!(actual, expected, "root spans, limit {limit}");
++
++            let expected = rows(
++                full.workflow_spans(&sources, "checkout", limit)
++                    .await
++                    .unwrap(),
++            );
++            let actual = rows(
++                bounded
++                    .workflow_spans(&sources, "checkout", limit)
++                    .await
++                    .unwrap(),
++            );
++            assert_eq!(actual, expected, "workflow spans, limit {limit}");
++        }
++
++        // The cold copy wins, and nothing appears twice.
++        let page = rows(
++            bounded
++                .service_spans(&sources, "checkout", 250)
++                .await
++                .unwrap(),
++        );
++        let mut seen = HashSet::new();
++        for (span_id, name) in &page {
++            assert!(seen.insert(span_id.clone()), "{span_id} appears twice");
++            let number: i64 = span_id["span-".len()..].parse().unwrap();
++            assert_eq!(name, if number < 200 { "cold" } else { "hot" }, "{span_id}");
++        }
++        assert_eq!(page.len(), 240);
+     }
+ 
+     #[tokio::test]
+diff -ru a/apps/studio/backend/server/src/features/otel_spans/repository.rs b/apps/studio/backend/server/src/features/otel_spans/repository.rs
+--- a/apps/studio/backend/server/src
++++ b/apps/studio/backend/server/src
+@@ -11,8 +11,11 @@
+ //! of failing.
+ 
+ use std::collections::{BTreeSet, HashSet};
++use std::time::SystemTime;
+ 
+-use super::query::{QuerySources, Span};
++use datafusion::error::DataFusionError;
++
++use super::query::{QuerySources, Span, SpanQuery};
+ use super::{
+     MAX_RECENT_COLD_FILES_FOR_SERVICE_DISCOVERY, MAX_RECENT_COLD_FILES_PER_QUERY,
+     augment_with_recent_cold_files,
+@@ -32,53 +35,143 @@
+ const LLM_ROOT_SPAN_CANDIDATES_PER_RESULT: usize = 5;
+ const MAX_LLM_ROOT_SPAN_CANDIDATES: usize = 5000;
+ 
+-/// The files a service listing reads: the service's newest indexed cold
+-/// files, a bounded recent-cold bridge, and the hot snapshot.
+-async fn service_listing_sources(
++/// Which indexed cold files a query reads.
++#[derive(Clone, Copy)]
++enum Selection<'a> {
++    /// The files that hold a trace.
++    Trace(&'a str),
++    /// A service's newest files.
++    ServiceNewest(&'a str),
++    /// A service's newest files with Workflow spans.
++    Workflows(&'a str),
++    /// Every file of a service with Agent spans.
++    Agents(&'a str),
++    /// Every file of a service.
++    ServiceAll(&'a str),
++}
++
++/// The files one query reads: the indexed cold files of the selection, the
++/// recent-cold bridge, and the hot snapshot. Ingestion is asked every time.
++async fn select_sources(
+     state: &AppState,
+-    service_name: &str,
++    selection: Selection<'_>,
+ ) -> Result<QuerySources, ApiError> {
+     let ingestion = state.ingestion.query_context().await;
+-    let lookup = service_name.to_string();
+-    let indexed = state
+-        .metadata
+-        .call(move |connection| {
+-            metadata::file_paths_for_service(
+-                connection,
+-                &lookup,
+-                Some(MAX_COLD_FILES_PER_SERVICE_QUERY),
+-            )
+-        })
+-        .await?;
++    let (indexed, recent_limit) = match selection {
++        Selection::Trace(trace_id) => {
++            let lookup = trace_id.to_string();
++            let indexed = state
++                .metadata
++                .call(move |connection| metadata::file_paths_for_trace(connection, &lookup))
++                .await?;
++            (indexed, MAX_RECENT_COLD_FILES_PER_QUERY)
++        }
++        Selection::ServiceNewest(service_name) => {
++            let lookup = service_name.to_string();
++            let indexed = state
++                .metadata
++                .call(move |connection| {
++                    metadata::file_paths_for_service(
++                        connection,
++                        &lookup,
++                        Some(MAX_COLD_FILES_PER_SERVICE_QUERY),
++                    )
++                })
++                .await?;
++            (indexed, MAX_RECENT_COLD_FILES_PER_QUERY)
++        }
++        Selection::Workflows(service_name) => {
++            let lookup = service_name.to_string();
++            let indexed = state
++                .metadata
++                .call(move |connection| {
++                    metadata::workflow_file_paths(
++                        connection,
++                        &lookup,
++                        MAX_COLD_FILES_PER_SERVICE_QUERY,
++                    )
++                })
++                .await?;
++            (indexed, MAX_RECENT_COLD_FILES_PER_QUERY)
++        }
++        Selection::Agents(service_name) => {
++            let lookup = service_name.to_string();
++            let indexed = state
++                .metadata
++                .call(move |connection| metadata::agent_file_paths(connection, &lookup))
++                .await?;
++            (indexed, ingestion.recent_cold_paths.len())
++        }
++        Selection::ServiceAll(service_name) => {
++            let lookup = service_name.to_string();
++            let indexed = state
++                .metadata
++                .call(move |connection| metadata::file_paths_for_service(connection, &lookup, None))
++                .await?;
++            (indexed, ingestion.recent_cold_paths.len())
++        }
++    };
+     Ok(QuerySources {
+         cold_files: augment_with_recent_cold_files(
+             indexed,
+             &ingestion.recent_cold_paths,
+-            MAX_RECENT_COLD_FILES_PER_QUERY,
++            recent_limit,
+         ),
+         hot_snapshot: ingestion.hot_snapshot_path,
+     })
+ }
+ 
+-/// The files a trace query reads: the indexed cold files that contain the
+-/// trace, a bounded recent-cold bridge, and the hot snapshot.
+-async fn trace_sources(state: &AppState, trace_id: &str) -> Result<QuerySources, ApiError> {
+-    let ingestion = state.ingestion.query_context().await;
+-    let lookup = trace_id.to_string();
+-    let indexed = state
+-        .metadata
+-        .call(move |connection| metadata::file_paths_for_trace(connection, &lookup))
+-        .await?;
+-    Ok(QuerySources {
+-        cold_files: augment_with_recent_cold_files(
+-            indexed,
+-            &ingestion.recent_cold_paths,
+-            MAX_RECENT_COLD_FILES_PER_QUERY,
+-        ),
+-        hot_snapshot: ingestion.hot_snapshot_path,
+-    })
++/// What the hot snapshot file is now: its length and modification time.
++/// `None` when a query has no snapshot or the file is gone.
++fn snapshot_identity(sources: &QuerySources) -> Option<(u64, SystemTime)> {
++    let metadata = std::fs::metadata(sources.hot_snapshot.as_deref()?).ok()?;
++    Some((metadata.len(), metadata.modified().ok()?))
+ }
+ 
++/// Select a query's files and run it.
++///
++/// PROTOTYPE (`hot_retry`): ingestion rewrites the hot snapshot in place and
++/// removes it when its log is empty. A query that fails after ingestion has
++/// done either was reading a file that changed under it, so ingestion is
++/// asked again and the query runs once more over what it names now. A query
++/// that ran out of memory is not run again.
++async fn run_query(
++    state: &AppState,
++    selection: Selection<'_>,
++    query: SpanQuery<'_>,
++) -> Result<datafusion::error::Result<(Vec<Span>, QuerySources)>, ApiError> {
++    let mut sources = select_sources(state, selection).await?;
++    let mut handed = snapshot_identity(&sources);
++    // PROTOTYPE (`hot_retry`): ingestion named a snapshot that is already
++    // gone, so its log was flushed since. Asking again names the cold file
++    // those spans went to.
++    if state.query.hot_retry && sources.hot_snapshot.is_some() && handed.is_none() {
++        sources = select_sources(state, selection).await?;
++        handed = snapshot_identity(&sources);
++    }
++    match state.query.run(&sources, query).await {
++        Ok(spans) => Ok(Ok((spans, sources))),
++        Err(error)
++            if state.query.hot_retry
++                && sources.hot_snapshot.is_some()
++                && !matches!(error.find_root(), DataFusionError::ResourcesExhausted(_))
++                && snapshot_identity(&sources) != handed =>
++        {
++            tracing::warn!(
++                %error,
++                "the hot snapshot changed while it was read; asking ingestion again"
++            );
++            let sources = select_sources(state, selection).await?;
++            Ok(state
++                .query
++                .run(&sources, query)
++                .await
++                .map(|spans| (spans, sources)))
++        }
++        Err(error) => Ok(Err(error)),
++    }
++}
++
+ /// Distinct service names across both tiers, alphabetically.
+ ///
+ /// Cold-tier names come from the metadata index, never from scanning cold
+@@ -111,11 +204,13 @@
+     service_name: &str,
+     limit: usize,
+ ) -> Result<Vec<Span>, ApiError> {
+-    let sources = service_listing_sources(state, service_name).await?;
+-    state
+-        .query
+-        .service_spans(&sources, service_name, limit)
+-        .await
++    let query = SpanQuery::Service {
++        service_name,
++        limit,
++    };
++    run_query(state, Selection::ServiceNewest(service_name), query)
++        .await?
++        .map(|(spans, _)| spans)
+         .map_err(|error| {
+             tracing::error!(%error, service_name, "two-tier service span query failed");
+             ApiError::internal()
+@@ -131,11 +226,13 @@
+     service_name: &str,
+     limit: usize,
+ ) -> Result<Vec<Span>, ApiError> {
+-    let sources = service_listing_sources(state, service_name).await?;
+-    state
+-        .query
+-        .root_spans(&sources, service_name, limit)
+-        .await
++    let query = SpanQuery::Roots {
++        service_name,
++        limit,
++    };
++    run_query(state, Selection::ServiceNewest(service_name), query)
++        .await?
++        .map(|(spans, _)| spans)
+         .map_err(|error| {
+             tracing::error!(%error, service_name, "two-tier root span query failed");
+             ApiError::internal()
+@@ -154,18 +251,42 @@
+     service_name: &str,
+     limit: usize,
+ ) -> Result<Vec<Span>, ApiError> {
+-    let sources = service_listing_sources(state, service_name).await?;
++    let mut result = llm_root_spans(state, service_name, limit).await?;
++    // PROTOTYPE (`hot_retry`): the hot snapshot is read a second time here,
++    // to classify unflushed spans. If ingestion replaced it in between, the
++    // whole listing starts again from a fresh answer, once.
++    if let Err((error, true)) = &result {
++        tracing::warn!(
++            %error,
++            "the hot snapshot changed while it was read; asking ingestion again"
++        );
++        result = llm_root_spans(state, service_name, limit).await?;
++    }
++    result.map_err(|(error, _)| {
++        tracing::error!(%error, service_name, "two-tier LLM root span query failed");
++        ApiError::internal()
++    })
++}
++
++/// One attempt at the LLM listing. A failure says whether it may run again:
++/// only a failed second read of a snapshot that has since changed may.
++async fn llm_root_spans(
++    state: &AppState,
++    service_name: &str,
++    limit: usize,
++) -> Result<Result<Vec<Span>, (DataFusionError, bool)>, ApiError> {
+     let candidate_limit = limit
+         .saturating_mul(LLM_ROOT_SPAN_CANDIDATES_PER_RESULT)
+         .min(MAX_LLM_ROOT_SPAN_CANDIDATES);
+-    let mut root_spans = state
+-        .query
+-        .root_spans(&sources, service_name, candidate_limit)
+-        .await
+-        .map_err(|error| {
+-            tracing::error!(%error, service_name, "two-tier LLM root span query failed");
+-            ApiError::internal()
+-        })?;
++    let query = SpanQuery::Roots {
++        service_name,
++        limit: candidate_limit,
++    };
++    let (mut root_spans, sources) =
++        match run_query(state, Selection::ServiceNewest(service_name), query).await? {
++            Ok(found) => found,
++            Err(error) => return Ok(Err((error, false))),
++        };
+     let candidate_trace_ids: HashSet<String> = root_spans
+         .iter()
+         .filter(|span| !span.trace_id.is_empty())
+@@ -184,20 +305,25 @@
+     if let Some(hot_snapshot) = &sources.hot_snapshot
+         && !candidate_trace_ids.is_empty()
+     {
+-        let hot_llm_trace_ids = state
++        let handed = snapshot_identity(&sources);
++        match state
+             .query
+             .hot_llm_trace_ids(hot_snapshot, service_name, &candidate_trace_ids)
+             .await
+-            .map_err(|error| {
+-                tracing::error!(%error, service_name, "hot snapshot LLM trace query failed");
+-                ApiError::internal()
+-            })?;
+-        llm_trace_ids.extend(hot_llm_trace_ids);
++        {
++            Ok(hot_llm_trace_ids) => llm_trace_ids.extend(hot_llm_trace_ids),
++            Err(error) => {
++                let may_run_again = state.query.hot_retry
++                    && !matches!(error.find_root(), DataFusionError::ResourcesExhausted(_))
++                    && snapshot_identity(&sources) != handed;
++                return Ok(Err((error, may_run_again)));
++            }
++        }
+     }
+ 
+     root_spans.retain(|span| llm_trace_ids.contains(&span.trace_id));
+     root_spans.truncate(limit);
+-    Ok(root_spans)
++    Ok(Ok(root_spans))
+ }
+ 
+ /// The newest Workflow spans of one service.
+@@ -206,26 +332,13 @@
+     service_name: &str,
+     limit: usize,
+ ) -> Result<Vec<Span>, ApiError> {
+-    let ingestion = state.ingestion.query_context().await;
+-    let lookup = service_name.to_string();
+-    let indexed = state
+-        .metadata
+-        .call(move |connection| {
+-            metadata::workflow_file_paths(connection, &lookup, MAX_COLD_FILES_PER_SERVICE_QUERY)
+-        })
+-        .await?;
+-    let sources = QuerySources {
+-        cold_files: augment_with_recent_cold_files(
+-            indexed,
+-            &ingestion.recent_cold_paths,
+-            MAX_RECENT_COLD_FILES_PER_QUERY,
+-        ),
+-        hot_snapshot: ingestion.hot_snapshot_path,
++    let query = SpanQuery::Workflows {
++        service_name,
++        limit,
+     };
+-    state
+-        .query
+-        .workflow_spans(&sources, service_name, limit)
+-        .await
++    run_query(state, Selection::Workflows(service_name), query)
++        .await?
++        .map(|(spans, _)| spans)
+         .map_err(|error| {
+             tracing::error!(%error, service_name, "two-tier workflow span query failed");
+             ApiError::internal()
+@@ -238,28 +351,17 @@
+ /// here: every indexed file with Agent spans for the service is read, and
+ /// every recent-cold file.
+ pub async fn agent_spans(state: &AppState, service_name: &str) -> Result<Vec<Span>, ApiError> {
+-    let ingestion = state.ingestion.query_context().await;
+-    let lookup = service_name.to_string();
+-    let indexed = state
+-        .metadata
+-        .call(move |connection| metadata::agent_file_paths(connection, &lookup))
+-        .await?;
+-    let sources = QuerySources {
+-        cold_files: augment_with_recent_cold_files(
+-            indexed,
+-            &ingestion.recent_cold_paths,
+-            ingestion.recent_cold_paths.len(),
+-        ),
+-        hot_snapshot: ingestion.hot_snapshot_path,
+-    };
+-    state
+-        .query
+-        .agent_spans(&sources, service_name)
+-        .await
+-        .map_err(|error| {
+-            tracing::error!(%error, service_name, "two-tier agent span query failed");
+-            ApiError::internal()
+-        })
++    run_query(
++        state,
++        Selection::Agents(service_name),
++        SpanQuery::Agents { service_name },
++    )
++    .await?
++    .map(|(spans, _)| spans)
++    .map_err(|error| {
++        tracing::error!(%error, service_name, "two-tier agent span query failed");
++        ApiError::internal()
++    })
+ }
+ 
+ /// The spans of one service that are the executable with exactly this type
+@@ -274,24 +376,14 @@
+     executable_type: &str,
+     runtime_id: &str,
+ ) -> Result<Vec<Span>, ApiError> {
+-    let ingestion = state.ingestion.query_context().await;
+-    let lookup = service_name.to_string();
+-    let indexed = state
+-        .metadata
+-        .call(move |connection| metadata::file_paths_for_service(connection, &lookup, None))
+-        .await?;
+-    let sources = QuerySources {
+-        cold_files: augment_with_recent_cold_files(
+-            indexed,
+-            &ingestion.recent_cold_paths,
+-            ingestion.recent_cold_paths.len(),
+-        ),
+-        hot_snapshot: ingestion.hot_snapshot_path,
++    let query = SpanQuery::Executable {
++        service_name,
++        executable_type,
++        runtime_id,
+     };
+-    state
+-        .query
+-        .executable_spans(&sources, service_name, executable_type, runtime_id)
+-        .await
++    run_query(state, Selection::ServiceAll(service_name), query)
++        .await?
++        .map(|(spans, _)| spans)
+         .map_err(|error| {
+             tracing::error!(
+                 %error,
+@@ -306,15 +398,17 @@
+ 
+ /// Every span of one trace, newest first.
+ pub async fn trace_spans(state: &AppState, trace_id: &str) -> Result<Vec<Span>, ApiError> {
+-    let sources = trace_sources(state, trace_id).await?;
+-    state
+-        .query
+-        .trace_spans(&sources, trace_id)
+-        .await
+-        .map_err(|error| {
+-            tracing::error!(%error, trace_id, "two-tier trace query failed");
+-            ApiError::internal()
+-        })
++    run_query(
++        state,
++        Selection::Trace(trace_id),
++        SpanQuery::Trace { trace_id },
++    )
++    .await?
++    .map(|(spans, _)| spans)
++    .map_err(|error| {
++        tracing::error!(%error, trace_id, "two-tier trace query failed");
++        ApiError::internal()
++    })
+ }
+ 
+ /// One span of one trace, or nothing when the trace has no such span.
+@@ -323,15 +417,17 @@
+     trace_id: &str,
+     span_id: &str,
+ ) -> Result<Option<Span>, ApiError> {
+-    let sources = trace_sources(state, trace_id).await?;
+-    state
+-        .query
+-        .span(&sources, trace_id, span_id)
+-        .await
+-        .map_err(|error| {
+-            tracing::error!(%error, trace_id, span_id, "two-tier span query failed");
+-            ApiError::internal()
+-        })
++    run_query(
++        state,
++        Selection::Trace(trace_id),
++        SpanQuery::Span { trace_id, span_id },
++    )
++    .await?
++    .map(|(spans, _)| spans.into_iter().next())
++    .map_err(|error| {
++        tracing::error!(%error, trace_id, span_id, "two-tier span query failed");
++        ApiError::internal()
++    })
+ }
+ 
+ #[cfg(test)]
+diff -ru a/apps/studio/backend/server/src/test_support.rs b/apps/studio/backend/server/src/test_support.rs
+--- a/apps/studio/backend/server/src
++++ b/apps/studio/backend/server/src
+@@ -337,6 +337,9 @@
+         spill_enabled: true,
+         spill_pool_bytes: 192 * 1024 * 1024,
+         spill_path: directory.join("spill"),
++        // PROTOTYPE: the whole suite can be run with either switch on.
++        diagnostic_bounded_dedupe: std::env::var("JUNJO_TEST_BOUNDED_DEDUPE").is_ok(),
++        diagnostic_hot_retry: std::env::var("JUNJO_TEST_HOT_RETRY").is_ok(),
+     }
+ }
+ 

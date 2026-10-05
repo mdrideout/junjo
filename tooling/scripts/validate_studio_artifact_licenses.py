@@ -9,6 +9,7 @@ import json
 import subprocess
 import tomllib
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -20,14 +21,40 @@ POLICY_PATH = LICENSES_ROOT / "artifact-license-policy.json"
 FRONTEND_LOCK_PATH = STUDIO_ROOT / "frontend/package-lock.json"
 FRONTEND_PACKAGE_PATH = STUDIO_ROOT / "frontend/package.json"
 FRONTEND_INVENTORY_PATH = LICENSES_ROOT / "frontend-production.json"
-INGESTION_LOCK_PATH = STUDIO_ROOT / "ingestion/Cargo.lock"
-INGESTION_MANIFEST_PATH = STUDIO_ROOT / "ingestion/Cargo.toml"
-INGESTION_INVENTORY_PATH = LICENSES_ROOT / "ingestion-production.json"
 INVENTORY_FORMAT = "junjo.studio.dependency-license-inventory.v1"
-INGESTION_TARGETS = {
+RUST_TARGETS = {
     "linux/amd64": "x86_64-unknown-linux-gnu",
     "linux/arm64": "aarch64-unknown-linux-gnu",
 }
+
+
+@dataclass(frozen=True)
+class RustService:
+    """One Rust service whose production binary has a committed inventory."""
+
+    # The service directory under the Studio root, and its policy section.
+    name: str
+    # The manifest of the package that builds the production binary.
+    manifest_path: Path
+    lock_path: Path
+    inventory_path: Path
+
+
+# The backend is a Cargo workspace. Its binary is the `server` package, so the
+# closure starts there and follows the path dependency on `evidence`.
+BACKEND = RustService(
+    name="backend",
+    manifest_path=STUDIO_ROOT / "backend/server/Cargo.toml",
+    lock_path=STUDIO_ROOT / "backend/Cargo.lock",
+    inventory_path=LICENSES_ROOT / "backend-production.json",
+)
+INGESTION = RustService(
+    name="ingestion",
+    manifest_path=STUDIO_ROOT / "ingestion/Cargo.toml",
+    lock_path=STUDIO_ROOT / "ingestion/Cargo.lock",
+    inventory_path=LICENSES_ROOT / "ingestion-production.json",
+)
+RUST_SERVICES = (BACKEND, INGESTION)
 
 
 def require(condition: bool, message: str) -> None:
@@ -67,12 +94,13 @@ def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     value = load_json(path)
     require(isinstance(value, dict), "artifact license policy must be an object")
     require(
-        set(value) == {"schema_version", "frontend", "ingestion", "external_binaries"},
+        set(value)
+        == {"schema_version", "backend", "frontend", "ingestion", "external_binaries"},
         "artifact license policy has unexpected or missing top-level fields",
     )
     require(value["schema_version"] == 1, "unsupported artifact license policy schema")
 
-    for component in ("frontend", "ingestion"):
+    for component in ("backend", "frontend", "ingestion"):
         section = value[component]
         require(isinstance(section, dict), f"policy {component} must be an object")
         required_fields = {"allowed_license_expressions"}
@@ -279,12 +307,12 @@ def _cargo_lock_packages(lock_path: Path) -> dict[tuple[str, str, str], dict[str
     return indexed
 
 
-def _cargo_metadata(target: str) -> dict[str, Any]:
+def _cargo_metadata(manifest_path: Path, target: str) -> dict[str, Any]:
     command = [
         "cargo",
         "metadata",
         "--manifest-path",
-        str(INGESTION_MANIFEST_PATH),
+        str(manifest_path),
         "--locked",
         "--format-version",
         "1",
@@ -331,25 +359,28 @@ def _normal_runtime_package_ids(metadata: Mapping[str, Any]) -> set[str]:
     return visited
 
 
-def build_ingestion_inventory(
+def build_rust_inventory(
     policy: Mapping[str, Any],
+    service: RustService,
     *,
     metadata_by_platform: Mapping[str, Mapping[str, Any]] | None = None,
-    lock_path: Path = INGESTION_LOCK_PATH,
+    lock_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Build the Linux production Rust dependency inventory using Cargo itself."""
+    """Build one service's Linux production dependency inventory using Cargo itself."""
+    if lock_path is None:
+        lock_path = service.lock_path
     if metadata_by_platform is None:
         metadata_by_platform = {
-            platform: _cargo_metadata(target)
-            for platform, target in INGESTION_TARGETS.items()
+            platform: _cargo_metadata(service.manifest_path, target)
+            for platform, target in RUST_TARGETS.items()
         }
     require(
-        set(metadata_by_platform) == set(INGESTION_TARGETS),
+        set(metadata_by_platform) == set(RUST_TARGETS),
         "cargo metadata must be supplied for both production Linux targets",
     )
 
     lock_packages = _cargo_lock_packages(lock_path)
-    allowed = set(policy["ingestion"]["allowed_license_expressions"])
+    allowed = set(policy[service.name]["allowed_license_expressions"])
     selected: dict[tuple[str, str, str], dict[str, Any]] = {}
     selected_platforms: dict[tuple[str, str, str], set[str]] = {}
     for platform, metadata in metadata_by_platform.items():
@@ -405,7 +436,7 @@ def build_ingestion_inventory(
         )
 
     return {
-        "artifact": "Studio ingestion statically linked production binary",
+        "artifact": f"Studio {service.name} statically linked production binary",
         "dependencies": dependencies,
         "format": INVENTORY_FORMAT,
         "scope": (
@@ -413,76 +444,73 @@ def build_ingestion_inventory(
             "development-only and build-only dependencies are excluded"
         ),
         "source_lock": {
-            "path": "ingestion/Cargo.lock",
+            "path": f"{service.name}/Cargo.lock",
             "sha256": sha256_file(lock_path),
         },
-        "targets": INGESTION_TARGETS,
+        "targets": RUST_TARGETS,
     }
 
 
-def validate_cached_ingestion_inventory(
+def validate_cached_rust_inventory(
     policy: Mapping[str, Any],
+    service: RustService,
     inventory: Mapping[str, Any],
-    *,
-    lock_path: Path = INGESTION_LOCK_PATH,
 ) -> None:
     """Perform fast lock-bound checks without downloading Cargo metadata."""
+    name = service.name
     require(
         inventory.get("format") == INVENTORY_FORMAT,
-        "invalid ingestion inventory format",
+        f"invalid {name} inventory format",
     )
     require(
         inventory.get("source_lock")
-        == {"path": "ingestion/Cargo.lock", "sha256": sha256_file(lock_path)},
-        "ingestion inventory is not bound to the current Cargo.lock",
+        == {"path": f"{name}/Cargo.lock", "sha256": sha256_file(service.lock_path)},
+        f"{name} inventory is not bound to the current Cargo.lock",
     )
-    require(inventory.get("targets") == INGESTION_TARGETS, "invalid ingestion targets")
+    require(inventory.get("targets") == RUST_TARGETS, f"invalid {name} targets")
     dependencies = inventory.get("dependencies")
-    require(
-        isinstance(dependencies, list) and dependencies, "empty ingestion inventory"
-    )
-    lock_packages = _cargo_lock_packages(lock_path)
-    allowed = set(policy["ingestion"]["allowed_license_expressions"])
+    require(isinstance(dependencies, list) and dependencies, f"empty {name} inventory")
+    lock_packages = _cargo_lock_packages(service.lock_path)
+    allowed = set(policy[name]["allowed_license_expressions"])
     identities: list[tuple[str, str, str]] = []
     for dependency in dependencies:
         require(
-            isinstance(dependency, dict), "ingestion dependency entry must be an object"
+            isinstance(dependency, dict), f"{name} dependency entry must be an object"
         )
         require(
             set(dependency)
             == {"checksum", "license", "name", "platforms", "source", "version"},
-            "ingestion dependency entry has unexpected or missing fields",
+            f"{name} dependency entry has unexpected or missing fields",
         )
         key = (dependency["name"], dependency["version"], dependency["source"])
         require(
             key in lock_packages,
-            f"ingestion inventory package is absent from lock: {key}",
+            f"{name} inventory package is absent from lock: {key}",
         )
         require(
             dependency["checksum"] == lock_packages[key].get("checksum"),
-            f"ingestion inventory checksum differs from lock: {key}",
+            f"{name} inventory checksum differs from lock: {key}",
         )
         require(
             dependency["license"] in allowed,
-            f"ingestion inventory contains an unreviewed license: {key}",
+            f"{name} inventory contains an unreviewed license: {key}",
         )
         platforms = dependency["platforms"]
         require(
             isinstance(platforms, list)
             and platforms
             and platforms == sorted(set(platforms))
-            and set(platforms) <= set(INGESTION_TARGETS),
-            f"invalid ingestion inventory platforms: {key}",
+            and set(platforms) <= set(RUST_TARGETS),
+            f"invalid {name} inventory platforms: {key}",
         )
         identities.append(key)
     require(
         identities == sorted(set(identities)),
-        "ingestion dependency entries must be sorted and unique",
+        f"{name} dependency entries must be sorted and unique",
     )
     require(
-        canonical_json(inventory)
-        == INGESTION_INVENTORY_PATH.read_text(encoding="utf-8"),
-        "ingestion inventory must use canonical JSON formatting",
+        canonical_json(inventory) == service.inventory_path.read_text(encoding="utf-8"),
+        f"{name} inventory must use canonical JSON formatting",
     )
 
 
@@ -536,13 +564,12 @@ def validate_image_and_notice_contracts(policy: Mapping[str, Any]) -> None:
     """Require each production image to carry its owned license evidence."""
     license_root = "/usr/share/licenses/junjo-ai-studio/"
     common_copy = f"COPY LICENSE THIRD_PARTY_NOTICES.md {license_root}"
+    # The application image is built from backend/Dockerfile and carries the
+    # backend binary and the built UI, so it carries both inventories.
     expected_dockerfile_lines = {
         "backend/Dockerfile": {
             common_copy,
-            f"COPY backend/uv.lock {license_root}backend-production.lock",
-        },
-        "frontend/Dockerfile": {
-            common_copy,
+            f"COPY licenses/backend-production.json {license_root}",
             f"COPY licenses/frontend-production.json {license_root}",
         },
         "ingestion/Dockerfile": {
@@ -563,9 +590,9 @@ def validate_image_and_notice_contracts(policy: Mapping[str, Any]) -> None:
 
     notice = (STUDIO_ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
     for required_text in (
+        "licenses/backend-production.json",
         "licenses/frontend-production.json",
         "licenses/ingestion-production.json",
-        "backend-production.lock",
         "license expressions are inventory",
         "not legal approval",
     ):
@@ -594,12 +621,15 @@ def validate_image_and_notice_contracts(policy: Mapping[str, Any]) -> None:
 
 
 def write_inventories(policy: Mapping[str, Any]) -> None:
-    """Regenerate both committed inventories from their locked dependency graphs."""
+    """Regenerate every committed inventory from its locked dependency graph."""
     frontend = build_frontend_inventory(policy)
-    ingestion = build_ingestion_inventory(policy)
+    rust_inventories = [
+        (service, build_rust_inventory(policy, service)) for service in RUST_SERVICES
+    ]
     LICENSES_ROOT.mkdir(parents=True, exist_ok=True)
     FRONTEND_INVENTORY_PATH.write_text(canonical_json(frontend), encoding="utf-8")
-    INGESTION_INVENTORY_PATH.write_text(canonical_json(ingestion), encoding="utf-8")
+    for service, inventory in rust_inventories:
+        service.inventory_path.write_text(canonical_json(inventory), encoding="utf-8")
 
 
 def check_inventories(
@@ -618,25 +648,28 @@ def check_inventories(
         "frontend production inventory is stale; run the generator",
     )
 
-    require(
-        INGESTION_INVENTORY_PATH.is_file(), "ingestion production inventory is missing"
-    )
-    actual_ingestion = load_json(INGESTION_INVENTORY_PATH)
-    require(isinstance(actual_ingestion, dict), "ingestion inventory must be an object")
-    validate_cached_ingestion_inventory(policy, actual_ingestion)
-    if with_cargo_metadata:
-        expected_ingestion = build_ingestion_inventory(policy)
+    for service in RUST_SERVICES:
+        name = service.name
         require(
-            INGESTION_INVENTORY_PATH.read_text(encoding="utf-8")
-            == canonical_json(expected_ingestion),
-            "ingestion production inventory is stale; run the generator",
+            service.inventory_path.is_file(),
+            f"{name} production inventory is missing",
         )
+        actual = load_json(service.inventory_path)
+        require(isinstance(actual, dict), f"{name} inventory must be an object")
+        validate_cached_rust_inventory(policy, service, actual)
+        if with_cargo_metadata:
+            expected = build_rust_inventory(policy, service)
+            require(
+                service.inventory_path.read_text(encoding="utf-8")
+                == canonical_json(expected),
+                f"{name} production inventory is stale; run the generator",
+            )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("generate", help="rewrite both committed inventories")
+    subparsers.add_parser("generate", help="rewrite the committed inventories")
     check = subparsers.add_parser("check", help="validate committed artifact evidence")
     check.add_argument(
         "--with-cargo-metadata",

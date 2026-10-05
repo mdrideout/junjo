@@ -215,8 +215,9 @@ checksum = "builder-checksum"
                 encoding="utf-8",
             )
             policy = {"ingestion": {"allowed_license_expressions": ["MIT"]}}
-            inventory = validator.build_ingestion_inventory(
+            inventory = validator.build_rust_inventory(
                 policy,
+                validator.INGESTION,
                 metadata_by_platform={
                     "linux/amd64": metadata,
                     "linux/arm64": metadata,
@@ -237,6 +238,187 @@ checksum = "builder-checksum"
                     }
                 ],
             )
+
+    def test_backend_inventory_follows_the_workspace_path_dependency(self) -> None:
+        root_id = "path+file:///fixture/server#junjo-backend@1.0.0"
+        member_id = "path+file:///fixture/evidence#junjo-evidence@1.0.0"
+        linked_id = "registry+https://example.invalid/index#linked@1.0.0"
+        test_only_id = "registry+https://example.invalid/index#test-only@1.0.0"
+        metadata = {
+            "packages": [
+                {
+                    "id": root_id,
+                    "license": "Apache-2.0",
+                    "name": "junjo-backend",
+                    "source": None,
+                    "version": "1.0.0",
+                },
+                {
+                    "id": member_id,
+                    "license": "Apache-2.0",
+                    "name": "junjo-evidence",
+                    "source": None,
+                    "version": "1.0.0",
+                },
+                {
+                    "id": linked_id,
+                    "license": "MIT",
+                    "name": "linked",
+                    "source": "registry+https://example.invalid/index",
+                    "version": "1.0.0",
+                },
+                {
+                    "id": test_only_id,
+                    "license": "GPL-3.0-only",
+                    "name": "test-only",
+                    "source": "registry+https://example.invalid/index",
+                    "version": "1.0.0",
+                },
+            ],
+            "resolve": {
+                "root": root_id,
+                "nodes": [
+                    {
+                        "deps": [
+                            {"dep_kinds": [{"kind": None}], "pkg": member_id},
+                            {"dep_kinds": [{"kind": "dev"}], "pkg": test_only_id},
+                        ],
+                        "id": root_id,
+                    },
+                    {
+                        "deps": [{"dep_kinds": [{"kind": None}], "pkg": linked_id}],
+                        "id": member_id,
+                    },
+                    {"deps": [], "id": linked_id},
+                    {"deps": [], "id": test_only_id},
+                ],
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            lock = Path(temporary_directory) / "Cargo.lock"
+            lock.write_text(
+                """version = 4
+
+[[package]]
+name = "junjo-backend"
+version = "1.0.0"
+
+[[package]]
+name = "junjo-evidence"
+version = "1.0.0"
+
+[[package]]
+name = "linked"
+version = "1.0.0"
+source = "registry+https://example.invalid/index"
+checksum = "linked-checksum"
+
+[[package]]
+name = "test-only"
+version = "1.0.0"
+source = "registry+https://example.invalid/index"
+checksum = "test-only-checksum"
+""",
+                encoding="utf-8",
+            )
+            # Only the registry crate needs a reviewed expression. The two
+            # workspace packages are Junjo's own and are not inventory entries.
+            policy = {"backend": {"allowed_license_expressions": ["MIT"]}}
+            inventory = validator.build_rust_inventory(
+                policy,
+                validator.BACKEND,
+                metadata_by_platform={
+                    "linux/amd64": metadata,
+                    "linux/arm64": metadata,
+                },
+                lock_path=lock,
+            )
+
+            self.assertEqual(
+                inventory["dependencies"],
+                [
+                    {
+                        "checksum": "linked-checksum",
+                        "license": "MIT",
+                        "name": "linked",
+                        "platforms": ["linux/amd64", "linux/arm64"],
+                        "source": "registry+https://example.invalid/index",
+                        "version": "1.0.0",
+                    }
+                ],
+            )
+            self.assertEqual(
+                inventory["source_lock"],
+                {"path": "backend/Cargo.lock", "sha256": validator.sha256_file(lock)},
+            )
+
+    def test_rust_inventory_rejects_unreviewed_license_expression(self) -> None:
+        root_id = "path+file:///fixture/server#junjo-backend@1.0.0"
+        copyleft_id = "registry+https://example.invalid/index#copyleft@1.0.0"
+        metadata = {
+            "packages": [
+                {
+                    "id": root_id,
+                    "license": "Apache-2.0",
+                    "name": "junjo-backend",
+                    "source": None,
+                    "version": "1.0.0",
+                },
+                {
+                    "id": copyleft_id,
+                    "license": "GPL-3.0-only",
+                    "name": "copyleft",
+                    "source": "registry+https://example.invalid/index",
+                    "version": "1.0.0",
+                },
+            ],
+            "resolve": {
+                "root": root_id,
+                "nodes": [
+                    {
+                        "deps": [{"dep_kinds": [{"kind": None}], "pkg": copyleft_id}],
+                        "id": root_id,
+                    },
+                    {"deps": [], "id": copyleft_id},
+                ],
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            lock = Path(temporary_directory) / "Cargo.lock"
+            lock.write_text(
+                """version = 4
+
+[[package]]
+name = "junjo-backend"
+version = "1.0.0"
+
+[[package]]
+name = "copyleft"
+version = "1.0.0"
+source = "registry+https://example.invalid/index"
+checksum = "copyleft-checksum"
+""",
+                encoding="utf-8",
+            )
+            # An expression reviewed for ingestion is not reviewed for the backend.
+            policy = {
+                "backend": {"allowed_license_expressions": ["MIT"]},
+                "ingestion": {"allowed_license_expressions": ["GPL-3.0-only"]},
+            }
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                r"unreviewed license expression: copyleft@1\.0\.0 \(GPL-3\.0-only\)",
+            ):
+                validator.build_rust_inventory(
+                    policy,
+                    validator.BACKEND,
+                    metadata_by_platform={
+                        "linux/amd64": metadata,
+                        "linux/arm64": metadata,
+                    },
+                    lock_path=lock,
+                )
 
 
 if __name__ == "__main__":

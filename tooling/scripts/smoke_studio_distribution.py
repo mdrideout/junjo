@@ -27,25 +27,19 @@ from typing import Any, Mapping, Sequence
 DEFAULT_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 VERSION_PATTERN = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
-CORE_SERVICES = ("backend", "frontend", "ingestion")
+CORE_SERVICES = ("backend", "ingestion")
 COMPOSE_CORE_SERVICES = (
-    "junjo-ai-studio-backend",
-    "junjo-ai-studio-frontend",
-    "junjo-ai-studio-ingestion",
-)
-COMPOSE_DATA_SERVICES = (
-    "junjo-ai-studio-backend",
+    "junjo-ai-studio-app",
     "junjo-ai-studio-ingestion",
 )
 SMOKE_RUNTIME_OVERRIDE = ".junjo-smoke-runtime.json"
 SMOKE_DATA_VOLUME = "smoke-data"
 DEMO_SERVICE_NAME = "Junjo Deployment Example"
 DEMO_WORKFLOW_NAME = "Example Deployment Workflow"
+UNKNOWN_API_PATH = "/api/distribution-smoke-unknown-path"
 SENSITIVE_ENVIRONMENT_KEYS = {
     "CLOUDFLARE_API_TOKEN",
     "JUNJO_AI_STUDIO_API_KEY",
-    "JUNJO_SECURE_COOKIE_KEY",
-    "JUNJO_SESSION_SECRET",
     "JUNJO_INTERNAL_GRPC_TOKEN",
 }
 
@@ -95,7 +89,7 @@ def load_image_repositories(repository_root: Path) -> dict[str, str]:
     )
     require(
         set(images) == set(CORE_SERVICES),
-        "Studio release contract must define exactly backend, frontend, and ingestion",
+        "Studio release contract must define exactly backend and ingestion",
     )
     repositories: dict[str, str] = {}
     for service in CORE_SERVICES:
@@ -335,7 +329,7 @@ def assert_smoke_named_storage(
     """Prove smoke data uses one project-owned named volume, never host storage."""
     services = rendered.get("services")
     require(isinstance(services, dict), "Compose services must render as an object")
-    for compose_service in COMPOSE_DATA_SERVICES:
+    for compose_service in COMPOSE_CORE_SERVICES:
         config = services.get(compose_service)
         require(
             isinstance(config, dict), f"Compose service is missing: {compose_service}"
@@ -366,51 +360,22 @@ def assert_smoke_named_storage(
     )
 
 
-def assert_smoke_runtime_routing(
-    rendered: dict[str, Any],
-    *,
-    frontend_origin: str,
-    backend_origin: str,
-    ingestion_url: str,
-) -> None:
-    """Prove browser and CORS routing belong to this isolated smoke stack."""
+def assert_smoke_session_mode(rendered: dict[str, Any]) -> None:
+    """Prove the smoke app issues session cookies that work over plain HTTP."""
     services = rendered.get("services")
     require(isinstance(services, dict), "Compose services must render as an object")
 
-    backend = services.get("junjo-ai-studio-backend")
-    require(isinstance(backend, dict), "Compose backend service is missing")
-    backend_environment = backend.get("environment")
+    app = services.get("junjo-ai-studio-app")
+    require(isinstance(app, dict), "Compose app service is missing")
+    app_environment = app.get("environment")
     require(
-        isinstance(backend_environment, dict),
-        "Compose backend environment must render as an object",
+        isinstance(app_environment, dict),
+        "Compose app environment must render as an object",
     )
     require(
-        backend_environment.get("JUNJO_ENV") == "development",
-        "smoke backend must use development-mode HTTP cookies",
+        app_environment.get("JUNJO_ENV") == "development",
+        "smoke app must use development-mode HTTP cookies",
     )
-    require(
-        backend_environment.get("JUNJO_ALLOW_ORIGINS") == frontend_origin,
-        "smoke backend must allow only the isolated frontend origin",
-    )
-
-    frontend = services.get("junjo-ai-studio-frontend")
-    require(isinstance(frontend, dict), "Compose frontend service is missing")
-    frontend_environment = frontend.get("environment")
-    require(
-        isinstance(frontend_environment, dict),
-        "Compose frontend environment must render as an object",
-    )
-    expected_frontend_environment = {
-        "JUNJO_ENV": "production",
-        "JUNJO_PROD_FRONTEND_URL": frontend_origin,
-        "JUNJO_PROD_BACKEND_URL": backend_origin,
-        "JUNJO_PROD_INGESTION_URL": ingestion_url,
-    }
-    for key, expected in expected_frontend_environment.items():
-        require(
-            frontend_environment.get(key) == expected,
-            f"smoke frontend {key} must be {expected}",
-        )
 
 
 class JsonClient:
@@ -480,11 +445,8 @@ class StudioDistributionSmoke:
         self.data_volume_name = f"{self.project_name}-data"
         self.sensitive_values: list[str] = []
         self.started = False
-        (
-            self.frontend_port,
-            self.backend_port,
-            self.ingestion_port,
-        ) = allocate_tcp_ports(3)
+        self.studio_port, self.ingestion_port = allocate_tcp_ports(2)
+        self.studio_origin = f"http://127.0.0.1:{self.studio_port}"
 
     def compose_command(self, *arguments: str) -> list[str]:
         command = ["docker", "compose", "--project-name", self.project_name]
@@ -502,9 +464,6 @@ class StudioDistributionSmoke:
     def write_runtime_override(self) -> None:
         """Isolate smoke storage and bind registry runs to evidence digests."""
         require(self.runtime_root is not None, "runtime has not been prepared")
-        frontend_origin = f"http://127.0.0.1:{self.frontend_port}"
-        backend_origin = f"http://127.0.0.1:{self.backend_port}"
-        ingestion_url = f"http://127.0.0.1:{self.ingestion_port}"
         data_mount = {
             "type": "volume",
             "source": SMOKE_DATA_VOLUME,
@@ -512,19 +471,10 @@ class StudioDistributionSmoke:
         }
         services: dict[str, dict[str, object]] = {
             compose_service: {"volumes": [data_mount]}
-            for compose_service in COMPOSE_DATA_SERVICES
+            for compose_service in COMPOSE_CORE_SERVICES
         }
-        services["junjo-ai-studio-backend"]["environment"] = {
+        services["junjo-ai-studio-app"]["environment"] = {
             "JUNJO_ENV": "development",
-            "JUNJO_ALLOW_ORIGINS": frontend_origin,
-        }
-        services["junjo-ai-studio-frontend"] = {
-            "environment": {
-                "JUNJO_ENV": "production",
-                "JUNJO_PROD_FRONTEND_URL": frontend_origin,
-                "JUNJO_PROD_BACKEND_URL": backend_origin,
-                "JUNJO_PROD_INGESTION_URL": ingestion_url,
-            }
         }
         if self.image_source == "registry":
             require(
@@ -578,8 +528,7 @@ class StudioDistributionSmoke:
         append_runtime_ports(
             self.runtime_root / ".env",
             {
-                "JUNJO_FRONTEND_HOST_PORT": self.frontend_port,
-                "JUNJO_BACKEND_HOST_PORT": self.backend_port,
+                "JUNJO_BACKEND_HOST_PORT": self.studio_port,
                 "JUNJO_INGESTION_HOST_PORT": self.ingestion_port,
             },
         )
@@ -605,12 +554,7 @@ class StudioDistributionSmoke:
         except json.JSONDecodeError as error:
             raise SmokeError("Docker Compose returned invalid JSON") from error
         assert_smoke_named_storage(effective_rendered, self.data_volume_name)
-        assert_smoke_runtime_routing(
-            effective_rendered,
-            frontend_origin=f"http://127.0.0.1:{self.frontend_port}",
-            backend_origin=f"http://127.0.0.1:{self.backend_port}",
-            ingestion_url=f"http://127.0.0.1:{self.ingestion_port}",
-        )
+        assert_smoke_session_mode(effective_rendered)
         if self.image_source == "registry":
             assert_compose_exact_images(effective_rendered, self.expected_images)
 
@@ -660,7 +604,7 @@ class StudioDistributionSmoke:
         require(self.runtime_root is not None, "runtime has not been prepared")
         print("Building VM/Caddy distribution images.", flush=True)
         run_command(
-            self.compose_command("build", "caddy", "junjo-app"),
+            self.compose_command("build", "caddy", "example-app"),
             cwd=self.runtime_root,
             sensitive_values=self.sensitive_values,
         )
@@ -668,24 +612,14 @@ class StudioDistributionSmoke:
     def wait_for_core_services(self) -> None:
         require(self.runtime_root is not None, "runtime has not been prepared")
         deadline = time.monotonic() + self.timeout_seconds
-        client = JsonClient(f"http://127.0.0.1:{self.backend_port}", timeout_seconds=3)
+        client = JsonClient(self.studio_origin, timeout_seconds=3)
         while time.monotonic() < deadline:
-            backend_ready = False
-            frontend_ready = False
+            app_ready = False
             ingestion_ready = False
             try:
                 health = client.request("/health")
-                backend_ready = (
-                    isinstance(health, dict) and health.get("status") == "ok"
-                )
+                app_ready = isinstance(health, dict) and health.get("status") == "ok"
             except SmokeError:
-                pass
-            try:
-                with urllib.request.urlopen(
-                    f"http://127.0.0.1:{self.frontend_port}/", timeout=3
-                ) as response:
-                    frontend_ready = 200 <= response.status < 400
-            except (urllib.error.URLError, OSError):
                 pass
             ingestion = subprocess.run(
                 self.compose_command(
@@ -701,69 +635,86 @@ class StudioDistributionSmoke:
                 text=True,
             )
             ingestion_ready = ingestion.returncode == 0
-            if backend_ready and frontend_ready and ingestion_ready:
-                self.assert_live_runtime_routing()
+            if app_ready and ingestion_ready:
+                self.assert_live_studio_origin()
                 return
             time.sleep(3)
         raise SmokeError("Studio core services did not become healthy before timeout")
 
-    def assert_live_runtime_routing(self) -> None:
-        """Verify the served frontend config and backend CORS policy before E2E."""
-        frontend_origin = f"http://127.0.0.1:{self.frontend_port}"
-        backend_origin = f"http://127.0.0.1:{self.backend_port}"
+    def assert_live_studio_origin(self) -> None:
+        """Verify one origin serves the app, /health, and the API before E2E."""
         try:
             with urllib.request.urlopen(
-                f"{frontend_origin}/config.js", timeout=3
+                f"{self.studio_origin}/", timeout=3
             ) as response:
-                config = response.read().decode("utf-8").strip()
-        except (UnicodeDecodeError, urllib.error.URLError, OSError) as error:
-            raise SmokeError(
-                "Studio frontend runtime config is not readable"
-            ) from error
-        expected_config = f'window.runtimeConfig = {{ API_HOST: "{backend_origin}" }};'
+                app_status = response.status
+                app_content_type = response.headers.get_content_type()
+        except (urllib.error.URLError, OSError) as error:
+            raise SmokeError("Studio origin does not serve the app at /") from error
         require(
-            config == expected_config,
-            "Studio frontend runtime config does not target the isolated backend",
+            app_status == 200 and app_content_type == "text/html",
+            "Studio origin does not serve the app as HTML at /",
         )
 
-        preflight = urllib.request.Request(
-            f"{backend_origin}/health",
-            method="OPTIONS",
-            headers={
-                "Origin": frontend_origin,
-                "Access-Control-Request-Method": "GET",
-            },
+        try:
+            with urllib.request.urlopen(
+                f"{self.studio_origin}/health", timeout=3
+            ) as response:
+                health = json.loads(response.read())
+        except (ValueError, urllib.error.URLError, OSError) as error:
+            raise SmokeError("Studio origin does not serve /health") from error
+        require(
+            isinstance(health, dict) and health.get("status") == "ok",
+            "Studio origin /health did not report ok",
+        )
+
+        try:
+            with urllib.request.urlopen(
+                f"{self.studio_origin}{UNKNOWN_API_PATH}", timeout=3
+            ):
+                pass
+        except urllib.error.HTTPError as error:
+            with error:
+                unknown_status = error.code
+                unknown_payload = error.read()
+        except (urllib.error.URLError, OSError) as error:
+            raise SmokeError(
+                "Studio origin did not answer an unknown API path"
+            ) from error
+        else:
+            raise SmokeError(
+                "Studio origin answered an unknown API path as if it existed"
+            )
+        require(
+            unknown_status == 404,
+            "Studio origin must answer an unknown API path with 404",
         )
         try:
-            with urllib.request.urlopen(preflight, timeout=3) as response:
-                allowed_origin = response.headers.get("Access-Control-Allow-Origin")
-                allowed_credentials = response.headers.get(
-                    "Access-Control-Allow-Credentials"
-                )
-        except (urllib.error.URLError, OSError) as error:
-            raise SmokeError("Studio backend CORS preflight failed") from error
+            unknown_body = json.loads(unknown_payload)
+        except ValueError as error:
+            raise SmokeError(
+                "Studio origin answered an unknown API path without the JSON error body"
+            ) from error
         require(
-            allowed_origin == frontend_origin,
-            "Studio backend did not allow the isolated frontend origin",
-        )
-        require(
-            allowed_credentials == "true",
-            "Studio backend did not allow credentialed browser requests",
+            isinstance(unknown_body, dict)
+            and unknown_body.get("code") == "not_found"
+            and isinstance(unknown_body.get("message"), str),
+            "Studio origin answered an unknown API path without the JSON error body",
         )
 
     def create_identity(self) -> SmokeIdentity:
         email = f"smoke-{secrets.token_hex(8)}@example.com"
         password = secrets.token_urlsafe(32)
         self.sensitive_values.extend([email, password])
-        client = JsonClient(f"http://127.0.0.1:{self.backend_port}", timeout_seconds=10)
+        client = JsonClient(self.studio_origin, timeout_seconds=10)
         response = client.request(
-            "/users/create-first-user",
+            "/api/v1/users/create-first-user",
             method="POST",
             body={"email": email, "password": password},
         )
         require(isinstance(response, dict), "first-user response must be an object")
         created = client.request(
-            "/api_keys", method="POST", body={"name": "Distribution smoke"}
+            "/api/v1/api-keys", method="POST", body={"name": "Distribution smoke"}
         )
         require(isinstance(created, dict), "API-key response must be an object")
         api_key = created.get("key")
@@ -788,7 +739,7 @@ class StudioDistributionSmoke:
                 "--force-recreate",
                 "--pull",
                 "never",
-                "junjo-app",
+                "example-app",
             ),
             cwd=self.runtime_root,
             sensitive_values=self.sensitive_values,
@@ -796,9 +747,9 @@ class StudioDistributionSmoke:
 
     def wait_for_example_workflow(self, identity: SmokeIdentity) -> None:
         service_path = urllib.parse.quote(DEMO_SERVICE_NAME, safe="")
-        client = JsonClient(f"http://127.0.0.1:{self.backend_port}", timeout_seconds=5)
+        client = JsonClient(self.studio_origin, timeout_seconds=5)
         client.request(
-            "/sign-in",
+            "/api/v1/sign-in",
             method="POST",
             body={"email": identity.email, "password": identity.password},
         )
@@ -849,7 +800,7 @@ class StudioDistributionSmoke:
                 "python",
                 "tooling/scripts/validate_agent_studio_e2e.py",
                 "--backend-url",
-                f"http://127.0.0.1:{self.backend_port}",
+                self.studio_origin,
                 "--ingestion-host",
                 "127.0.0.1",
                 "--ingestion-port",
@@ -876,10 +827,8 @@ class StudioDistributionSmoke:
                 "run",
                 "test:e2e:agent-live",
                 "--",
-                "--frontend-url",
-                f"http://127.0.0.1:{self.frontend_port}",
-                "--backend-url",
-                f"http://127.0.0.1:{self.backend_port}",
+                "--studio-url",
+                self.studio_origin,
                 "--evidence",
                 str(evidence),
                 "--screenshot",
@@ -928,7 +877,7 @@ class StudioDistributionSmoke:
                 "python3",
                 "tooling/scripts/validate_evaluation_studio_e2e.py",
                 "--backend-url",
-                f"http://127.0.0.1:{self.backend_port}",
+                self.studio_origin,
                 "--ingestion-host",
                 "127.0.0.1",
                 "--ingestion-port",
@@ -955,10 +904,8 @@ class StudioDistributionSmoke:
                 "run",
                 "test:e2e:evaluation-live",
                 "--",
-                "--frontend-url",
-                f"http://127.0.0.1:{self.frontend_port}",
-                "--backend-url",
-                f"http://127.0.0.1:{self.backend_port}",
+                "--studio-url",
+                self.studio_origin,
                 "--evidence",
                 str(evidence),
                 "--screenshot",
@@ -1135,7 +1082,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         metavar="SERVICE=REPOSITORY@DIGEST",
-        help="Required three times in registry mode; forbidden in local mode.",
+        help="Required twice in registry mode; forbidden in local mode.",
     )
     parser.add_argument("--timeout-seconds", type=int, default=300)
     parser.add_argument(

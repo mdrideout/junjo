@@ -1,0 +1,438 @@
+diff -ru a/config.rs b/config.rs
+--- a/config.rs	2026-10-04 10:14:07
++++ b/config.rs	2026-10-04 15:50:59
+@@ -44,6 +44,12 @@
+     pub spill_enabled: bool,
+     pub spill_pool_bytes: usize,
+     pub spill_path: PathBuf,
++    /// PROTOTYPE (measurement only): the LLM listing also classifies flushed
++    /// files that the indexer has not reached.
++    pub diagnostic_llm_recent_cold: bool,
++    /// PROTOTYPE (measurement only): that classification reads only spans
++    /// that started at or after the oldest candidate root span.
++    pub diagnostic_llm_time_window: bool,
+ }
+ 
+ #[derive(Debug, Clone)]
+@@ -180,6 +186,16 @@
+                     get("JUNJO_DF_SPILL_PATH")
+                         .unwrap_or_else(|| "/tmp/junjo-datafusion-spill".into()),
+                 ),
++                diagnostic_llm_recent_cold: boolean(
++                    &get,
++                    "JUNJO_DIAGNOSTIC_LLM_RECENT_COLD",
++                    false,
++                )?,
++                diagnostic_llm_time_window: boolean(
++                    &get,
++                    "JUNJO_DIAGNOSTIC_LLM_TIME_WINDOW",
++                    false,
++                )?,
+             },
+         })
+     }
+diff -ru a/db/metadata.rs b/db/metadata.rs
+--- a/db/metadata.rs	2026-10-03 19:19:24
++++ b/db/metadata.rs	2026-10-04 15:32:52
+@@ -96,9 +96,12 @@
+ pub const SELECT_LLM_TRACE: &str =
+     "SELECT 1 FROM llm_traces WHERE service_name = ?1 AND trace_id = ?2";
+ 
++/// PROTOTYPE.
++pub const SELECT_IS_INDEXED_FILE: &str = "SELECT 1 FROM parquet_files WHERE file_path = ?1";
++
+ /// Every statement in this module, for the schema preparation test.
+ #[cfg(test)]
+-pub const ALL_STATEMENTS: [&str; 17] = [
++pub const ALL_STATEMENTS: [&str; 18] = [
+     INSERT_PARQUET_FILE,
+     INSERT_TRACE_FILE,
+     INSERT_FILE_SERVICE,
+@@ -116,6 +119,7 @@
+     SELECT_NEWEST_WORKFLOW_FILE_PATHS,
+     SELECT_AGENT_FILE_PATHS,
+     SELECT_LLM_TRACE,
++    SELECT_IS_INDEXED_FILE,
+ ];
+ 
+ /// Record one file's summaries in a single atomic transaction.
+@@ -298,6 +302,22 @@
+         }
+     }
+     Ok(matched)
++}
++
++/// PROTOTYPE: the given files that the index does not hold, in the given
++/// order. Each file is one lookup on the unique path.
++pub fn unindexed_file_paths(
++    connection: &Connection,
++    file_paths: &[String],
++) -> rusqlite::Result<Vec<String>> {
++    let mut is_indexed = connection.prepare_cached(SELECT_IS_INDEXED_FILE)?;
++    let mut unindexed = Vec::new();
++    for file_path in file_paths {
++        if !is_indexed.exists(params![file_path])? {
++            unindexed.push(file_path.clone());
++        }
++    }
++    Ok(unindexed)
+ }
+ 
+ #[cfg(test)]
+diff -ru a/features/otel_spans/query.rs b/features/otel_spans/query.rs
+--- a/features/otel_spans/query.rs	2026-10-04 15:10:07
++++ b/features/otel_spans/query.rs	2026-10-04 15:51:23
+@@ -22,13 +22,13 @@
+     StringViewArray,
+ };
+ use datafusion::arrow::compute::cast;
+-use datafusion::arrow::datatypes::DataType;
++use datafusion::arrow::datatypes::{DataType, TimeUnit};
+ use datafusion::common::ScalarValue;
+ use datafusion::error::{DataFusionError, Result};
+ use datafusion::execution::disk_manager::{DiskManagerBuilder, DiskManagerMode};
+ use datafusion::execution::memory_pool::FairSpillPool;
+ use datafusion::execution::runtime_env::{RuntimeEnv, RuntimeEnvBuilder};
+-use datafusion::prelude::{ParquetReadOptions, SessionConfig, SessionContext};
++use datafusion::prelude::{ParquetReadOptions, SessionConfig, SessionContext, col, lit};
+ use junjo_evidence::json::{Json, JsonObject};
+ use junjo_evidence::trace_evidence::schemas::NormalizedSpanEvidence;
+ use serde::Serialize;
+@@ -126,6 +126,9 @@
+     pub name: String,
+     pub kind: &'static str,
+     pub start_time: String,
++    /// PROTOTYPE: the start time as stored. Not part of the API's span.
++    #[serde(skip)]
++    pub start_time_ns: Option<i64>,
+     pub end_time: String,
+     pub status_code: String,
+     pub status_message: String,
+@@ -205,6 +208,9 @@
+ pub struct QueryEngine {
+     runtime: Arc<RuntimeEnv>,
+     session_config: SessionConfig,
++    /// PROTOTYPE switches. See `DataFusionConfig`.
++    pub llm_recent_cold: bool,
++    pub llm_time_window: bool,
+ }
+ 
+ impl QueryEngine {
+@@ -237,6 +243,8 @@
+         Ok(Self {
+             runtime: runtime.build_arc()?,
+             session_config,
++            llm_recent_cold: config.diagnostic_llm_recent_cold,
++            llm_time_window: config.diagnostic_llm_time_window,
+         })
+     }
+ 
+@@ -514,6 +522,111 @@
+         Ok(spans)
+     }
+ 
++    /// PROTOTYPE: the candidate traces that have an LLM span of one service
++    /// among the spans the metadata index does not cover: the hot snapshot,
++    /// and the flushed files the indexer has not reached.
++    ///
++    /// The service and the candidate trace identifiers are filters the
++    /// Parquet reader applies before it decodes attributes, so only the
++    /// candidates' attributes are decoded.
++    ///
++    /// `since_ns` is the start time of the oldest candidate root span. A
++    /// span of a candidate's trace does not start before its root, so older
++    /// spans are left out: whole files and row groups by their statistics,
++    /// and rows by a comparison of integers before any text is decoded.
++    pub async fn unindexed_llm_trace_ids(
++        &self,
++        hot_snapshot: Option<&str>,
++        unindexed_cold_files: &[String],
++        service_name: &str,
++        candidate_trace_ids: &HashSet<String>,
++        since_ns: Option<i64>,
++    ) -> Result<HashSet<String>> {
++        let files = TierFiles {
++            cold: usable_parquet_files(unindexed_cold_files, COLD_TABLE),
++            hot: match hot_snapshot {
++                Some(hot_snapshot) => hot_snapshot_file(hot_snapshot)?,
++                None => Vec::new(),
++            },
++        };
++        match self
++            .llm_trace_ids(&files, service_name, candidate_trace_ids, since_ns)
++            .await
++        {
++            Err(error) => {
++                let readable = self.readable(&files).await;
++                if readable == files {
++                    return Err(error);
++                }
++                self.llm_trace_ids(&readable, service_name, candidate_trace_ids, since_ns)
++                    .await
++            }
++            found => found,
++        }
++    }
++
++    async fn llm_trace_ids(
++        &self,
++        files: &TierFiles,
++        service_name: &str,
++        candidate_trace_ids: &HashSet<String>,
++        since_ns: Option<i64>,
++    ) -> Result<HashSet<String>> {
++        let context = self.context();
++        let tiers = self.register(&context, files).await?;
++        let candidates = candidate_trace_ids
++            .iter()
++            .map(|trace_id| lit(trace_id.as_str()))
++            .collect();
++        let wanted = col("service_name")
++            .eq(lit(service_name))
++            .and(col("trace_id").in_list(candidates, false));
++        let mut llm_trace_ids = HashSet::new();
++        for (present, table) in [(tiers.cold, COLD_TABLE), (tiers.hot, HOT_TABLE)] {
++            if !present {
++                continue;
++            }
++            let frame = context.table(table).await?;
++            let mut wanted = wanted.clone();
++            if let Some(since_ns) = since_ns {
++                // The literal has the stored column's own type, so the
++                // comparison needs no cast and statistics can prune with it.
++                let start_time = frame
++                    .schema()
++                    .field_with_unqualified_name("start_time")?
++                    .data_type()
++                    .clone();
++                let DataType::Timestamp(TimeUnit::Nanosecond, timezone) = start_time else {
++                    return Err(DataFusionError::Execution(format!(
++                        "column start_time has unsupported type {start_time}"
++                    )));
++                };
++                let since = ScalarValue::TimestampNanosecond(Some(since_ns), timezone);
++                wanted = col("start_time").gt_eq(lit(since)).and(wanted);
++            }
++            let batches = frame
++                .filter(wanted)?
++                .select_columns(&["trace_id", "attributes"])?
++                .collect()
++                .await?;
++            for batch in &batches {
++                let trace_id_column = Text::column(batch, "trace_id")?;
++                let attributes_column = Text::column(batch, "attributes")?;
++                for row in 0..batch.num_rows() {
++                    let (Some(trace_id), Some(attributes)) =
++                        (trace_id_column.value(row), attributes_column.value(row))
++                    else {
++                        continue;
++                    };
++                    if !llm_trace_ids.contains(trace_id) && classify_attributes(attributes).is_llm {
++                        llm_trace_ids.insert(trace_id.to_string());
++                    }
++                }
++            }
++        }
++        Ok(llm_trace_ids)
++    }
++
+     /// The candidate traces that have an LLM span of one service in the hot
+     /// snapshot.
+     ///
+@@ -847,6 +960,7 @@
+             name: name.value(row).unwrap_or_default().to_string(),
+             kind: span_kind_name(span_kind.value(row)),
+             start_time: format_span_timestamp(nanoseconds(&start_time_ns, row)),
++            start_time_ns: nanoseconds(&start_time_ns, row),
+             end_time: format_span_timestamp(nanoseconds(&end_time_ns, row)),
+             status_code: status_code.value(row).to_string(),
+             status_message: status_message.value(row).unwrap_or_default().to_string(),
+diff -ru a/features/otel_spans/repository.rs b/features/otel_spans/repository.rs
+--- a/features/otel_spans/repository.rs	2026-10-04 15:11:29
++++ b/features/otel_spans/repository.rs	2026-10-04 16:06:44
+@@ -300,16 +300,91 @@
+         .map(|span| span.trace_id.clone())
+         .collect();
+ 
++    // PROTOTYPE (`llm_time_window`): ingestion is asked again for the
++    // classification read. A flush between the listing's two reads moves
++    // unflushed spans to a file the first answer did not name, and a rebuilt
++    // snapshot no longer holds them. The new answer names that file. The
++    // request falls inside ingestion's reuse period, so it builds nothing.
++    let classified = if state.query.llm_recent_cold && state.query.llm_time_window {
++        let ingestion = state.ingestion.query_context().await;
++        QuerySources {
++            cold_files: ingestion
++                .recent_cold_paths
++                .into_iter()
++                .take(MAX_RECENT_COLD_FILES_PER_QUERY)
++                .collect(),
++            hot_snapshot: ingestion.hot_snapshot_path,
++        }
++    } else {
++        sources.clone()
++    };
+     let lookup_service = service_name.to_string();
+     let lookup_trace_ids = candidate_trace_ids.clone();
+-    let mut llm_trace_ids = state
++    let lookup_files = if state.query.llm_recent_cold {
++        classified.cold_files.clone()
++    } else {
++        Vec::new()
++    };
++    let (unindexed_cold_files, mut llm_trace_ids) = state
+         .metadata
+         .call(move |connection| {
+-            metadata::filter_llm_trace_ids(connection, &lookup_service, &lookup_trace_ids)
++            // PROTOTYPE: the unindexed files are found first. A file that is
++            // indexed between the two statements is then read below and
++            // found in the index as well. The other order could miss it in
++            // both.
++            let unindexed = metadata::unindexed_file_paths(connection, &lookup_files)?;
++            let llm =
++                metadata::filter_llm_trace_ids(connection, &lookup_service, &lookup_trace_ids)?;
++            Ok((unindexed, llm))
+         })
+         .await?;
+ 
+-    if let Some(hot_snapshot) = &sources.hot_snapshot
++    if state.query.llm_recent_cold {
++        // PROTOTYPE: one read classifies every span the index does not
++        // cover, in the hot snapshot and in the unindexed files.
++        //
++        // PROTOTYPE (`llm_time_window`): only the candidates the index has
++        // not already found are looked for, and no span of theirs starts
++        // before the oldest of their root spans. Without a start time for
++        // every one of those roots there is no window.
++        let (wanted, since_ns) = if state.query.llm_time_window {
++            let wanted: HashSet<String> = candidate_trace_ids
++                .difference(&llm_trace_ids)
++                .cloned()
++                .collect();
++            let since_ns = root_spans
++                .iter()
++                .filter(|span| wanted.contains(&span.trace_id))
++                .map(|span| span.start_time_ns)
++                .min()
++                .flatten();
++            (wanted, since_ns)
++        } else {
++            (candidate_trace_ids.clone(), None)
++        };
++        if !wanted.is_empty()
++            && (classified.hot_snapshot.is_some() || !unindexed_cold_files.is_empty())
++        {
++            let handed = snapshot_identity(&classified);
++            match state
++                .query
++                .unindexed_llm_trace_ids(
++                    classified.hot_snapshot.as_deref(),
++                    &unindexed_cold_files,
++                    service_name,
++                    &wanted,
++                    since_ns,
++                )
++                .await
++            {
++                Ok(unindexed_llm_trace_ids) => llm_trace_ids.extend(unindexed_llm_trace_ids),
++                Err(error) if snapshot_changed(&classified, handed, &error) => {
++                    return Ok(Err(error));
++                }
++                Err(error) => return Err(hot_llm_query_failed(&error, service_name)),
++            }
++        }
++    } else if let Some(hot_snapshot) = &sources.hot_snapshot
+         && !candidate_trace_ids.is_empty()
+     {
+         let handed = snapshot_identity(&sources);
+@@ -506,6 +581,77 @@
+         assert!(root_spans_with_llm(&app.state, SERVICE, 50).await.is_err());
+ 
+         assert_eq!(distinct_service_names(&app.state).await.unwrap(), [SERVICE]);
++    }
++
++    /// PROTOTYPE: a flushed file the indexer has not reached holds LLM spans.
++    /// Without the switch the listing cannot see those traces.
++    #[tokio::test]
++    async fn prototype_the_llm_filter_classifies_a_flushed_file_that_is_not_indexed() {
++        use std::sync::Arc;
++
++        use crate::config::DataFusionConfig;
++        use crate::features::otel_spans::query::QueryEngine;
++        use crate::test_support::datafusion_config;
++
++        let mut app = test_app();
++        // A trace that is indexed whole, and the root of a trace whose LLM
++        // span is in the unindexed file.
++        app.index_cold_file(
++            "a.parquet",
++            &[
++                root("trace-indexed", 1_000),
++                llm_child("trace-indexed", 1_010),
++                root("trace-split", 2_000),
++            ],
++        );
++        let recent = app.write_cold_file(
++            "recent.parquet",
++            &[
++                llm_child("trace-split", 2_010),
++                root("trace-recent", 3_000),
++                llm_child("trace-recent", 3_010),
++                root("trace-recent-plain", 4_000),
++            ],
++        );
++        let hot_snapshot =
++            app.write_hot_snapshot(&[root("trace-hot", 5_000), llm_child("trace-hot", 5_010)]);
++        app.state.ingestion = ingestion_reporting(Some(&hot_snapshot), &[recent]).await;
++        let spill = tempfile::tempdir().unwrap();
++        let engine = |on: bool, window: bool| {
++            Arc::new(
++                QueryEngine::new(&DataFusionConfig {
++                    diagnostic_llm_recent_cold: on,
++                    diagnostic_llm_time_window: window,
++                    ..datafusion_config(spill.path())
++                })
++                .unwrap(),
++            )
++        };
++
++        app.state.query = engine(false, false);
++        let off = root_spans_with_llm(&app.state, SERVICE, 50).await.unwrap();
++        assert_eq!(span_ids(&off), ["trace-hot-root", "trace-indexed-root"]);
++
++        for window in [false, true] {
++            app.state.query = engine(true, window);
++            let on = root_spans_with_llm(&app.state, SERVICE, 50).await.unwrap();
++            assert_eq!(
++                span_ids(&on),
++                [
++                    "trace-hot-root",
++                    "trace-recent-root",
++                    "trace-split-root",
++                    "trace-indexed-root"
++                ],
++                "time window {window}"
++            );
++            let newest = root_spans_with_llm(&app.state, SERVICE, 2).await.unwrap();
++            assert_eq!(
++                span_ids(&newest),
++                ["trace-hot-root", "trace-recent-root"],
++                "time window {window}"
++            );
++        }
+     }
+ 
+     #[tokio::test]
+diff -ru a/test_support.rs b/test_support.rs
+--- a/test_support.rs	2026-10-04 15:09:22
++++ b/test_support.rs	2026-10-04 15:50:59
+@@ -338,6 +338,9 @@
+         spill_enabled: true,
+         spill_pool_bytes: 192 * 1024 * 1024,
+         spill_path: directory.join("spill"),
++        // PROTOTYPE: the whole suite can run with the switch on.
++        diagnostic_llm_recent_cold: std::env::var("JUNJO_TEST_LLM_RECENT_COLD").is_ok(),
++        diagnostic_llm_time_window: std::env::var("JUNJO_TEST_LLM_TIME_WINDOW").is_ok(),
+     }
+ }
+ 

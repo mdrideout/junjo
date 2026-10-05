@@ -13,7 +13,8 @@ This document covers testing patterns and practices for Junjo AI Studio.
 7. [Integration Testing with MSW](#integration-testing-with-msw)
 8. [Shared Test Fixtures](#shared-test-fixtures)
 9. [Common Testing Pitfalls](#common-testing-pitfalls)
-10. [Backend Test Markers](#backend-test-markers)
+10. [Backend Test Layers](#backend-test-layers)
+11. [Real-World Runs](#real-world-runs)
 
 ---
 
@@ -21,23 +22,24 @@ This document covers testing patterns and practices for Junjo AI Studio.
 
 ### Backend Tests (All Tests)
 
-Run the complete backend test collection, including security, concurrency, and
-gRPC integration tests:
+Run the complete backend test collection for both crates, including the
+cross-service tests that start the real ingestion service:
 
 ```bash
 cd backend
-./scripts/run-backend-tests.sh
+cargo test --locked
 ```
 
 **What it does:**
-- Runs the complete pytest collection once, including unmarked semantic and query tests
-- Includes unit, integration, security, concurrency, error-recovery, and gRPC tests
-- Uses pytest fixtures for isolated databases and the in-process gRPC service
+- Runs every test in the `evidence` and `server` crates
+- Builds the ingestion release binary for the cross-service tests, which takes minutes on a clean checkout
+- Gives each test its own temporary databases and ephemeral ports
 
-**Why use this script:**
-- Ensures all backend tests pass before committing
-- Handles cleanup of temporary database files
-- Validates that port 50053 is free before running gRPC tests
+**What it needs:**
+- `protoc` 30.2 on your `PATH` (see `PROTO_VERSIONS.md`)
+- Nothing from a running Studio stack: no test binds a fixed port or opens `.dbdata`
+
+See [Backend Test Layers](#backend-test-layers) for what each layer proves.
 
 ### Frontend Tests
 
@@ -65,17 +67,10 @@ TypeScript/Vite build:
 
 ### Quick Test Commands
 
-**Backend - Skip gRPC tests (normal development):**
+**Backend - Evidence crate only (no `protoc`, no DataFusion build, no ingestion build):**
 ```bash
 cd backend
-uv run pytest -m "not requires_grpc_server" -v
-```
-
-**Backend - Run specific category:**
-```bash
-uv run pytest -m unit              # Unit tests only
-uv run pytest -m integration       # Integration tests only
-uv run pytest -m security          # Security tests only
+cargo test --locked -p junjo-evidence
 ```
 
 ---
@@ -84,7 +79,7 @@ uv run pytest -m security          # Security tests only
 
 The local default user is created through Studio's public first-user setup API,
 the same contract used by the setup form. It is not a database seed and is
-never created by startup, Compose, migrations, or a build:
+never created by startup, Compose, the schema, or a build:
 
 - Email: `admin@test.com`
 - Password: `JunjoAIStudioLocalTestPass1!`
@@ -103,11 +98,17 @@ Create the empty shared root before Compose starts. This avoids making the
 backend and ingestion containers race to create the same bind-mount root on a
 warm local rebuild.
 
+This is also the reset to use when the backend refuses to start because
+`junjo.db` has another schema version. Studio has no upgrade path for
+application data. For a deployed distribution, follow
+[deployments/RESET.md](deployments/RESET.md) instead.
+
 The validator asks Studio whether setup is required and, only on an empty
-deployment, submits `admin@test.com` through `/users/create-first-user`. It uses
-a separate random user and credentials for the proof, removes those disposable
-records through the HTTP API, and finishes by signing the retained owner out
-and back in. Existing-user distribution tests supply paired credentials through
+deployment, submits `admin@test.com` through
+`/api/v1/users/create-first-user`. It uses a separate random user and
+credentials for the proof, removes those disposable records through the HTTP
+API, and finishes by signing the retained owner out and back in. Existing-user
+distribution tests supply paired credentials through
 `JUNJO_STUDIO_E2E_EXISTING_EMAIL` and `JUNJO_STUDIO_E2E_EXISTING_PASSWORD`.
 
 The running containers exclusively own the SQLite database and its WAL files.
@@ -238,33 +239,28 @@ and production build after any renderer or selection change.
 
 ### Philosophy
 
-**Backend Pydantic schemas are the single source of truth.**
+**The backend's Rust request and response types are the single source of truth.**
 
 Frontend Zod schemas are validated against backend OpenAPI schemas to ensure compatibility. This catches breaking changes before they reach production.
 
 ### How It Works
 
-1. **Backend adds examples** to Pydantic response schemas:
-   ```python
-   class UserRead(BaseModel):
-       id: str = Field(examples=["usr_2k4h6j8m9n0p1q2r"])
-       email: str = Field(examples=["user@example.com"])
-       created_at: datetime = Field(examples=[datetime.now(UTC)])
-   ```
+1. **Backend types carry examples** in their schema attributes. `backend/server/src/features/auth/users.rs` shows the pattern. The OpenAPI document is generated from those types and the registered routes.
 
-2. **Export OpenAPI schema:**
+2. **Export the OpenAPI document** to `frontend/backend/openapi.json` and run the contract tests against it:
    ```bash
-   uv run python scripts/export_openapi_schema.py
+   ./backend/scripts/validate_rest_api_contracts.sh
    ```
+   The document is a committed file. A change in it is a contract change and is reviewed as one.
 
 3. **Frontend contract tests** validate Zod schemas can parse OpenAPI-generated mocks:
    ```typescript
-   import { generateMock } from '@/auth/test-utils/openapi-mock-generator'
-   import { ListUsersResponseSchema } from '@/users/schemas'
+   import { generateMock } from '../../auth/test-utils/openapi-mock-generator'
+   import { ListUsersResponseSchema } from '../../features/users/schema'
 
    describe('API Contract: UserRead Schema', () => {
      it('Zod schema can parse OpenAPI-generated mock', () => {
-       const { mock } = generateMock('list_users_users_get')
+       const { mock } = generateMock('list_users')
        const result = ListUsersResponseSchema.parse(mock)
        expect(result).toBeDefined()
      })
@@ -286,9 +282,9 @@ Frontend Zod schemas are validated against backend OpenAPI schemas to ensure com
 **Critical:** Validate path parameter types to prevent string vs number bugs:
 
 ```typescript
-describe('API Contract: DELETE /users/{user_id}', () => {
+describe('API Contract: DELETE /api/v1/users/{user_id}', () => {
   it('user_id parameter is defined as string', () => {
-    const operation = api.getOperation('delete_user_users__user_id__delete')
+    const operation = api.getOperation('delete_user')
     const userIdParam = operation?.parameters?.find((p) => p.name === 'user_id')
 
     expect(userIdParam).toBeDefined()
@@ -302,27 +298,22 @@ describe('API Contract: DELETE /users/{user_id}', () => {
 ### Contract Test Example (Complete)
 
 ```typescript
-// frontend/src/__tests__/contracts/user-contracts.test.ts
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { initOpenAPI, generateMock } from '@/auth/test-utils/openapi-mock-generator'
-import { UserReadSchema, ListUsersResponseSchema } from '@/users/schemas'
+// frontend/src/__tests__/contracts/read-contracts.test.ts
+import { describe, expect, it } from 'vitest'
+import { generateMock } from '../../auth/test-utils/openapi-mock-generator'
+import { ListUsersResponseSchema } from '../../features/users/schema'
+import { ListApiKeysResponseSchema } from '../../features/api-keys/schemas'
 
-beforeAll(async () => {
-  await initOpenAPI()
-})
-
-describe('User API Contracts', () => {
-  it('UserRead schema matches OpenAPI', () => {
-    const { mock } = generateMock('get_user_users__user_id__get')
-    const result = UserReadSchema.parse(mock)
-    expect(result).toBeDefined()
-    expect(result.id).toBeDefined()
-    expect(result.email).toBeDefined()
+describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
+  it('Zod schema can parse OpenAPI-generated user list mock', () => {
+    const { mock } = generateMock('list_users')
+    const result = ListUsersResponseSchema.parse(mock)
+    expect(Array.isArray(result)).toBe(true)
   })
 
-  it('ListUsers response schema matches OpenAPI', () => {
-    const { mock } = generateMock('list_users_users_get')
-    const result = ListUsersResponseSchema.parse(mock)
+  it('Zod schema can parse OpenAPI-generated API key list mock', () => {
+    const { mock } = generateMock('list_api_keys')
+    const result = ListApiKeysResponseSchema.parse(mock)
     expect(Array.isArray(result)).toBe(true)
   })
 })
@@ -339,29 +330,33 @@ Integration tests validate that **actual request payloads** sent from frontend t
 ### MSW Setup
 
 ```typescript
-// vitest.setup.ts
-import { server } from '@/auth/test-utils/mock-server'
+// frontend/src/auth/test-utils/test-setup.ts
+import { server } from './mock-server'
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 ```
 
+A request with no handler fails its test. The app calls the API with relative
+URLs, so handlers use `API_BASE` from `mock-server.ts`, the origin of the test
+page.
+
 ### Integration Test Pattern
 
 ```typescript
-// frontend/src/__tests__/integration/user-requests.test.ts
+// frontend/src/__tests__/integration/mutation-requests.test.ts
 import { describe, it, expect } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { server } from '@/auth/test-utils/mock-server'
-import { deleteUser } from '@/users/api'
+import { API_BASE, server } from '../../auth/test-utils/mock-server'
+import { deleteUser } from '../../features/users/fetch/delete-user'
 
-describe('User Request Integration Tests', () => {
-  it('DELETE /users/{user_id} sends string ID in path parameter', async () => {
+describe('API Request Validation: Mutation Operations', () => {
+  it('DELETE /api/v1/users/{user_id} sends string ID in path parameter', async () => {
     let capturedUserId: string | undefined
 
     server.use(
-      http.delete('http://localhost:26154/users/:user_id', ({ params }) => {
+      http.delete(`${API_BASE}/api/v1/users/:user_id`, ({ params }) => {
         capturedUserId = params.user_id as string
         return HttpResponse.json({ message: 'User deleted successfully' })
       }),
@@ -373,26 +368,10 @@ describe('User Request Integration Tests', () => {
     expect(typeof capturedUserId).toBe('string')
     expect(capturedUserId).toBe('usr_2k4h6j8m9n0p1q2r')
   })
-
-  it('POST /users sends correct request body', async () => {
-    let capturedBody: any
-
-    server.use(
-      http.post('http://localhost:26154/users', async ({ request }) => {
-        capturedBody = await request.json()
-        return HttpResponse.json({ id: 'usr_123', ...capturedBody })
-      }),
-    )
-
-    await createUser({ email: 'test@example.com', name: 'Test User' })
-
-    expect(capturedBody).toEqual({
-      email: 'test@example.com',
-      name: 'Test User'
-    })
-  })
 })
 ```
+
+The same file captures and checks request bodies for the routes that take one.
 
 ### Contract vs Integration Tests
 
@@ -505,9 +484,9 @@ it('user_id parameter is string type', () => {
 
 // Integration test
 it('sends string ID in request', async () => {
-  server.use(http.delete('/users/:id', ({ params }) => {
+  server.use(http.delete(`${API_BASE}/api/v1/users/:id`, ({ params }) => {
     expect(typeof params.id).toBe('string')
-    return HttpResponse.json({ success: true })
+    return HttpResponse.json({ message: 'User deleted successfully' })
   }))
   await deleteUser('usr_123')
 })
@@ -555,7 +534,7 @@ it('creates user', async () => {
 ```typescript
 it('creates user with correct payload', async () => {
   let capturedBody: any
-  server.use(http.post('/users', async ({ request }) => {
+  server.use(http.post(`${API_BASE}/api/v1/users`, async ({ request }) => {
     capturedBody = await request.json()
     return HttpResponse.json({ id: '123', ...capturedBody })
   }))
@@ -589,85 +568,95 @@ it('handles long email addresses', async () => {
 })
 
 it('handles server errors gracefully', async () => {
-  server.use(http.post('/users', () => HttpResponse.json(
-    { error: 'Email already exists' },
-    { status: 400 }
+  server.use(http.post(`${API_BASE}/api/v1/users`, () => HttpResponse.json(
+    { code: 'user_email_exists', message: 'A user with this email already exists' },
+    { status: 409 }
   )))
 
   await expect(createUser({ email: 'existing@example.com' }))
-    .rejects.toThrow('Email already exists')
+    .rejects.toThrow('A user with this email already exists')
 })
 ```
 
 ---
 
-## Backend Test Markers
+## Backend Test Layers
 
-### All Available Markers
+Backend tests are Rust tests beside the code they cover. A feature's tests are
+in its module or in a `tests.rs` beside it. `cargo test --locked` from
+`backend/` runs every layer.
 
-```python
-@pytest.mark.unit              # Fast, isolated unit tests
-@pytest.mark.integration        # Integration tests that use real database
-@pytest.mark.requires_grpc_server  # Tests requiring gRPC server (handled by fixture)
-@pytest.mark.security          # Security tests (auth bypass, SQL injection)
-@pytest.mark.concurrency       # Concurrency and race condition tests
-@pytest.mark.error_recovery    # Error recovery and resilience tests
-```
+| Layer | Where | What it proves |
+| --- | --- | --- |
+| Router tests | `backend/server/src/app.rs` and the feature tests under `backend/server/src/features/` | Requests through the real router and its layers, against a complete application over temporary databases |
+| Schema and statement tests | `backend/server/src/db/` | Each schema file creates an empty database, and every SQL statement a feature lists prepares against it |
+| Query and indexer tests | `backend/server/src/features/otel_spans/` and `backend/server/src/features/parquet_indexer/` | Queries and the metadata indexer over Parquet files that the tests write with ingestion's schema |
+| Internal gRPC tests | `backend/server/src/features/internal_auth.rs` | `ValidateApiKey`, including over a real transport on an ephemeral port |
+| Process tests | `backend/server/src/main.rs` | Startup, both listeners, UI serving, and shutdown |
+| Evidence tests | `backend/evidence/` | Evidence logic against the shared fixtures in `contracts/telemetry/fixtures` |
+| Cross-service tests | `backend/server/src/cross_service_tests/` | The backend against the real ingestion service |
 
-### Usage Examples
+### Router Tests
 
-```python
-@pytest.mark.unit
-def test_hash_password():
-    """Unit test - no external dependencies"""
-    hashed = hash_password("password123")
-    assert verify_password("password123", hashed)
+`backend/server/src/test_support.rs` builds the application and
+`backend/server/src/test_http.rs` sends requests through its router, in
+process and without a listener. Every test gets its own databases, so tests
+share no state. Ingestion is a stand-in that answers what the test tells it.
+Only the cross-service tests use the real service.
 
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_create_user():
-    """Integration test - uses real database via autouse fixture"""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.post("/users", json={"email": "test@example.com"})
-        assert response.status_code == 200
+### Every Route Requires a Credential
 
-@pytest.mark.security
-@pytest.mark.asyncio
-async def test_sql_injection_prevention():
-    """Security test - validates input sanitization"""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.get("/users?email='; DROP TABLE users; --")
-        assert response.status_code in [400, 404]  # Not 500
+One test in `backend/server/src/app.rs` walks every operation in the exported
+OpenAPI document and sends it a request that carries no credential. Each route
+must refuse it with 401 and the standard error body, except the public routes
+that test lists.
 
-```
+A new route is covered without a new test. Making a route public means adding
+it to that list on purpose.
 
-### gRPC Integration Tests
+### Evidence Tests and Generated Projections
 
-**How they work:**
-These tests use a special fixture `grpc_server_for_tests` (in `backend/app/features/internal_auth/conftest.py`) that:
-1. Creates an isolated temporary SQLite database
-2. Starts the gRPC server in a background thread within the test process
-3. Configures the server to use the isolated database
+The `evidence` crate performs no I/O. Its tests need no database, no `protoc`,
+and no ingestion binary.
 
-**Why this is better than starting `uvicorn`:**
-- **Isolation:** Each test run gets a fresh database
-- **Consistency:** Tests can seed data (like API keys) into the isolated DB and immediately use them
-- **Control:** Tests can manage the server lifecycle directly
+Committed files hold what the assemblers produce from the valid fixtures:
 
-**Important:** Do NOT run `uvicorn` (or `docker compose up`) before running these tests. If port 50053 is in use, the tests will fail because they can't bind to the port (or will connect to the wrong server).
+- the files under `backend/evidence/tests/generated/`
+- `frontend/src/features/workflow-executions/testing/workflow-store-projections.json`
 
-### Running Specific Test Categories
+Frontend tests read them, so the frontend is tested against real backend
+output without running a backend. The `generated_projections` test fails when
+a file is not, text for text, what the assemblers produce now. The header of
+`backend/evidence/tests/generated_projections.rs` lists every file and the
+command that regenerates them. After a deliberate change, run it and review
+the difference as a contract change.
 
-```bash
-# Run only unit tests (fast)
-pytest -m unit
+### Cross-Service Tests
 
-# Run integration tests
-pytest -m integration
+Each test starts its own ingestion process with its own ports and temporary
+directory, sends spans to it over OTLP, and asserts through the backend's
+ingestion client, span repository, or HTTP routes. They cover the WAL flush,
+the hot snapshot, a query racing a flush, concurrent queries while ingestion
+replaces the snapshot, the recent-cold bridge, the LLM filter, and the shared
+transport fixtures at each storage stage.
 
-# Run security and error recovery tests
-pytest -m "security or error_recovery"
-```
+The first of these tests to run builds the ingestion release binary with
+`cargo build --release --locked` in `ingestion/`. On a clean checkout that
+takes minutes. A failed test prints its ingestion process's log.
+
+---
+
+## Real-World Runs
+
+The tests above prove behavior. They do not show what Studio's pages do while
+spans arrive, on the resource profile Studio supports.
+
+A change to the query path, the backend, or ingestion is therefore also run
+with the real frontend in a browser and the real SDK while a load generator
+sends spans to ingestion, and compared with the unchanged build.
+[`ingestion/benchmarks/README.md`](ingestion/benchmarks/README.md) owns the
+procedure under "Real-world runs". It starts its own disposable stack and
+never uses a running one.
 
 ---
 
@@ -685,4 +674,5 @@ pytest -m "security or error_recovery"
 - `frontend/src/__tests__/contracts/` - Contract tests
 - `frontend/src/__tests__/integration/` - Integration tests
 - `frontend/src/features/{feature}/testing/` - Feature-owned fixtures and test helpers
-- Backend: Co-located `test_*.py` files with markers
+- `backend/server/src/` - Backend tests, beside the code they cover
+- `backend/evidence/tests/` - Evidence fixture tests and the generated projection check

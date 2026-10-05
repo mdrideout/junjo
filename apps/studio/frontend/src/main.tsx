@@ -27,6 +27,7 @@ import EvaluationDatasetPage from './features/evaluation-runs/EvaluationDatasetP
 import EvaluationRunDetailPage from './features/evaluation-runs/EvaluationRunDetailPage.tsx'
 import EvaluationRunComparisonPage from './features/evaluation-runs/EvaluationRunComparisonPage.tsx'
 import EvaluationTokensPage from './features/evaluation-tokens/EvaluationTokensPage.tsx'
+import CliSignInPage from './features/cli-sign-in/CliSignInPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -139,6 +140,14 @@ createRoot(document.getElementById('root')!).render(
                   element={
                     <AuthGuard>
                       <EvaluationTokensPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/cli-sign-in"
+                  element={
+                    <AuthGuard>
+                      <CliSignInPage />
                     </AuthGuard>
                   }
                 />

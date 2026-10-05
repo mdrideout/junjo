@@ -13,12 +13,15 @@ from junjo.studio import (
     AttemptStatus,
     CaseCreate,
     CaseOrigin,
+    CliSignInStart,
+    CliSignInStarted,
     ExecutableType,
     RunComparisonError,
     RunDetail,
     RunScope,
     SemanticExecutionReference,
     TargetKind,
+    TokenScope,
     project_run_comparison,
 )
 
@@ -220,6 +223,44 @@ def test_attempt_result_contract_is_binary(status: AttemptStatus) -> None:
     AttemptResultWrite(status=status, reason="bounded reason")
     with pytest.raises(ValidationError, match="extra"):
         AttemptResultWrite.model_validate({"status": status, "reason": "bounded reason", "score": 1.0})
+
+
+def test_cli_sign_in_start_bounds_match_studio() -> None:
+    every_scope = tuple(TokenScope)
+    assert [scope.value for scope in every_scope] == ["evaluation:read", "evaluation:write", "evidence:read"]
+    CliSignInStart(client_name="junjo CLI on laptop", scopes=every_scope)
+
+    with pytest.raises(ValidationError, match="duplicates"):
+        CliSignInStart(
+            client_name="junjo CLI on laptop",
+            scopes=(TokenScope.EVIDENCE_READ, TokenScope.EVIDENCE_READ),
+        )
+    with pytest.raises(ValidationError, match="at least 1 item"):
+        CliSignInStart(client_name="junjo CLI on laptop", scopes=())
+    with pytest.raises(ValidationError, match="surrounding whitespace"):
+        CliSignInStart(client_name="junjo CLI on laptop ", scopes=every_scope)
+    with pytest.raises(ValidationError, match="256"):
+        CliSignInStart(client_name="x" * 257, scopes=every_scope)
+
+
+def test_cli_sign_in_approval_page_stays_on_the_studio_origin() -> None:
+    started = {
+        "device_code": "jdev_" + "d" * 64,
+        "user_code": "WZRP-JWSQ",
+        "verification_path": "/cli-sign-in",
+        "expires_in": 900,
+        "interval": 5,
+    }
+    assert CliSignInStarted.model_validate(started).verification_path == "/cli-sign-in"
+
+    for elsewhere in ("@elsewhere.example/cli-sign-in", "cli-sign-in", ".elsewhere.example", ""):
+        with pytest.raises(ValidationError, match="verification_path must start with /"):
+            CliSignInStarted.model_validate({**started, "verification_path": elsewhere})
+    with pytest.raises(ValidationError, match="user_code"):
+        CliSignInStarted.model_validate({**started, "user_code": "WZRPJWSQ"})
+    for field in ("expires_in", "interval"):
+        with pytest.raises(ValidationError, match=field):
+            CliSignInStarted.model_validate({**started, field: 0})
 
 
 def test_comparison_aligns_exact_case_identity_and_derives_deltas() -> None:

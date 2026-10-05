@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-07-13
+- Amended: 2026-10-03 by Studio ADR-011 (which Studio image carries which
+  license inventory)
 - Owners: Junjo platform
 
 ## Context
@@ -48,13 +50,13 @@ explicit:
 
 - every production image carries Junjo's Apache-2.0 license and the Studio
   third-party notice;
-- the frontend image carries a committed inventory generated from the exact
-  package-lock production closure;
+- the application image holds the statically linked Rust backend binary and
+  the built UI, so it carries two committed inventories: one generated from
+  Cargo's normal dependency closure for both published Linux targets, and one
+  generated from the exact package-lock production closure;
 - the statically linked Rust ingestion image carries a committed inventory
   generated from Cargo's normal dependency closure for both published Linux
   targets;
-- the backend image carries its resolved production lock, while installed
-  Python distribution metadata remains in the virtual environment;
 - each inventory is cryptographically bound to its committed lock and checked
   against an explicit set of license expressions reviewed for the artifact;
 - manual metadata corrections require exact package identity, source evidence,
@@ -100,7 +102,7 @@ required, and no current Junjo source or production image contains Catalyst.
   inventories and the small, human-reviewed artifact license policy.
 - Language package managers retain the resolved dependency graph. The artifact
   inventories select and describe the portion distributed in Studio's static
-  frontend and statically linked Rust binary.
+  frontend and statically linked Rust binaries.
 - Deployment exports include the Studio notice when they redistribute a Studio
   artifact that requires it.
 - Root documentation references component notice owners rather than duplicating
@@ -118,7 +120,7 @@ Repository validation checks:
   it;
 - the Studio production image copy contract and exact lock-bound dependency
   inventories;
-- the Cargo inventory against Cargo metadata for both published Linux targets;
+- each Cargo inventory against Cargo metadata for both published Linux targets;
 - installed evidence for any manual frontend license-metadata override;
 - absence of production frontend source maps, which are not part of the Studio
   distribution contract;
@@ -157,3 +159,19 @@ Historical Catalyst rights are resolved and are not a cutover gate.
   machinery and is not the source-licensing problem.
 - Claim that the root Apache license covers every dependency: rejected because
   third-party licenses remain effective.
+
+## 2026-10-03 amendment
+
+[Studio ADR-011](../../apps/studio/docs/adr/011-rust-backend-and-single-origin-studio.md)
+replaced the Python backend with a Rust service that also serves the built UI,
+and retired the separate frontend image. This amendment corrects only which
+image carries which inventory, and the count of Rust binaries and Cargo
+inventories that follows from it.
+
+Before this amendment the frontend image carried the frontend inventory, and
+the backend image carried its resolved Python production lock while installed
+Python distribution metadata remained in the virtual environment. The
+application image now carries both the backend's Cargo inventory and the
+frontend inventory.
+
+The licensing decision, notice ownership, and validation rules are unchanged.

@@ -1,0 +1,63 @@
+--- /private/tmp/claude-501/-Users-matt-repos-junjo/7906a453-730b-42d4-82b0-9d62cfc7a17a/scratchpad/harness.rs.before-sharing	2026-10-04 13:03:51
++++ apps/studio/backend/server/src/cross_service_tests/harness.rs	2026-10-04 13:03:51
+@@ -63,8 +63,15 @@
+     directory: tempfile::TempDir,
+ }
+ 
+-/// A test application wired to its own ingestion process.
++/// A test application wired to its own ingestion process, which rebuilds the
++/// hot snapshot for every request.
+ pub async fn start() -> (TestApp, Ingestion) {
++    start_with_snapshot_reuse(Duration::ZERO).await
++}
++
++/// A test application wired to its own ingestion process, which reuses one
++/// hot snapshot for `snapshot_reuse`. A deployment reuses one for a second.
++pub async fn start_with_snapshot_reuse(snapshot_reuse: Duration) -> (TestApp, Ingestion) {
+     let mut app = test_app();
+     app.state
+         .application_db
+@@ -99,7 +106,7 @@
+             .serve_with_incoming(TcpIncoming::from(listener)),
+     );
+ 
+-    let ingestion = Ingestion::spawn(binary, backend_port);
++    let ingestion = Ingestion::spawn(binary, backend_port, snapshot_reuse);
+     app.state.ingestion =
+         IngestionClient::new("127.0.0.1", ingestion.internal_port, INTERNAL_TOKEN).unwrap();
+     app.parquet_directory = ingestion.parquet_directory.clone();
+@@ -109,7 +116,7 @@
+ impl Ingestion {
+     /// Start a process that validates API keys against the backend on
+     /// `backend_port`. Returns once the process accepts connections.
+-    fn spawn(binary: &Path, backend_port: u16) -> Self {
++    fn spawn(binary: &Path, backend_port: u16, snapshot_reuse: Duration) -> Self {
+         let directory = tempfile::tempdir().unwrap();
+         let parquet_directory = directory.path().join("parquet");
+         let log = File::create(directory.path().join("ingestion.log")).unwrap();
+@@ -130,14 +137,17 @@
+             .env("BACKEND_GRPC_HOST", "127.0.0.1")
+             .env("BACKEND_GRPC_PORT", backend_port.to_string())
+             .env("JUNJO_INTERNAL_GRPC_TOKEN", INTERNAL_TOKEN)
+-            // A snapshot is rebuilt for every request. By default ingestion
+-            // reuses one for a second, and a test would be answered with a
+-            // snapshot from before its last export or flush. Without that
+-            // reuse the next request replaces the snapshot file at once, or
+-            // removes it when the log is empty, even if an earlier request's
+-            // caller has not read it yet. A test must therefore not run two
+-            // queries at once around a flush.
+-            .env("PREPARE_HOT_SNAPSHOT_CACHE_TTL_MS", "0")
++            // Most tests have a snapshot rebuilt for every request. By
++            // default ingestion reuses one for a second, and a test would be
++            // answered with a snapshot from before its last export or flush.
++            // Without that reuse the next request replaces the snapshot file
++            // at once, or removes it when the log is empty, even if an
++            // earlier request's caller has not read it yet. A test must
++            // therefore not run two queries at once around a flush.
++            .env(
++                "PREPARE_HOT_SNAPSHOT_CACHE_TTL_MS",
++                snapshot_reuse.as_millis().to_string(),
++            )
+             .env("RUST_LOG", "info")
+             .stdin(Stdio::null())
+             .stdout(log.try_clone().unwrap())

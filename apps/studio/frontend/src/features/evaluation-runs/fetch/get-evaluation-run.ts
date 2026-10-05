@@ -1,4 +1,3 @@
-import { getApiHost } from '../../../config'
 import {
   EvaluationIdSchema,
   EvaluationRunDetailSchema,
@@ -8,7 +7,7 @@ import {
 export async function getEvaluationRun(runId: string): Promise<EvaluationRunDetail> {
   const validatedRunId = EvaluationIdSchema.parse(runId)
   const response = await fetch(
-    `${getApiHost()}/api/v1/evaluation/runs/${encodeURIComponent(validatedRunId)}`,
+    `/api/v1/evaluation/runs/${encodeURIComponent(validatedRunId)}`,
     { credentials: 'include' },
   )
   if (!response.ok) {

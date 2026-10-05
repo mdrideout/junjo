@@ -1,0 +1,45 @@
+{
+ "recorded": "2026-10-03",
+ "image": {
+  "tag": "junjo-rsmig-frontend:local",
+  "id": "sha256:2a88c4b785f1b2199a5e185a823d56005d82836ad753146bf4209f0d68b94340",
+  "size_bytes": 27461247,
+  "architecture": "arm64",
+  "built_from": "apps/studio/frontend/Dockerfile, production target, at repository head 1faadb5"
+ },
+ "method": "One container, JUNJO_ENV=development, no published ports, no memory limit. Read 20 seconds after start and again after 400 page requests made from inside the container.",
+ "one_cpu_visible": {
+  "nginx_workers": 1,
+  "idle": {
+   "docker_sampled_mib": 9.855,
+   "cgroup_current_mib": 10.3,
+   "cgroup_peak_mib": 13.8,
+   "anon_mib": 2.2,
+   "file_mib": 7.7
+  },
+  "after_400_requests": {
+   "docker_sampled_mib": 9.848,
+   "cgroup_current_mib": 10.2,
+   "cgroup_peak_mib": 13.8,
+   "anon_mib": 2.1,
+   "file_mib": 7.7
+  }
+ },
+ "all_host_cpus_visible": {
+  "nginx_workers": 12,
+  "idle": {
+   "docker_sampled_mib": 9.934,
+   "cgroup_current_mib": 9.9,
+   "cgroup_peak_mib": 12.9,
+   "anon_mib": 8.3,
+   "file_mib": 0.1
+  },
+  "after_400_requests": {
+   "docker_sampled_mib": 9.648,
+   "cgroup_current_mib": 10.2,
+   "cgroup_peak_mib": 13.6,
+   "anon_mib": 8.7,
+   "file_mib": 0.1
+  }
+ }
+}

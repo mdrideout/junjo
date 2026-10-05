@@ -1,0 +1,11 @@
+services:
+  backend:
+    image: junjo-rsmig-rust-backend:lto
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  ingestion:
+    image: junjo-rsmig-ingestion:local
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  auth-proxy:
+    image: junjo-rsmig-python-backend:local

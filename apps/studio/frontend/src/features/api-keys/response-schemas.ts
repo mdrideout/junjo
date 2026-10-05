@@ -5,12 +5,12 @@ import { utcDatetimeSchema } from '../../util/datetime-utils'
  * Response schema for API key creation.
  *
  * Used by:
- * - POST /api_keys
+ * - POST /api/v1/api-keys
  *
  * API keys remain available through the authenticated management list.
  *
- * Matches backend Pydantic schema:
- * backend/app/db_sqlite/api_keys/schemas.py (APIKeyRead with key field)
+ * Matches the backend response type:
+ * backend/server/src/features/api_keys/repo.rs (ApiKey, serialized as APIKeyRead)
  */
 export const ApiKeyCreateResponseSchema = z.object({
   id: z.string(),
@@ -21,4 +21,4 @@ export const ApiKeyCreateResponseSchema = z.object({
 
 export type ApiKeyCreateResponse = z.infer<typeof ApiKeyCreateResponseSchema>
 
-// Note: DELETE /api_keys/{id} returns 204 No Content, no response schema needed
+// Note: DELETE /api/v1/api-keys/{id} returns 204 No Content, no response schema needed

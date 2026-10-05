@@ -10,15 +10,16 @@ explicit resource limits, and the deployment boundaries that matter as usage gro
 
 ## One deployment. Separate responsibilities.
 
-The [minimal distribution](/docs/studio/deployment/) runs the three Studio
-services using production images. “Minimal” describes the setup: it includes
+The [minimal distribution](/docs/studio/deployment/) runs the two Studio
+services using production images: ingestion, and the application service that
+carries the backend and the web UI. “Minimal” describes the setup: it includes
 the Studio backend, ingestion service, and web UI, rather than a reduced
 analytics engine. Your application can run alongside Studio or on other machines.
 
 | Component | Responsibility |
 | --- | --- |
 | Rust ingestion service | Receive OTLP traces, batch spans into a write-ahead log, and produce Parquet files. |
-| Backend API | Store accounts and evaluation records, index telemetry files, and answer evidence queries from coding agents and the web UI. |
+| Backend API | Store accounts and evaluation records, index telemetry files, serve the web UI, and answer evidence queries from coding agents and the web UI. |
 | Web UI | Let people inspect datasets, evaluation runs, traces, and recorded state changes. |
 
 Your application runs the model calls, tools, workflows, and evaluator judges.
@@ -119,8 +120,10 @@ should not be extrapolated linearly from these results.
 **Tested build and release:** these measurements use a source-verified benchmark
 build recorded on September 7, 2026. The Studio `0.83.0` production images
 referenced by the distribution at that time predate this implementation. These
-are tested-build results, not a benchmark of those `0.83.0` images. Check the
-release notes and image versions when reproducing them.
+are tested-build results, not a benchmark of those `0.83.0` images. The tested
+build also ran the Python backend. Releases after Studio 0.85.0 replace it with
+a Rust backend, which these results do not measure. Check the release notes and
+image versions when reproducing them.
 
 The immutable [measurement record and methodology](https://github.com/mdrideout/junjo/blob/f26037590b1644b69196e4f3a36f508dff6a0773/docs/roadmaps/evidence/studio-metadata-extraction-2026-09-07/README.md)
 contains all workloads and their disposition. The

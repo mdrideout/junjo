@@ -1,4 +1,3 @@
-import { getApiHost } from '../../../config'
 import {
   AgentExecutionSummaryListSchema,
   type AgentExecutionSummary,
@@ -21,7 +20,7 @@ export async function listAgentExecutions(query: AgentExecutionQuery): Promise<A
   if (validated.end_time !== undefined) parameters.set('end_time', validated.end_time)
   if (validated.limit !== undefined) parameters.set('limit', String(validated.limit))
 
-  const response = await fetch(`${getApiHost()}/api/v1/agent-executions?${parameters.toString()}`, {
+  const response = await fetch(`/api/v1/agent-executions?${parameters.toString()}`, {
     credentials: 'include',
   })
 

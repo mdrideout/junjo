@@ -1,12 +1,20 @@
 # ADR-006: Studio release transaction
 
+Amended 2026-10-03 by
+[ADR-011](011-rust-backend-and-single-origin-studio.md). A Studio release
+publishes two images instead of three. The main image carries the backend and
+the built UI and is published to a new repository,
+`mdrideout/junjo-ai-studio-app`. It supersedes the separate backend and
+frontend images, whose repositories are retired. The release transaction
+decided below is unchanged.
+
 ## Status
 
 Accepted
 
 ## Context
 
-A Studio release changes several independently hosted surfaces: three Docker
+A Studio release changes several independently hosted surfaces: two Docker
 repositories, two generated deployment mirrors, and one GitHub release. Those
 changes cannot be committed atomically by the hosting providers. Release
 automation therefore needs an explicit ordering and enough evidence to prove

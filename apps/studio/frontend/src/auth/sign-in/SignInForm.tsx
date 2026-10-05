@@ -2,7 +2,6 @@ import { useContext, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { AuthContext } from '../auth-context-value'
 import { readApiError, requestFailureMessage } from '../api-error'
-import { getApiHost } from '../../config'
 import { getPostSignInDestination } from '../navigation-helpers'
 
 export default function SignInForm() {
@@ -29,8 +28,8 @@ export default function SignInForm() {
 
     // Perform sign in
     try {
-      const endpoint = '/sign-in'
-      const response = await fetch(`${getApiHost()}${endpoint}`, {
+      const endpoint = '/api/v1/sign-in'
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -41,7 +40,7 @@ export default function SignInForm() {
         throw new Error(await readApiError(response, 'Sign in failed'))
       }
 
-      // Python backend uses SameSite cookies for CSRF protection
+      // The backend uses SameSite cookies for CSRF protection
       // No separate CSRF token needed
 
       login('') // Token not used with session-based auth

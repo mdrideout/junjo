@@ -3,12 +3,12 @@
 #
 # This script runs:
 #   0. Proto tool version checking (warns if mismatch)
-#   1. Python linting and formatting (ruff check + format check)
-#   2. Complete backend pytest collection (including gRPC)
+#   1. Backend linting and formatting (cargo fmt check + clippy)
+#   2. Backend tests (Rust; they build the ingestion binary)
 #   3. Ingestion tests (Rust)
 #   4. Frontend tests, lint, and production build
 #   5. Contract tests (frontend ↔ backend schema validation)
-#   6. Proto file validation (regeneration + staleness check)
+#   6. OpenAPI document validation (export + staleness check)
 #
 # Usage:
 #   ./run-all-tests.sh
@@ -18,18 +18,12 @@ set -e  # Exit on first error
 STUDIO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$STUDIO_ROOT"
 
-# The validation process owns deterministic test-only security settings.
-# Production and development runtime configuration remains mandatory.
-export JUNJO_SESSION_SECRET="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-export JUNJO_SECURE_COOKIE_KEY="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
-export JUNJO_INTERNAL_GRPC_TOKEN="test-internal-grpc-token-32-bytes-long"
-
 # Track test results
 LINTING_RESULT=0
 BACKEND_RESULT=0
 FRONTEND_RESULT=0
 CONTRACT_RESULT=0
-PROTO_RESULT=0
+OPENAPI_RESULT=0
 INGESTION_RESULT=0
 
 echo "=============================================="
@@ -53,19 +47,19 @@ else
 fi
 echo ""
 
-# 1. Python Linting and Formatting
+# 1. Backend Linting and Formatting
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "1/6: Python Linting and Formatting (ruff)"
+echo "1/6: Backend Linting and Formatting (cargo fmt, clippy)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 cd backend
-if uv run ruff check app/ --quiet && uv run ruff format app/ --check --quiet; then
-    echo "✅ Python linting and formatting passed"
+if cargo fmt --check && cargo clippy --all-targets --locked --quiet -- -D warnings; then
+    echo "✅ Backend linting and formatting passed"
 else
-    echo "❌ Python linting or formatting failed"
+    echo "❌ Backend linting or formatting failed"
     echo ""
     echo "Run this to see detailed errors:"
-    echo "  cd backend && uv run ruff check app/"
-    echo "  cd backend && uv run ruff format app/ --check"
+    echo "  cd backend && cargo fmt --check"
+    echo "  cd backend && cargo clippy --all-targets --locked -- -D warnings"
     echo ""
     LINTING_RESULT=1
 fi
@@ -74,9 +68,11 @@ echo ""
 
 # 2. Backend Tests
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "2/6: Backend Tests (Python)"
+echo "2/6: Backend Tests (Rust)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-./backend/scripts/run-backend-tests.sh || BACKEND_RESULT=$?
+cd backend
+cargo test --locked || BACKEND_RESULT=$?
+cd ..
 echo ""
 
 # 3. Ingestion Tests
@@ -92,8 +88,15 @@ echo ""
 # (Frontend contract tests import this schema)
 echo "Regenerating OpenAPI schema for frontend tests..."
 cd backend
-uv run python scripts/export_openapi_schema.py > /dev/null 2>&1
-cp openapi.json ../frontend/backend/openapi.json
+# Written beside the document first, so a failed export never leaves a
+# truncated document behind.
+cargo run --quiet --locked --package junjo-backend -- openapi > ../frontend/backend/openapi.json.tmp
+# The document is a committed file. Step 6 reports whether the one in the
+# working tree already was what the backend exports.
+if ! cmp -s ../frontend/backend/openapi.json.tmp ../frontend/backend/openapi.json; then
+    OPENAPI_RESULT=1
+fi
+mv ../frontend/backend/openapi.json.tmp ../frontend/backend/openapi.json
 cd ..
 echo ""
 
@@ -115,24 +118,18 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 ./backend/scripts/validate_rest_api_contracts.sh || CONTRACT_RESULT=$?
 echo ""
 
-# 6. Proto File Validation
+# 6. OpenAPI Document Validation
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "6/6: Proto File Validation"
+echo "6/6: OpenAPI Document Validation"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Regenerating Python proto files..."
-cd backend
-./scripts/generate_proto.sh > /dev/null 2>&1
-cd ..
-echo ""
-
-echo "Checking for uncommitted proto changes..."
-PROTO_STATUS="$(git status --porcelain --untracked-files=all -- 'proto/' 'backend/app/proto_gen/')"
-if [[ -z "$PROTO_STATUS" ]]; then
-    echo "✅ Proto files are up-to-date"
+if [ $OPENAPI_RESULT -eq 0 ]; then
+    echo "✅ OpenAPI document is up-to-date"
 else
-    echo "❌ Proto files have uncommitted changes"
-    printf '%s\n' "$PROTO_STATUS"
-    PROTO_RESULT=1
+    echo "❌ OpenAPI document was not what the backend exports"
+    echo ""
+    echo "The export above replaced it. Review the difference as a contract change:"
+    echo "  git diff -- frontend/backend/openapi.json"
+    echo ""
 fi
 echo ""
 
@@ -140,16 +137,16 @@ echo ""
 echo "=============================================="
 echo "Test Results Summary"
 echo "=============================================="
-echo "Python linting:    $([ $LINTING_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
+echo "Backend linting:   $([ $LINTING_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
 echo "Backend tests:     $([ $BACKEND_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
 echo "Ingestion tests:   $([ $INGESTION_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
 echo "Frontend tests:    $([ $FRONTEND_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
 echo "Contract tests:    $([ $CONTRACT_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
-echo "Proto validation:  $([ $PROTO_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
+echo "OpenAPI document:  $([ $OPENAPI_RESULT -eq 0 ] && echo '✓ PASSED' || echo '❌ FAILED')"
 echo "=============================================="
 
 # Exit with error if any tests failed
-if [ $LINTING_RESULT -ne 0 ] || [ $BACKEND_RESULT -ne 0 ] || [ $INGESTION_RESULT -ne 0 ] || [ $FRONTEND_RESULT -ne 0 ] || [ $CONTRACT_RESULT -ne 0 ] || [ $PROTO_RESULT -ne 0 ]; then
+if [ $LINTING_RESULT -ne 0 ] || [ $BACKEND_RESULT -ne 0 ] || [ $INGESTION_RESULT -ne 0 ] || [ $FRONTEND_RESULT -ne 0 ] || [ $CONTRACT_RESULT -ne 0 ] || [ $OPENAPI_RESULT -ne 0 ]; then
     echo "❌ Some tests failed"
     exit 1
 fi

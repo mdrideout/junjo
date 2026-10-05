@@ -3,6 +3,8 @@
 - Status: Accepted
 - Date: 2026-07-12
 - Updated: 2026-07-13
+- Amended: 2026-10-03 by Studio ADR-011 (a Studio release owns two images, and
+  the main image is renamed)
 - Owners: Junjo platform
 
 ## Context
@@ -131,7 +133,7 @@ Product versions remain independent:
 The minimal and VM/Caddy deployments do not have independent future product
 versions. A `studio-v<version>` release owns:
 
-1. the synchronized backend, frontend, and ingestion images;
+1. the synchronized application and ingestion images;
 2. the supported deployment snapshots pinned to those images;
 3. validation that deployment configuration matches the released Studio
    runtime contract;
@@ -266,3 +268,17 @@ Costs and constraints:
   deployable products have separate runtime and release concerns.
 - Direct Studio dependency from SDKs: rejected because telemetry is the
   intended integration boundary.
+
+## 2026-10-03 amendment
+
+[Studio ADR-011](../../apps/studio/docs/adr/011-rust-backend-and-single-origin-studio.md)
+changes which images a `studio-v<version>` release owns. Studio releases two
+images instead of three: the application image, which carries the backend and
+the built UI and is published as `mdrideout/junjo-ai-studio-app`, and the
+ingestion image. This supersedes the "backend, frontend, and ingestion images"
+this ADR originally listed under "Versions and releases". The separate backend
+and frontend image repositories are retired.
+
+The rest of this decision is unchanged. A Studio release still owns its
+synchronized images, the deployment snapshots pinned to them, their
+validation, and the one-way publication of the standalone distributions.

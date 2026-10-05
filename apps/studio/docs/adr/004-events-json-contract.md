@@ -7,9 +7,14 @@ Accepted
 
 2026-07-13 for telemetry contract version 2.
 
+Amended 2026-10-03 by
+[ADR-011](011-rust-backend-and-single-origin-studio.md). The backend is now a
+Rust service, so the Context no longer calls it the Python backend. The events
+contract is unchanged.
+
 ## Context
 
-Junjo stores span events in the Parquet `events` column as a JSON string. The Python backend exposes this as `events_json` and the frontend parses these events for:
+Junjo stores span events in the Parquet `events` column as a JSON string. The backend exposes this as `events_json` and the frontend parses these events for:
 
 - `set_state` rendering inside workflow span trees
 - workflow state diffs (“Before/After/Changes/Detailed”)

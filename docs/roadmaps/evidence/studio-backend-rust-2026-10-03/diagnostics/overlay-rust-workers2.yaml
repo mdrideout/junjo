@@ -1,0 +1,13 @@
+services:
+  backend:
+    image: junjo-rsmig-rust-backend:system
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+    environment:
+      TOKIO_WORKER_THREADS: "2"
+  ingestion:
+    image: junjo-rsmig-ingestion:local
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  auth-proxy:
+    image: junjo-rsmig-python-backend:local

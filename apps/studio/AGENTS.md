@@ -19,8 +19,8 @@ monorepo. It pairs through explicit telemetry contracts with the Python SDK in
 
 ## Runtime Rules
 
-- Never hand-edit Alembic migrations. Migrations must be generated programmatically.
-- Never run migration generation yourself. Always check how this codebase runs migrations.
+- `backend/schema/junjo.sql` and `backend/schema/metadata.sql` are the only schema sources. Each file is the desired state of one database, which the backend creates from it at startup. There are no migration files: to change a schema, edit its file as `backend/README.md` describes.
+- Never hand-write a migration. When the product commits to preserving data, migrations are generated from the schema file's diff. Studio ADR-011 owns this rule.
 - Check ADR documents before implementation, and raise concerns if we are changing or violating architectural principles. Do not simply change ADRs to match new implementation without explicit consideration and approval. Implementation should follow ADR guidance as the source of strategic truth. If we change strategy, ADRs are updated before implementation proceeds. 
 - When implementation details and docs disagree, trust the latest code implementation, then fix documentation drift. Raise alarms if code implementation has significant mismatch from ADRs or docs.
 
@@ -33,7 +33,7 @@ monorepo. It pairs through explicit telemetry contracts with the Python SDK in
 
 Careful consideration is needed for code in every domain. We separate code by responsibility, however, each of these areas has contracts and interactions with each other.
 
-- `backend/`: FastAPI backend, SQLite user DB, metadata DB, DataFusion query layer, backend tests and migrations.
+- `backend/`: Rust backend (Cargo workspace). HTTP API and the built UI on one origin, internal gRPC, SQLite application DB, metadata DB, DataFusion query layer, evidence library, schema files, and backend tests.
 - `ingestion/`: Rust OTLP ingestion service, WAL, Parquet flush, hot snapshot, ingestion ADRs and tests.
 - `frontend/`: React app, Redux Toolkit state, Zod schemas, Vitest/MSW tests.
 - `proto/`: Shared protobuf contracts for backend and ingestion.
@@ -54,13 +54,12 @@ Run from the Studio root (`apps/studio`) unless a command says otherwise.
 
 - Full stack: `docker compose up -d`
 - Full test suite: `./run-all-tests.sh`
-- Python proto generation: `./run-all-proto-gen.sh`
 
 Backend:
 
-- All backend tests: `./backend/scripts/run-backend-tests.sh`
+- All backend tests: `cd backend && cargo test --locked`
 - Backend contract validation: `./backend/scripts/validate_rest_api_contracts.sh`
-- Backend lint: `cd backend && uv run ruff check app/`
+- Backend format and lint: `cd backend && cargo fmt --check && cargo clippy --all-targets --locked -- -D warnings`
 
 Frontend:
 
@@ -90,7 +89,7 @@ Do not create duplicate sources of truth in documentation. Make sure documentati
 - `docs/adr/`: Studio-wide ADRs (individual features may have their own ADR docs)
 - `ingestion/adr/`: Ingestion-owned design decisions only.
 - `TESTING.md`: Human testing guide.
-- `backend/app/db_sqlite/README.md`: Backend DB subsystem guidance.
+- `backend/README.md`: Backend layout, commands, and database guidance. Studio ADR-011 owns the SQLite and schema decisions.
 
 ADRs are for decisions made, architecture, strategy, reasoning, alternatives evaluated, and providing context for why things are the way they are. They make it clear what the latest implementation is, and briefly mention past implementations or declined implementations. These help humans and LLMs avoid re-introducing faulty logic or making changes inconsiderate of important decisions.
 
@@ -105,12 +104,13 @@ that belongs in every runtime agent process. Skills are domain or task specific.
 
 - [`studio-ingestion-flow`](../../.agents/skills/studio-ingestion-flow/SKILL.md):
   WAL, flush, snapshot, recent-cold bridging, OTLP ingestion, and related proto work.
-- [`studio-backend-python`](../../.agents/skills/studio-backend-python/SKILL.md):
-  FastAPI, repositories/services, SQLite, DataFusion, and backend tests.
+- [`studio-backend-rust`](../../.agents/skills/studio-backend-rust/SKILL.md):
+  Rust backend routes, SQL and schema files, DataFusion, evidence logic, and
+  backend tests.
 - [`studio-frontend-react`](../../.agents/skills/studio-frontend-react/SKILL.md):
   React architecture, Redux Toolkit, frontend schemas, and frontend tests.
 - [`studio-security-auth`](../../.agents/skills/studio-security-auth/SKILL.md):
-  API keys, session cookies, CORS, internal auth gRPC, and security reviews.
+  API keys, browser sessions, internal auth gRPC, and security reviews.
 - [`studio-api-contracts`](../../.agents/skills/studio-api-contracts/SKILL.md):
   backend endpoints consumed by the frontend, SDK, CLI, or another service.
 - [`studio-docs-sync`](../../.agents/skills/studio-docs-sync/SKILL.md): docs drift,

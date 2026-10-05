@@ -10,16 +10,15 @@ themselves.
 Every Studio production image carries this notice and Junjo's Apache-2.0
 `LICENSE` in `/usr/share/licenses/junjo-ai-studio/`.
 
-- The frontend image also carries `licenses/frontend-production.json`. It is a
-  deterministic inventory of the package-lock production dependency closure
-  bundled into the static application.
+- The application image holds the backend binary and the built UI, so it also
+  carries two inventories. `licenses/backend-production.json` is a
+  deterministic inventory of the normal Cargo dependency closure statically
+  linked into the backend binary for the published Linux amd64 and arm64
+  targets. `licenses/frontend-production.json` is a deterministic inventory of
+  the package-lock production dependency closure bundled into the static UI.
 - The ingestion image also carries `licenses/ingestion-production.json`. It is
   a deterministic inventory of the normal Cargo dependency closure statically
   linked for the published Linux amd64 and arm64 targets.
-- The backend image also carries its exact resolved `uv.lock` as
-  `backend-production.lock`. Installed Python distributions retain the metadata
-  and license files supplied in their wheel metadata inside the production
-  virtual environment.
 
 The committed inventories bind each entry to the SHA-256 of its committed lock.
 Repository validation fails when the lock, dependency closure, manual license

@@ -2,7 +2,9 @@
 
 The :mod:`junjo.studio` package is the supported SDK boundary for evaluation
 datasets, runs, attempts, exact evidence membership, and opt-in trace evidence
-queries.  It does not upload telemetry and does not import Studio runtime code.
+queries, and for the CLI browser sign-in that obtains the developer access
+token those operations use.  It does not upload telemetry and does not import
+Studio runtime code.
 """
 
 from .client import StudioClient
@@ -16,6 +18,9 @@ from .comparison import (
 )
 from .errors import (
     AttemptEvidenceUnavailable,
+    CliSignInDenied,
+    CliSignInExpired,
+    CliSignInPending,
     ExecutionEvidencePending,
     ExecutionIdentityAmbiguous,
     RunComparisonError,
@@ -53,13 +58,19 @@ from .models import (
     CaseCreate,
     CaseOrigin,
     CaseRead,
+    CliSignInStart,
+    CliSignInStarted,
+    CliSignInToken,
+    CliSignInTokenRequest,
     ConflictResponse,
+    CurrentTokenRead,
     DatasetCreate,
     DatasetDetail,
     DatasetList,
     DatasetRead,
     DatasetStatus,
     DatasetSummary,
+    ErrorResponse,
     EvaluationNameFacet,
     EvidenceMembershipItem,
     EvidenceMembershipList,
@@ -83,6 +94,7 @@ from .models import (
     StudioHealth,
     TargetFacet,
     TargetKind,
+    TokenScope,
     TraceEvidenceRead,
 )
 
@@ -111,13 +123,22 @@ __all__ = [
     "CaseCreate",
     "CaseOrigin",
     "CaseRead",
+    "CliSignInDenied",
+    "CliSignInExpired",
+    "CliSignInPending",
+    "CliSignInStart",
+    "CliSignInStarted",
+    "CliSignInToken",
+    "CliSignInTokenRequest",
     "ConflictResponse",
+    "CurrentTokenRead",
     "DatasetCreate",
     "DatasetDetail",
     "DatasetList",
     "DatasetRead",
     "DatasetStatus",
     "DatasetSummary",
+    "ErrorResponse",
     "ExecutableType",
     "ExecutionEvidenceReference",
     "EvaluationNameFacet",
@@ -159,6 +180,7 @@ __all__ = [
     "StudioValidationError",
     "TargetKind",
     "TargetFacet",
+    "TokenScope",
     "TraceEvidenceRead",
     "project_run_comparison",
 ]

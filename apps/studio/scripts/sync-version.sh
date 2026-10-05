@@ -40,13 +40,14 @@ fi
 echo "Syncing repository version to $VERSION"
 
 # ---------------------------------------------------------------------------
-# Backend
+# Backend (a Cargo workspace: both crates inherit [workspace.package] version)
 # ---------------------------------------------------------------------------
-perl -i -pe 's/^version = "[^"]+"/version = "'"$VERSION"'"/ if /^version = "/' backend/pyproject.toml
-perl -i -pe 's/version="[^"]+"/version="'"$VERSION"'"/g' backend/app/main.py
-perl -i -pe 's/"version": "[^"]+"/"version": "'"$VERSION"'"/g' backend/app/main.py
-perl -i -pe 's/(version: str = Field\(default=")[^"]+(")/${1}'"$VERSION"'${2}/' backend/app/common/responses.py
-perl -0777 -i -pe 's/(name = "junjo-backend"\nversion = ")[^"]+(")/${1}'"$VERSION"'${2}/s' backend/uv.lock
+perl -i -pe '
+  $in_workspace_package = ($_ eq "[workspace.package]\n") if /^\[/;
+  s/^version = "[^"]+"/version = "'"$VERSION"'"/ if $in_workspace_package;
+' backend/Cargo.toml
+perl -0777 -i -pe 's/(name = "junjo-backend"\nversion = ")[^"]+(")/${1}'"$VERSION"'${2}/s' backend/Cargo.lock
+perl -0777 -i -pe 's/(name = "junjo-evidence"\nversion = ")[^"]+(")/${1}'"$VERSION"'${2}/s' backend/Cargo.lock
 
 # ---------------------------------------------------------------------------
 # Ingestion
@@ -68,21 +69,21 @@ fi
 )
 
 # ---------------------------------------------------------------------------
-# Generated OpenAPI schema copy used by frontend contract tests
+# OpenAPI document exported by the backend, read by the frontend and SDK
+# contract tests
 # ---------------------------------------------------------------------------
-if ! command -v uv >/dev/null 2>&1; then
-  echo "ERROR: uv is required to regenerate backend OpenAPI schema."
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "ERROR: cargo is required to regenerate the backend OpenAPI document."
   exit 1
 fi
 
+# Written beside the document first, so a failed export never leaves a
+# truncated document behind.
 (
   cd backend
-  JUNJO_SESSION_SECRET="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" \
-    JUNJO_SECURE_COOKIE_KEY="AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=" \
-    JUNJO_INTERNAL_GRPC_TOKEN="test-internal-grpc-token-32-bytes-long" \
-    uv run python scripts/export_openapi_schema.py >/dev/null
+  cargo run --quiet --locked --package junjo-backend -- openapi > ../frontend/backend/openapi.json.tmp
 )
-cp backend/openapi.json frontend/backend/openapi.json
+mv frontend/backend/openapi.json.tmp frontend/backend/openapi.json
 
 # Final verification
 ./scripts/check-version-sync.sh

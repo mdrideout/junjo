@@ -27,7 +27,7 @@ describe('getPostSignInDestination', () => {
   it('should return / (home) when user has API keys', async () => {
     // Override the default handler to return a list with one API key
     server.use(
-      http.get(`${API_BASE}/api_keys`, () => {
+      http.get(`${API_BASE}/api/v1/api-keys`, () => {
         return HttpResponse.json([
           {
             id: 'test-key-id',
@@ -47,9 +47,9 @@ describe('getPostSignInDestination', () => {
   it('should return / (home) when API fetch fails', async () => {
     // Override the default handler to return an error
     server.use(
-      http.get(`${API_BASE}/api_keys`, () => {
+      http.get(`${API_BASE}/api/v1/api-keys`, () => {
         return HttpResponse.json(
-          { detail: 'Unauthorized' },
+          { code: 'unauthorized', message: 'Unauthorized' },
           { status: 401 }
         )
       })
@@ -63,7 +63,7 @@ describe('getPostSignInDestination', () => {
   it('should return / (home) when network error occurs', async () => {
     // Override the default handler to simulate network error
     server.use(
-      http.get(`${API_BASE}/api_keys`, () => {
+      http.get(`${API_BASE}/api/v1/api-keys`, () => {
         return HttpResponse.error()
       })
     )

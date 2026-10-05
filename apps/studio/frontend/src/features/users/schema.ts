@@ -4,8 +4,8 @@ import { utcDatetimeSchema } from '../../util/datetime-utils'
 /**
  * Schema for an individual user object.
  *
- * Matches backend Pydantic schema in:
- * backend/app/db_sqlite/users/schemas.py (UserRead)
+ * Matches the backend response type in:
+ * backend/server/src/features/auth/users.rs (User, serialized as UserRead)
  */
 export const userSchema = z.object({
   id: z.string(),

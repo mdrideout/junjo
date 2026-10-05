@@ -1,5 +1,16 @@
 # ADR-002: SQLite Metadata Index
 
+Amended 2026-10-03 by
+[Studio ADR-011](../../docs/adr/011-rust-backend-and-single-origin-studio.md).
+The backend that owns this index is now a Rust service, so "Source Of Truth"
+names its Rust modules and schema file instead of the Python packages they
+replaced. The decision and its guardrails are unchanged.
+
+Amended 2026-10-04 on the maintainer's decision: how a listing removes a span
+that sits in both tiers, what the backend does when the hot snapshot changes
+under a query, and how the LLM listing covers files the index does not hold
+yet. See "2026-10-04 amendment".
+
 ## Status
 
 Accepted
@@ -201,14 +212,141 @@ Rejected because the backend would repeatedly pay query-time cost to rediscover 
   - recent cold files not yet indexed
   - optional hot snapshot data
 
+## 2026-10-04 amendment
+
+Three changes were measured with the real frontend and the real SDK while
+ingestion processed spans, and the maintainer decided on those results. They
+are recorded in
+[the final image evidence](../../../../docs/roadmaps/evidence/studio-backend-rust-final-2026-10-04/README.md)
+under "Real-world runs", "The adopted build", and "The default Traces view".
+The query bridging strategy above is otherwise unchanged: every query asks
+ingestion, reads the hot snapshot, the recent cold files, and the indexed
+cold files together, and the cold copy of a span wins.
+
+### A listing removes duplicates among its newest candidates
+
+A span can be in the hot snapshot and in a cold file at once only briefly.
+Ingestion reuses a snapshot for about a second, so a query can be handed a
+snapshot from just before a flush beside the cold file that flush wrote.
+
+A listing wants its newest page. It takes the newest page of each tier and
+removes duplicates among those candidates, not among every span that matches.
+The newest page of the two tiers together is always among them, so the page
+is the same and the cold copy still wins. A query with no page size, such as
+one trace, still removes duplicates among everything it returns.
+
+Before this amendment a listing numbered every matching span of every file it
+read whenever a hot snapshot existed, which on a live deployment is nearly
+always. Its cost followed the number of spans that matched the listing and
+not the size of the page. Where every span of a service was a root span, a
+Traces listing cost about a second of backend CPU where the newest page costs
+milliseconds, two concurrent listings filled the query memory pool, and the
+busy backend slowed its answer to ingestion's API key validation. Where one
+span in 32 was a root span the same listing cost far less, and the change
+gained less. The evidence reports both.
+
+One consequence is accepted. If the same span is stored twice in one tier,
+that tier offers that many fewer distinct candidates, so the oldest end of a
+page can lack those spans or hold older ones in their place. A listing over
+both tiers still returns no span twice. A listing over one tier has never
+removed duplicates and still does not.
+
+### The backend asks again when the hot snapshot changes under a query
+
+Ingestion writes the hot snapshot to one path, replaces it for the first
+request after its reuse period, and removes it when its log is empty. The
+backend runs queries concurrently, so one query can still be reading the
+snapshot when another request has it replaced.
+
+- A query that fails after ingestion replaced or removed the snapshot it was
+  handed asks ingestion again and runs once more over what ingestion names
+  then. That answer names the cold file any flushed spans went to, so the
+  second run reads current data.
+- A snapshot that ingestion named and that is gone when the query looks is
+  handled the same way. It is not left out of the query, which would answer
+  without the newest spans. This is not the empty snapshot path of the
+  guardrail above: that still means there is no hot tier.
+- A query that ran out of memory is not run again.
+- This does not make ingestion build snapshots more often. The second request
+  normally falls inside the reuse period of the snapshot that replaced the
+  first.
+
+The backend does not cache what ingestion answers, and it does not hold or
+copy the snapshot file. A query whose second run also meets a new snapshot
+fails. Keeping queries short keeps that from happening, which is why these
+two parts of the amendment were adopted together.
+
+### The LLM listing reads what the index does not hold yet
+
+The Traces page opens on the traces that have an LLM span. The index knows
+that a trace has one only once the span's file is indexed. The bridge above
+closes the flush-to-index gap for reading spans. It did not close it for this
+filter: the listing asked the index and the hot snapshot, and a file that was
+flushed but not yet indexed was covered by neither. Its traces left the
+default view at the flush and came back when the indexer reached the file.
+
+The listing now covers that file.
+
+- It takes the newest root spans of the service, as before.
+- It asks ingestion again. It then asks the index which of the recent cold
+  files it does not hold, and after that which of the candidate traces it
+  knows to have an LLM span. In that order a file that is indexed between
+  the two lookups is covered by both. In the other order it could be covered
+  by neither.
+- It reads the hot snapshot and those unindexed files once, for the
+  candidates the index did not resolve. The service, the trace identifiers,
+  and a start time are filters applied while Parquet is decoded, so only
+  those candidates' spans are decoded.
+- The start time is that of the oldest of those candidates' root spans. A
+  span of a trace does not start before the trace's root span.
+
+Asking ingestion again is deliberate. A flush between the listing's two
+reads moves unflushed spans into a file the first answer did not name, and a
+rebuilt snapshot no longer holds them. The second answer names that file.
+Without the second request the same read left about a tenth of default views
+short at four times the standard load. With it none was short at either load.
+
+The change has a measured cost. The maintainer chose it on the prototype's
+runs, which put that cost higher than the tree's own runs then did. On the
+tree's build a backend that was spending its whole CPU quota completed
+about 6% fewer page loads than the build before it, and the default view took
+about 90 ms longer at the median. A span was readable about a tenth of a
+second later at the median. Ingestion's CPU was the same. A second request
+makes ingestion build a snapshot only when it arrives after the reuse period,
+and under load another request would have caused that build anyway. How
+often ingestion built a snapshot was not counted.
+
+These rules go with it.
+
+- No other query asks ingestion twice. Doing so is work for ingestion and
+  needs its own measurement and decision.
+- The index is asked about the recent cold files one by one, on their unique
+  path. Cold storage is not scanned, and no indexed file is read for this
+  filter.
+- A trace with more than one root span, or with spans whose clocks disagree,
+  can have an LLM span that starts before the oldest unresolved root span.
+  Such a span is found once its file is indexed, as before.
+
+Alternatives that were considered:
+
+- The same read without asking ingestion again. Measured: no default view
+  short at the standard load and about a tenth short at four times that
+  load, for a smaller cost.
+- Having the indexer take a new file when a query reports it, instead of at
+  its next cycle. Not measured. It shortens the gap without closing it, and
+  it moves indexing into the moments when ingestion is busiest.
+- Classifying spans in ingestion at flush time. Rejected: it gives the
+  classification rule a second owner and adds work to the ingest path.
+
 ## Source Of Truth
 
 The active implementation lives in:
 
-- `backend/app/db_sqlite/metadata/`
-- `backend/app/features/parquet_indexer/`
-- `backend/app/features/otel_spans/`
-- `backend/app/features/span_ingestion/`
+- `backend/schema/metadata.sql`
+- `backend/server/src/db/metadata.rs`
+- `backend/server/src/features/parquet_indexer/`
+- `backend/server/src/features/otel_spans/`
+- `backend/server/src/features/span_ingestion.rs`
 - `ingestion/src/recent_cold_files.rs`
 - `proto/ingestion.proto`
 

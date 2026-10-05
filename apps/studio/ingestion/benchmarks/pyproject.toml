@@ -1,0 +1,29 @@
+[project]
+name = "junjo-ai-studio-ingestion-benchmarks"
+version = "0.1.0"
+license = "Apache-2.0"
+# The harness is part of the measurement, so it stays on the interpreter line
+# it has always run on. The proxy image in Dockerfile uses the same line.
+requires-python = ">=3.13,<3.14"
+# Imported by auth_path_benchmark.py and delivery.py. auth_path_matrix.py and
+# compare_results.py use only the standard library.
+dependencies = [
+    "grpcio>=1.76.0",
+    "httpx>=0.28.0",
+    "opentelemetry-proto>=1.38.0",
+    "pyarrow>=23.0.1",
+]
+
+[dependency-groups]
+# Used by test_delivery.py.
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+]
+# Imported by auth_backend_proxy.py and its generated gRPC stubs, plus the
+# generator for those stubs. Only the image built from Dockerfile installs it.
+proxy = [
+    "grpcio>=1.76.0",
+    "grpcio-tools>=1.76.0",
+    "protobuf>=6.33.5",
+]
