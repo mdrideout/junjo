@@ -122,7 +122,9 @@ def main() -> int:
                 "--output",
                 str(browser_output),
                 *(["--history-pages"] if history_pages else []),
-                *(["--api-key-filter"] if api_key_filter else []),
+                # The harness names its first key this. Other keys come and
+                # go: each SDK run creates one and deletes it.
+                *(["--api-key-name", "auth-benchmark-0"] if api_key_filter else []),
             ],
             cwd=FRONTEND,
             stdout=subprocess.PIPE,

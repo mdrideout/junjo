@@ -221,7 +221,7 @@ number of cold files. They are off by default because they slow every other
 page in the run.
 
 `--api-key-filter` adds one more step on the Traces page: the tab picks the
-first API key in the picker and waits for that key's traces.
+exporters' API key in the picker and waits for that key's traces.
 
 Compare a run with its neighbours, not with a run from another hour. The
 backend spends its whole CPU quota in these runs, so the page loads a run

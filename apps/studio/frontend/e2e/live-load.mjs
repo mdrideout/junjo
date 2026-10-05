@@ -54,8 +54,9 @@ const { values } = parseArgs({
     'timeout-milliseconds': { type: 'string', default: '60000' },
     // Also load the two pages whose queries read a service's whole history.
     'history-pages': { type: 'boolean', default: false },
-    // Also list the traces of one API key, chosen in the Traces page's picker.
-    'api-key-filter': { type: 'boolean', default: false },
+    // Also list the traces of the API key with this name, chosen in the
+    // Traces page's picker.
+    'api-key-name': { type: 'string' },
   },
   strict: true,
 })
@@ -208,8 +209,8 @@ async function browse(context, tab, deadline) {
     })
     if (Date.now() >= deadline) break
 
-    // One key's traces: the person picks the first key in the picker.
-    if (values['api-key-filter']) {
+    // One key's traces: the person picks the key in the picker.
+    if (values['api-key-name'] !== undefined) {
       await act(tab, 'traces, one key', service, async () => {
         await Promise.all([
           page.waitForResponse(
@@ -219,7 +220,7 @@ async function browse(context, tab, deadline) {
             },
             { timeout },
           ),
-          page.getByRole('combobox').selectOption({ index: 1 }, { timeout }),
+          page.getByRole('combobox').selectOption({ label: values['api-key-name'] }, { timeout }),
         ])
         return settled(page, tableState, TRACES_ERROR)
       })

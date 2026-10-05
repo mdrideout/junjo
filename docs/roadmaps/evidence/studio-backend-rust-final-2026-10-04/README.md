@@ -1100,13 +1100,19 @@ and `tool-tree4-standard-1` to `-3`, and one heavy run of each.
 No difference is visible in ingestion or in the pages. Every acknowledged
 span was persisted in every run.
 
-Two more runs of the tree added a step to each tab's round: pick the first
-API key in the Traces page's picker and wait for its traces
-(`--api-key-filter`, runs `tool-keyfilter-standard-1` and `-heavy-1`). The
-filtered list took 296 ms at the median against 312 ms for the full list at
-the standard load, and 921 ms against 924 ms at four times the load. No
-request failed in either run. One key sent every span in these runs, so the
-filter kept every row.
+Two more runs of the tree added a step to each tab's round: pick the
+exporters' API key in the Traces page's picker and wait for its traces
+(`--api-key-filter`, runs `tool-keyfilter-standard-2` and `-heavy-2`). The
+filtered list took 387 ms at the median against 392 ms for the full list at
+the standard load, and 886 ms against 878 ms at four times the load. All 175
+filtered lists showed a full page, and no request failed in either run. One
+key sent every span of these services, so the filter kept every row.
+
+A first pair of these runs had the tab pick the first key in the picker.
+Each SDK run creates a key of its own and deletes it, so while one was
+running the first key was not the exporters', and 13 of 194 filtered lists
+were correctly empty. Those runs are `tool-keyfilter-standard-1` and
+`-heavy-1`.
 
 ## The two pages that read a service's history
 
