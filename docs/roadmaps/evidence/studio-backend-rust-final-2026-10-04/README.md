@@ -1053,6 +1053,58 @@ adopted changes completed 849–1,124 page loads when ingestion used under
 compared with the neighbouring runs of the other build, and not with a run
 from a slower stretch.
 
+## The indexer retry and the trace query change
+
+Two fixes followed: the indexer tries a file again when it failed on I/O or
+on the index write, and a span query asks ingestion after its index lookup
+and runs a trace query again when it found nothing under a changed snapshot.
+Neither is expected to change what a healthy run measures, so they were run
+together as a check, alternating with the build before them. Runs
+`tool-tree2-standard-8` to `-10`, `tool-tree3-standard-1` to `-3`, and one
+heavy run of each.
+
+| | Before the two fixes | Tree |
+| --- | ---: | ---: |
+| Page loads completed | 902, 861, 834 | 819, 878, 902 |
+| API responses that were 4xx or 5xx | 0 of 5,723 | 0 of 5,723 |
+| Trace detail: p95 | 383, 404, 413 ms | 401, 391, 399 ms |
+| Default Traces view short | 0 of 518 | 0 of 519 |
+| Accepted trace to readable: p50 | 387, 503, 344 ms | 393, 429, 307 ms |
+| Four times the load: page loads | 427 | 418 |
+
+No difference is visible. No trace query found nothing under a changed
+snapshot in these runs, so the new rerun did not fire: that case appeared
+once in 7,410 trace detail loads before, and these runs cannot show that it
+is gone. A test with a stand-in ingestion covers the decision.
+
+## The two pages that read a service's history
+
+Two requests read everything a service ever sent: the Agent listing reads
+every Agent span of the service to return one page, and execution resolution
+reads every executable span to find one. Neither is changed. They were
+measured with the repository tool's `--history-pages` option, which adds the
+Agents page and one execution link to each tab's round, on the tree after
+the changes above. Two runs at each load.
+
+| | Standard load, 18 cold files | Four times the load, 72 cold files |
+| --- | ---: | ---: |
+| Agents page: p50 | 956, 867 ms | 2,763, 2,314 ms |
+| Agents page: p95 | 2,741, 2,479 ms | 4,289, 3,810 ms |
+| Agent listing requests that were 5xx | 1 of 80, 4 of 84 | 23 of 40, 21 of 38 |
+| Execution link: p50 | 504, 420 ms | 1,204, 1,101 ms |
+| Execution link: p95 | 1,588, 894 ms | 1,979, 1,588 ms |
+| Execution resolution requests that were 5xx | 0 of 80, 0 of 83 | 0 of 39, 0 of 38 |
+| Backend peak memory | 312, 305 MiB | 317, 331 MiB |
+
+- Every failed Agent listing ran out of memory while sorting. The synthetic
+  load has five Agent spans in every 32-span trace, which is more than an
+  application's traces would have.
+- The exporters' Agent spans carry no Agent contract attributes, so the
+  listing answered 409 once it had read them. The read is what was measured.
+- The other pages are slower in these runs than in the ones above, because
+  these two pages take the backend's CPU and memory. No comparison with
+  those runs is intended.
+
 ## Image and container count
 
 | | Python release | Rust |

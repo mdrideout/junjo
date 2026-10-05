@@ -100,6 +100,7 @@ def main() -> int:
     output = Path(os.environ["JUNJO_BENCHMARK_SIDE_OUTPUT"])
     seconds = int(os.environ["JUNJO_REAL_WORLD_SECONDS"])
     tabs = os.environ["JUNJO_REAL_WORLD_TABS"]
+    history_pages = os.environ.get("JUNJO_REAL_WORLD_HISTORY_PAGES") == "1"
 
     with tempfile.TemporaryDirectory(prefix="junjo-real-world-") as directory:
         work = Path(directory)
@@ -119,6 +120,7 @@ def main() -> int:
                 str(seconds),
                 "--output",
                 str(browser_output),
+                *(["--history-pages"] if history_pages else []),
             ],
             cwd=FRONTEND,
             stdout=subprocess.PIPE,

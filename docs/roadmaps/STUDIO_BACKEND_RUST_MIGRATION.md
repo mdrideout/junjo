@@ -1070,7 +1070,23 @@ share.
    cost found. Changed on 2026-10-04: see "Adopted on 2026-10-04".
 2. Execution resolution reads every executable span in a service's history to
    keep one, and the Agent listing reads every Agent span of the service to
-   return one page. Neither is measured.
+   return one page. Measured on 2026-10-04 with the real frontend while
+   spans arrived, and not changed. The evidence records it under "The two
+   pages that read a service's history".
+   - The Agents page took about 0.9 s at the median with 18 cold files and
+     about 2.5 s with 72. It failed 5 of 164 requests at the standard load
+     and 44 of 78 at four times the load, each time because the query ran
+     out of memory while sorting. The backend peaked at 305–331 MiB where it
+     otherwise peaks at about 130.
+   - An execution link took about 0.45 s and about 1.15 s, and none failed.
+   - Suggested fix for the Agent listing: take the newest Agent spans in
+     pages, as the default Traces view takes root spans, and apply the time
+     filter in the query. It reads every Agent span today because its
+     filters run on assembled evidence.
+   - Suggested fix for execution resolution: have the metadata index record
+     which files hold each executable's runtime identity, so a link opens
+     one or two files. That is a schema change to the index, which is
+     rebuildable.
 3. A trace or evidence query reads up to 20 recently flushed files for 120
    seconds after a flush, although the index covers them after about 30.
 4. The evidence routes hold a trace in three to four forms at once and

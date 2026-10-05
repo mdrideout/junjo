@@ -44,6 +44,12 @@ def main() -> int:
         help="each exporter sends one trace this often",
     )
     parser.add_argument("--tabs", type=int, default=4, help="browser tabs")
+    parser.add_argument(
+        "--history-pages",
+        action="store_true",
+        help="also load the Agents page and an execution link, which read a "
+        "service's whole history",
+    )
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--backend-port", type=int, default=27154)
     parser.add_argument("--ingestion-port", type=int, default=27155)
@@ -87,6 +93,7 @@ def main() -> int:
         **os.environ,
         "JUNJO_REAL_WORLD_SECONDS": str(args.seconds - ACTIVITY_ENDS_SECONDS_EARLY),
         "JUNJO_REAL_WORLD_TABS": str(args.tabs),
+        "JUNJO_REAL_WORLD_HISTORY_PAGES": "1" if args.history_pages else "0",
     }
     # The harness prints its whole result, which is read from the output file
     # instead. What it writes to its error stream is kept beside the result.
