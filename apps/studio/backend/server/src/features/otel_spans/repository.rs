@@ -44,8 +44,13 @@ const MAX_LLM_ROOT_SPAN_CANDIDATES: usize = 5000;
 /// The files one span query reads: the indexed cold files the query needs,
 /// the recent-cold bridge, and the hot snapshot. Ingestion is asked every
 /// time.
+///
+/// The index is read first and ingestion is asked last, so its answer is as
+/// new as it can be when the files are opened. A flush and a rebuilt
+/// snapshot that land after the answer leave the query with a snapshot that
+/// no longer holds the flushed spans and without the file that does.
 async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QuerySources, ApiError> {
-    let ingestion = state.ingestion.query_context().await;
+    // `None` reads every recent cold file.
     let (indexed, recent_cold_limit) = match query {
         // The files that contain the trace.
         SpanQuery::Trace { trace_id } | SpanQuery::Span { trace_id, .. } => {
@@ -54,7 +59,7 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
                 .metadata
                 .call(move |connection| metadata::file_paths_for_trace(connection, &lookup))
                 .await?;
-            (indexed, MAX_RECENT_COLD_FILES_PER_QUERY)
+            (indexed, Some(MAX_RECENT_COLD_FILES_PER_QUERY))
         }
         // The service's newest files. The metadata index selects files by
         // service only. DataFusion decides which spans in them are roots.
@@ -70,7 +75,7 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
                     )
                 })
                 .await?;
-            (indexed, MAX_RECENT_COLD_FILES_PER_QUERY)
+            (indexed, Some(MAX_RECENT_COLD_FILES_PER_QUERY))
         }
         // The service's newest files with Workflow spans.
         SpanQuery::Workflows { service_name, .. } => {
@@ -85,7 +90,7 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
                     )
                 })
                 .await?;
-            (indexed, MAX_RECENT_COLD_FILES_PER_QUERY)
+            (indexed, Some(MAX_RECENT_COLD_FILES_PER_QUERY))
         }
         // Agent semantic filters are applied to the result, so nothing is cut
         // off here: every indexed file with Agent spans for the service is
@@ -96,7 +101,7 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
                 .metadata
                 .call(move |connection| metadata::agent_file_paths(connection, &lookup))
                 .await?;
-            (indexed, ingestion.recent_cold_paths.len())
+            (indexed, None)
         }
         // An identity must resolve wherever its span is stored, so every
         // indexed file of the service is read, and every recent-cold file.
@@ -106,14 +111,15 @@ async fn select_sources(state: &AppState, query: SpanQuery<'_>) -> Result<QueryS
                 .metadata
                 .call(move |connection| metadata::file_paths_for_service(connection, &lookup, None))
                 .await?;
-            (indexed, ingestion.recent_cold_paths.len())
+            (indexed, None)
         }
     };
+    let ingestion = state.ingestion.query_context().await;
     Ok(QuerySources {
         cold_files: augment_with_recent_cold_files(
             indexed,
             &ingestion.recent_cold_paths,
-            recent_cold_limit,
+            recent_cold_limit.unwrap_or(ingestion.recent_cold_paths.len()),
         ),
         hot_snapshot: ingestion.hot_snapshot_path,
     })
@@ -151,6 +157,26 @@ fn log_snapshot_change(error: &DataFusionError) {
     );
 }
 
+/// Whether a trace query that found nothing may run again: ingestion
+/// replaced or removed the hot snapshot while the query ran.
+///
+/// A query can read a rebuilt snapshot without failing. If a flush came
+/// before the rebuild, the trace's spans are in a cold file the query was
+/// not given, and a trace that was just listed looks as if it did not exist.
+/// Only a trace or span query shows that: a listing cannot tell that spans
+/// are missing.
+fn found_nothing_under_a_changed_snapshot(
+    query: SpanQuery<'_>,
+    spans: &[Span],
+    sources: &QuerySources,
+    handed: SnapshotIdentity,
+) -> bool {
+    spans.is_empty()
+        && matches!(query, SpanQuery::Trace { .. } | SpanQuery::Span { .. })
+        && sources.hot_snapshot.is_some()
+        && snapshot_identity(sources) != handed
+}
+
 /// Select a query's files and run it.
 async fn run_query(state: &AppState, query: SpanQuery<'_>) -> Result<Vec<Span>, ApiError> {
     let sources = select_sources(state, query).await?;
@@ -158,6 +184,15 @@ async fn run_query(state: &AppState, query: SpanQuery<'_>) -> Result<Vec<Span>, 
     let result = match state.query.run(&sources, query).await {
         Err(error) if snapshot_changed(&sources, handed, &error) => {
             log_snapshot_change(&error);
+            let sources = select_sources(state, query).await?;
+            state.query.run(&sources, query).await
+        }
+        Ok(spans) if found_nothing_under_a_changed_snapshot(query, &spans, &sources, handed) => {
+            tracing::warn!(
+                ?query,
+                "the hot snapshot changed while a trace was read and nothing was found; \
+                 asking ingestion again"
+            );
             let sources = select_sources(state, query).await?;
             state.query.run(&sources, query).await
         }
@@ -481,6 +516,46 @@ mod tests {
 
         // A query without a hot snapshot has nothing that can change.
         assert!(!snapshot_changed(&QuerySources::default(), None, &failed));
+    }
+
+    #[test]
+    fn a_trace_query_that_found_nothing_runs_again_only_when_its_snapshot_changed() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("hot_snapshot.parquet");
+        std::fs::write(&path, b"the snapshot ingestion named").unwrap();
+        let sources = QuerySources {
+            cold_files: Vec::new(),
+            hot_snapshot: Some(path.to_str().unwrap().to_string()),
+        };
+        let handed = snapshot_identity(&sources);
+        let trace = SpanQuery::Trace {
+            trace_id: "trace-1",
+        };
+        let span = SpanQuery::Span {
+            trace_id: "trace-1",
+            span_id: "span-1",
+        };
+        let listing = SpanQuery::Roots {
+            service_name: SERVICE,
+            limit: 50,
+        };
+        let again = |query, sources: &QuerySources| {
+            found_nothing_under_a_changed_snapshot(query, &[], sources, handed)
+        };
+
+        // The snapshot is the one the query was given: the trace is unknown.
+        assert!(!again(trace, &sources));
+
+        std::fs::write(&path, b"a newer snapshot").unwrap();
+        assert!(again(trace, &sources));
+        assert!(again(span, &sources));
+        // An empty listing does not say that spans are missing.
+        assert!(!again(listing, &sources));
+
+        std::fs::remove_file(&path).unwrap();
+        assert!(again(trace, &sources));
+        // No hot snapshot was named: there is nothing that can change.
+        assert!(!again(trace, &QuerySources::default()));
     }
 
     /// Ingestion names a snapshot, then flushes its log and removes the

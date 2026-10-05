@@ -8,8 +8,8 @@ replaced. The decision and its guardrails are unchanged.
 
 Amended 2026-10-04 on the maintainer's decision: how a listing removes a span
 that sits in both tiers, what the backend does when the hot snapshot changes
-under a query, and how the LLM listing covers files the index does not hold
-yet. See "2026-10-04 amendment".
+under a query, how the LLM listing covers files the index does not hold
+yet, and when a span query asks ingestion. See "2026-10-04 amendment".
 
 ## Status
 
@@ -337,6 +337,25 @@ Alternatives that were considered:
   it moves indexing into the moments when ingestion is busiest.
 - Classifying spans in ingestion at flush time. Rejected: it gives the
   classification rule a second owner and adds work to the ingest path.
+
+### The index is read first and ingestion is asked last
+
+The bridging steps above list the request to ingestion first. A span query
+now selects its indexed files first and asks ingestion last, so the answer is
+as new as it can be when the files are opened. Nothing else about the steps
+changes.
+
+The reason is a window both backends have always had. If ingestion flushes
+and rebuilds its snapshot after it answered and before the backend reads,
+the query reads a snapshot that no longer holds the flushed spans and was
+not told of the file that does. In the real-world runs a trace that the list
+had just shown answered 404 on its own page, once in 7,410 loads.
+
+Asking last narrows that window to the time between the answer and the read.
+One more rule covers what is left of it for the query where it shows: a
+trace or span query that finds nothing, and whose snapshot was replaced or
+removed while it ran, asks ingestion again and runs once more. A listing is
+not run again. It cannot tell that spans are missing.
 
 ## Source Of Truth
 

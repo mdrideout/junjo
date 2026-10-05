@@ -1214,7 +1214,9 @@ tests with lint and build, 38 contract tests, and the OpenAPI document check.
 **One more finding from those runs.** A trace detail page answered 404 for a
 trace the list had just shown, once in 3,529 loads. It fits a flush and a
 snapshot rebuild landing between ingestion's answer and the backend's read.
-Both backends have always had that window. It is not changed.
+Both backends have always had that window. Changed on 2026-10-04: a span
+query asks ingestion after the index lookup, and a trace query that finds
+nothing under a changed snapshot asks again. Ingestion ADR-002 records it.
 
 **Decisions for the maintainer.**
 
