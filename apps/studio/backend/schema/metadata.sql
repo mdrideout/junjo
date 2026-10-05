@@ -71,7 +71,10 @@ CREATE TABLE agent_files (
     FOREIGN KEY (file_id) REFERENCES parquet_files (file_id) ON DELETE CASCADE
 ) STRICT;
 
--- Files that failed to index. They are not retried.
+-- Files that failed to index. A file whose contents could not be read as
+-- Parquet stays here and is not tried again. A file that failed on I/O or on
+-- the index write (error_type 'Io' or 'Sqlite') is tried again every cycle,
+-- and its row is removed when it is indexed.
 CREATE TABLE failed_parquet_files (
     file_path TEXT PRIMARY KEY,
     error_type TEXT NOT NULL,

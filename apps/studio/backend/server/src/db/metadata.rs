@@ -58,7 +58,14 @@ pub const UPSERT_FAILED_FILE: &str = "
         failed_at = datetime('now'),
         retry_count = retry_count + 1";
 pub const SELECT_INDEXED_FILE_PATHS: &str = "SELECT file_path FROM parquet_files";
-pub const SELECT_FAILED_FILE_PATHS: &str = "SELECT file_path FROM failed_parquet_files";
+/// A failure of these two kinds can pass: the file could not be opened or
+/// read, or the index could not be written. Every other kind means the
+/// file's contents are damaged, and a cold file never changes.
+pub const SELECT_DAMAGED_FILE_PATHS: &str =
+    "SELECT file_path FROM failed_parquet_files WHERE error_type NOT IN ('Io', 'Sqlite')";
+pub const SELECT_RETRIED_FILE_PATHS: &str =
+    "SELECT file_path FROM failed_parquet_files WHERE error_type IN ('Io', 'Sqlite')";
+pub const DELETE_FAILED_FILE: &str = "DELETE FROM failed_parquet_files WHERE file_path = ?1";
 pub const DELETE_PARQUET_FILE: &str = "DELETE FROM parquet_files WHERE file_path = ?1";
 pub const SELECT_SERVICES: &str =
     "SELECT DISTINCT service_name FROM file_services ORDER BY service_name";
@@ -99,7 +106,7 @@ pub const SELECT_INDEXED_FILE: &str = "SELECT 1 FROM parquet_files WHERE file_pa
 
 /// Every statement in this module, for the schema preparation test.
 #[cfg(test)]
-pub const ALL_STATEMENTS: [&str; 18] = [
+pub const ALL_STATEMENTS: [&str; 20] = [
     INSERT_PARQUET_FILE,
     INSERT_TRACE_FILE,
     INSERT_FILE_SERVICE,
@@ -108,7 +115,9 @@ pub const ALL_STATEMENTS: [&str; 18] = [
     INSERT_AGENT_FILE,
     UPSERT_FAILED_FILE,
     SELECT_INDEXED_FILE_PATHS,
-    SELECT_FAILED_FILE_PATHS,
+    SELECT_DAMAGED_FILE_PATHS,
+    SELECT_RETRIED_FILE_PATHS,
+    DELETE_FAILED_FILE,
     DELETE_PARQUET_FILE,
     SELECT_SERVICES,
     SELECT_FILE_PATHS_FOR_TRACE,
@@ -169,11 +178,16 @@ pub fn index_file(connection: &mut Connection, summary: &FileSummary) -> rusqlit
         }
     }
 
+    // An earlier attempt at this file may have failed.
+    transaction
+        .prepare_cached(DELETE_FAILED_FILE)?
+        .execute(params![summary.file_path])?;
+
     transaction.commit()?;
     Ok(file_id)
 }
 
-/// Record a file that could not be indexed, so it is not retried every cycle.
+/// Record a file that could not be indexed, with the kind of failure.
 pub fn record_failed_file(
     connection: &Connection,
     file_path: &str,
@@ -198,8 +212,14 @@ pub fn indexed_file_paths(connection: &Connection) -> rusqlite::Result<HashSet<S
     path_set(connection, SELECT_INDEXED_FILE_PATHS)
 }
 
-pub fn failed_file_paths(connection: &Connection) -> rusqlite::Result<HashSet<String>> {
-    path_set(connection, SELECT_FAILED_FILE_PATHS)
+/// The failed files whose contents are damaged. They are not tried again.
+pub fn damaged_file_paths(connection: &Connection) -> rusqlite::Result<HashSet<String>> {
+    path_set(connection, SELECT_DAMAGED_FILE_PATHS)
+}
+
+/// The failed files whose failure can pass. They are tried again.
+pub fn retried_file_paths(connection: &Connection) -> rusqlite::Result<HashSet<String>> {
+    path_set(connection, SELECT_RETRIED_FILE_PATHS)
 }
 
 /// Remove index entries for files that no longer exist. Dependent rows are
@@ -605,8 +625,39 @@ mod tests {
         assert_eq!(message, "still corrupt");
         assert_eq!(retries, 2);
         assert_eq!(
-            failed_file_paths(&connection).unwrap(),
+            damaged_file_paths(&connection).unwrap(),
             HashSet::from(["/data/bad.parquet".to_string()])
+        );
+        assert!(retried_file_paths(&connection).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_failure_that_can_pass_is_retried_and_forgotten_once_the_file_is_indexed() {
+        let mut connection = index();
+        for (path, kind) in [
+            ("/data/unreadable.parquet", "Io"),
+            ("/data/unwritten.parquet", "Sqlite"),
+            ("/data/damaged.parquet", "InvalidData"),
+        ] {
+            record_failed_file(&connection, path, kind, "failed", 12).unwrap();
+        }
+        assert_eq!(
+            retried_file_paths(&connection).unwrap(),
+            HashSet::from([
+                "/data/unreadable.parquet".to_string(),
+                "/data/unwritten.parquet".to_string()
+            ])
+        );
+        assert_eq!(
+            damaged_file_paths(&connection).unwrap(),
+            HashSet::from(["/data/damaged.parquet".to_string()])
+        );
+
+        index_file(&mut connection, &summary("/data/unreadable.parquet")).unwrap();
+
+        assert_eq!(
+            retried_file_paths(&connection).unwrap(),
+            HashSet::from(["/data/unwritten.parquet".to_string()])
         );
     }
 }

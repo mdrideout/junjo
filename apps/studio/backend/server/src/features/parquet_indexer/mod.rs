@@ -210,13 +210,19 @@ pub fn index_new_files(
         return Ok(ControlFlow::Continue(0));
     }
     let indexed = metadata::indexed_file_paths(writer)?;
-    // Known bad files are not retried.
-    let failed = metadata::failed_file_paths(writer)?;
+    // A file with damaged contents is not tried again: a cold file never
+    // changes. A file that failed on I/O or on the index write is, because
+    // an unindexed file's traces are missing from every listing.
+    let damaged = metadata::damaged_file_paths(writer)?;
+    let retried = metadata::retried_file_paths(writer)?;
     let total_files = all_files.len();
-    let new_files: Vec<scan::ParquetFile> = all_files
+    let mut new_files: Vec<scan::ParquetFile> = all_files
         .into_iter()
-        .filter(|file| !indexed.contains(&file.path) && !failed.contains(&file.path))
+        .filter(|file| !indexed.contains(&file.path) && !damaged.contains(&file.path))
         .collect();
+    // Files never tried come first, so a file that keeps failing cannot hold
+    // them back. The sort keeps the scan's order within each group.
+    new_files.sort_by_key(|file| retried.contains(&file.path));
     if new_files.is_empty() {
         return Ok(ControlFlow::Continue(0));
     }
@@ -365,6 +371,43 @@ mod tests {
         assert_eq!(path, corrupt.to_str().unwrap());
         assert_eq!(kind, "Parquet");
         assert_eq!(retries, 1);
+    }
+
+    #[test]
+    fn a_file_that_failed_on_io_is_tried_again_after_the_files_never_tried() {
+        let mut fixture = fixture(1);
+        let failed_before = write_file(&fixture, "a.parquet");
+        let never_tried = write_file(&fixture, "b.parquet");
+        metadata::record_failed_file(
+            &fixture.writer,
+            failed_before.to_str().unwrap(),
+            "Io",
+            "could not be opened",
+            12,
+        )
+        .unwrap();
+        let indexed = |fixture: &Fixture| {
+            let mut paths: Vec<String> = metadata::indexed_file_paths(&fixture.writer)
+                .unwrap()
+                .into_iter()
+                .collect();
+            paths.sort();
+            paths
+        };
+
+        // One file per cycle: the file never tried goes first.
+        assert_eq!(cycle(&mut fixture), ControlFlow::Continue(1));
+        assert_eq!(indexed(&fixture), [never_tried.to_str().unwrap()]);
+
+        assert_eq!(cycle(&mut fixture), ControlFlow::Continue(1));
+        assert_eq!(
+            indexed(&fixture),
+            [
+                failed_before.to_str().unwrap(),
+                never_tried.to_str().unwrap()
+            ]
+        );
+        assert_eq!(count(&fixture.writer, "failed_parquet_files"), 0);
     }
 
     #[test]

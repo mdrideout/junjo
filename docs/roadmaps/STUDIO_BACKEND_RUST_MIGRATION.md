@@ -1076,7 +1076,10 @@ share.
 4. The evidence routes hold a trace in three to four forms at once and
    assemble on a runtime worker. No workload measures evidence assembly.
 5. The indexer never retries a file whose read failed, even for a transient
-   reason, and takes ten files per cycle, oldest first.
+   reason, and takes ten files per cycle, oldest first. Changed on
+   2026-10-04: a file that failed on I/O or on the index write is tried
+   again every cycle, after the files never tried. A file with damaged
+   contents is still not retried.
 6. A query can still be reading the hot snapshot when another request has
    ingestion rewrite or remove it, and then fails with 500. Python ran one
    query at a time, so it did not happen there. Measured beside live
