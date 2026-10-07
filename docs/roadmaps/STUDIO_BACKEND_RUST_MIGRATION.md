@@ -1352,6 +1352,13 @@ peaked at 287–350 MiB, with 43% less CPU while ingesting. The comparison is in
 - The Traces page's default view, with "Has LLM Spans" checked, keeps showing
   new traces after ingestion flushes them. It used to lose the traces of a
   flushed file until that file was indexed, up to about 30 seconds later.
+- The Agents page reads a service's newest executions and no longer its
+  whole history. Executions that started at the same instant are listed in
+  the order of their trace and span identifiers. An Agent span that Studio
+  cannot read fails a listing only when the listing reaches it.
+- An execution link, and the evidence of an evaluation attempt, find their
+  execution through the metadata index. They used to read every stored file
+  of the service.
 - The application writes no log line per request at the default log level.
   The Python backend and the frontend container each wrote one. A line logged
   while a request is handled names the request's method and path.
