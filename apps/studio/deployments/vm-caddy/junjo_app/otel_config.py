@@ -44,11 +44,11 @@ def setup_telemetry() -> TracerProvider | None:
                 "This deployment example contains a 'junjo_app' example application in the project root.",
                 "This warning applies to that example container only.",
                 "",
-                "1. Go to Junjo AI Studio UI: http://localhost:26153",
+                "1. Go to Junjo AI Studio UI: http://localhost:26154",
                 "2. Create an API key from the API Keys page",
                 "3. In the root .env file, set: JUNJO_AI_STUDIO_API_KEY=<key>",
                 "4. Recreate only the example app container:",
-                "   docker compose up --force-recreate --no-deps junjo-app -d",
+                "   docker compose up --force-recreate --no-deps example-app -d",
             ],
         )
 

@@ -9,15 +9,7 @@ http://localhost {
 	log
 
 	handle {
-		reverse_proxy junjo-ai-studio-frontend:26153
-	}
-}
-
-http://localhost:26154 {
-	log
-
-	handle {
-		reverse_proxy junjo-ai-studio-backend:26154
+		reverse_proxy junjo-ai-studio-app:26154
 	}
 }
 
@@ -32,8 +24,7 @@ http://localhost:26155 {
 # ----------------------------------------------------------------------------------------
 # Production Domain & Subdomains
 #   Name        Compose Service & Port             Access URL
-# - Frontend:   junjo-ai-studio-frontend:26153     https://junjo.your-domain.com
-# - Backend:    junjo-ai-studio-backend:26154      https://api.junjo.your-domain.com
+# - Studio:     junjo-ai-studio-app:26154          https://junjo.your-domain.com
 # - Ingestion:  junjo-ai-studio-ingestion:26155    https://ingestion.junjo.your-domain.com
 #
 # IMPORTANT: Manually edit the domains below to match your production setup.
@@ -41,8 +32,7 @@ http://localhost:26155 {
 #
 # Example Configuration:
 #   Subdomain: 	junjo.example.com
-#   Frontend: 	https://junjo.example.com
-#   Backend: 		https://api.junjo.example.com
+#   Studio: 	https://junjo.example.com
 #   Ingestion: 	https://ingestion.junjo.example.com
 #
 # SSL Note: This example assumes your domain is registered with Cloudflare.
@@ -69,20 +59,14 @@ http://localhost:26155 {
 # 		{$JUNJO_LETS_ENCRYPT_STAGING_CA_DIRECTIVE}
 # 	}
 
-# 	# backend
-# 	@api host api.junjo.your-domain.com
-# 	handle @api {
-# 		reverse_proxy junjo-ai-studio-backend:26154
-# 	}
-
 # 	# ingestion
 # 	@ingestion host ingestion.junjo.your-domain.com
 # 	handle @ingestion {
 # 		reverse_proxy h2c://junjo-ai-studio-ingestion:26155
 # 	}
 
-# 	# frontend: fallback for the root domain
+# 	# studio (web UI and HTTP API): fallback for the root domain
 # 	handle {
-# 		reverse_proxy junjo-ai-studio-frontend:26153
+# 		reverse_proxy junjo-ai-studio-app:26154
 # 	}
 # }

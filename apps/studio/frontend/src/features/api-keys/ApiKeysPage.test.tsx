@@ -15,7 +15,7 @@ vi.mock('./components/OtelExporterGuide', () => ({
 describe('ApiKeysPage', () => {
   it('uses concise application telemetry copy', async () => {
     const user = userEvent.setup()
-    server.use(http.get(`${API_BASE}/api_keys`, () => HttpResponse.json([])))
+    server.use(http.get(`${API_BASE}/api/v1/api-keys`, () => HttpResponse.json([])))
 
     render(
       <Provider store={createAppStore()}>
@@ -46,7 +46,7 @@ describe('ApiKeysPage', () => {
 
   it('renders credentials in the shared table layout with copy and delete actions', async () => {
     server.use(
-      http.get(`${API_BASE}/api_keys`, () =>
+      http.get(`${API_BASE}/api/v1/api-keys`, () =>
         HttpResponse.json([
           {
             id: 'key-1',
@@ -112,8 +112,8 @@ describe('ApiKeysPage', () => {
     const user = userEvent.setup()
     const generatedKey = 'jtel_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-'
     server.use(
-      http.get(`${API_BASE}/api_keys`, () => HttpResponse.json([])),
-      http.post(`${API_BASE}/api_keys`, () =>
+      http.get(`${API_BASE}/api/v1/api-keys`, () => HttpResponse.json([])),
+      http.post(`${API_BASE}/api/v1/api-keys`, () =>
         HttpResponse.json(
           {
             id: 'key-created',

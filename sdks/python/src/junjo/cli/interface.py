@@ -35,6 +35,7 @@ class ConfigurationMetadata(CliInterfaceDto):
     name: str
     flag: str | None
     environment: str | None
+    stored_credential: str | None
     pyproject: str | None
     default: str | None
     purpose: str
@@ -90,6 +91,7 @@ EVALUATION_CONFIG = (
         name="Evaluation harness",
         flag="--harness module:object",
         environment=None,
+        stored_credential=None,
         pyproject="[tool.junjo.evaluation].harness",
         default=None,
         purpose=(
@@ -101,6 +103,7 @@ EVALUATION_CONFIG = (
         name="Studio backend base URL",
         flag="--studio-backend-base-url URL",
         environment="JUNJO_AI_STUDIO_BACKEND_BASE_URL",
+        stored_credential=None,
         pyproject=None,
         default=DEFAULT_STUDIO_BACKEND_BASE_URL,
         purpose="Selects the Junjo AI Studio control/query API origin.",
@@ -109,10 +112,13 @@ EVALUATION_CONFIG = (
         name="Developer access token",
         flag=None,
         environment="JUNJO_AI_STUDIO_CLI_TOKEN",
+        stored_credential="junjo auth login",
         pyproject=None,
         default=None,
         purpose=(
-            "Authenticates evaluation control and evidence queries. This is separate "
+            "Authenticates evaluation control and evidence queries. The environment variable "
+            "always takes precedence; without it, commands use the credential that junjo auth login "
+            "stored for the Studio origin. This is separate "
             "from JUNJO_AI_STUDIO_API_KEY, which applications use only for OTLP telemetry ingestion."
         ),
     ),
@@ -186,7 +192,7 @@ def build_evaluation_interface(parser: argparse.ArgumentParser) -> EvaluationCli
             )
         )
     return EvaluationCliInterface(
-        interface_version=1,
+        interface_version=2,
         purpose=(
             "Build Studio-backed datasets, execute application targets, compare binary "
             "outcomes, and hydrate exact execution evidence."
@@ -240,7 +246,8 @@ def render_evaluation_interface_markdown(interface: EvaluationCliInterface) -> s
         "",
     ]
     for item in interface.configuration:
-        sources = [value for value in (item.flag, item.environment, item.pyproject) if value is not None]
+        stored = None if item.stored_credential is None else f"credential stored by {item.stored_credential}"
+        sources = [value for value in (item.flag, item.environment, stored, item.pyproject) if value is not None]
         if item.default is not None:
             sources.append(f"default: {item.default}")
         source_text = "`, `".join(sources)

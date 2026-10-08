@@ -45,7 +45,7 @@ nested model replacement and validation exceptions.
 Start an instance of [Junjo AI Studio Minimal Build](https://github.com/mdrideout/junjo-ai-studio-minimal-build) for a turn-key way to see how this example streams debugging telemetry. This is optional. Junjo works with any OpenTelemetry provider.
 
 The linked minimal/prebuilt distribution serves its UI at
-`http://localhost:26153`. When running Studio from this monorepo for source
+`http://localhost:26154`. When running Studio from this monorepo for source
 development, the default local ports are:
 
 - UI: `http://localhost:26151`

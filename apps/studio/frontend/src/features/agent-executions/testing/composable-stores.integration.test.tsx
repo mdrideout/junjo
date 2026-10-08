@@ -14,7 +14,7 @@ import { agentPath, tracesPath } from '../../../util/telemetry-paths'
 
 it('hydrates both Store views and navigates from their transitions to the actual writer spans', async () => {
   const artifact = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
-    '../../../../../backend/tests/generated/composable_store_trace.json')
+    '../../../../../backend/evidence/tests/generated/composable_store_trace.json')
   const evidence = TraceEvidenceSchema.parse(JSON.parse(fs.readFileSync(artifact, 'utf8')))
   const agent = Object.values(evidence.executables_by_span_id).find((item) => item.executable_type === 'agent')!
   const workflow = Object.values(evidence.executables_by_span_id).find((item) => item.executable_type === 'workflow')!

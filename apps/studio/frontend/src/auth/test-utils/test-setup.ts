@@ -9,9 +9,7 @@
 
 import '@testing-library/jest-dom'
 import { beforeAll, afterEach, afterAll } from 'vitest'
-import { API_BASE, server } from './mock-server'
-
-window.runtimeConfig = { API_HOST: API_BASE }
+import { server } from './mock-server'
 
 if (window.matchMedia === undefined) {
   window.matchMedia = (query: string): MediaQueryList => ({

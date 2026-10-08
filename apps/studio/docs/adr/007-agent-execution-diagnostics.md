@@ -5,6 +5,12 @@ Application Store composition and telemetry contract 3 are governed by
 semantics supersede the original isolation-only restrictions below; private
 Agent runtime state remains isolated.
 
+Amended 2026-10-03 by
+[ADR-011](011-rust-backend-and-single-origin-studio.md), which governs the
+HTTP error body. Its one error body, a stable code and a message, supersedes
+the FastAPI `HTTPValidationError` envelope this ADR originally named for status
+422. Status 422 remains exclusive to caller validation.
+
 ## Status
 
 Accepted
@@ -204,8 +210,8 @@ Studio detail pages use `TraceEvidence` so one request and one frontend evidence
 store contain both the complete raw trace and its verified annotations.
 
 The HTTP boundary keeps caller validation and stored-evidence interpretation
-separate. FastAPI request and path validation exclusively owns status 422 and
-its `HTTPValidationError` envelope. A trace that can be normalized returns its
+separate. Request and path validation exclusively owns status 422, answered
+with ADR-011's one error body. A trace that can be normalized returns its
 raw evidence even when Agent or Workflow annotations are partial, malformed, or
 unsupported; those conditions appear as typed diagnostics in `TraceEvidence`.
 Not-found and physical-identity conflicts remain explicit transport outcomes.

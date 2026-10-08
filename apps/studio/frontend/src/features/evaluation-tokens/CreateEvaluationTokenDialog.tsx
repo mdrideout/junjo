@@ -3,39 +3,15 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { ActionButton } from '../../components/actions/action-button'
 import { Modal, ModalFooter } from '../../components/overlays/modal'
 import { useAppDispatch } from '../../root-store/hooks'
+import { AVAILABLE_SCOPES } from './available-scopes'
 import { createEvaluationToken } from './fetch/create-evaluation-token'
 import {
   EXPIRATION_PRESETS,
   expirationFromPreset,
   type ExpirationPreset,
 } from './expiration-presets'
-import type {
-  EvaluationTokenRead,
-  EvaluationTokenScope,
-} from './schemas'
+import type { EvaluationTokenRead } from './schemas'
 import { EvaluationTokensActions } from './store/slice'
-
-const AVAILABLE_SCOPES: ReadonlyArray<{
-  value: EvaluationTokenScope
-  label: string
-  description: string
-}> = [
-  {
-    value: 'evaluation:read',
-    label: 'Evaluation read',
-    description: 'List datasets, runs, attempts, and execution membership.',
-  },
-  {
-    value: 'evaluation:write',
-    label: 'Evaluation write',
-    description: 'Create datasets and cases, start runs, and record results.',
-  },
-  {
-    value: 'evidence:read',
-    label: 'Evidence read',
-    description: 'Resolve executions and retrieve their received trace evidence.',
-  },
-]
 
 export default function CreateEvaluationTokenDialog() {
   const dispatch = useAppDispatch()

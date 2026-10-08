@@ -31,7 +31,7 @@ describe('API key state', () => {
   it('keeps a fresh result, while stale and forced requests refresh it', async () => {
     let requestCount = 0
     server.use(
-      http.get(`${API_BASE}/api_keys`, () => {
+      http.get(`${API_BASE}/api/v1/api-keys`, () => {
         requestCount += 1
         return HttpResponse.json([API_KEY])
       }),
@@ -61,8 +61,8 @@ describe('API key state', () => {
   it('refreshes after a successful deletion', async () => {
     let listRequestCount = 0
     server.use(
-      http.delete(`${API_BASE}/api_keys/:keyId`, () => new HttpResponse(null, { status: 204 })),
-      http.get(`${API_BASE}/api_keys`, () => {
+      http.delete(`${API_BASE}/api/v1/api-keys/:keyId`, () => new HttpResponse(null, { status: 204 })),
+      http.get(`${API_BASE}/api/v1/api-keys`, () => {
         listRequestCount += 1
         return HttpResponse.json([])
       }),
@@ -85,8 +85,8 @@ describe('API key state', () => {
   it('keeps a deletion failure visible without refreshing the list', async () => {
     let listRequestCount = 0
     server.use(
-      http.delete(`${API_BASE}/api_keys/:keyId`, () => HttpResponse.json({}, { status: 500 })),
-      http.get(`${API_BASE}/api_keys`, () => {
+      http.delete(`${API_BASE}/api/v1/api-keys/:keyId`, () => HttpResponse.json({}, { status: 500 })),
+      http.get(`${API_BASE}/api/v1/api-keys`, () => {
         listRequestCount += 1
         return HttpResponse.json([])
       }),

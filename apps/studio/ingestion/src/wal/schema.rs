@@ -25,5 +25,7 @@ lazy_static::lazy_static! {
         Field::new("dropped_links_count", DataType::UInt32, false),
         Field::new("resource_attributes", DataType::Utf8, false),
         Field::new("resource_dropped_attributes_count", DataType::UInt32, false),
+        // The identifier of the API key that sent the span.
+        Field::new("api_key_id", DataType::Utf8, false),
     ]));
 }

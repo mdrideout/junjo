@@ -1,0 +1,13 @@
+services:
+  backend:
+    image: junjo-rsmig-app:proto2
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+    environment:
+      JUNJO_DIAGNOSTIC_BOUNDED_DEDUPE: "true"
+  ingestion:
+    image: junjo-rsmig-ingestion:0.85.0
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  auth-proxy:
+    image: junjo-rsmig-auth-proxy:local

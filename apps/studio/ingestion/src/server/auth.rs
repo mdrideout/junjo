@@ -14,12 +14,13 @@ const AUTH_METRICS_INTERVAL: Duration = Duration::from_secs(60);
 
 #[tonic::async_trait]
 trait ApiKeyValidator: Send + Sync {
-    async fn validate_api_key(&self, api_key: &str) -> anyhow::Result<bool>;
+    /// The identifier of a valid key, or nothing for a key that is not valid.
+    async fn validate_api_key(&self, api_key: &str) -> anyhow::Result<Option<Arc<str>>>;
 }
 
 #[tonic::async_trait]
 impl ApiKeyValidator for BackendClient {
-    async fn validate_api_key(&self, api_key: &str) -> anyhow::Result<bool> {
+    async fn validate_api_key(&self, api_key: &str) -> anyhow::Result<Option<Arc<str>>> {
         BackendClient::validate_api_key(self, api_key).await
     }
 }
@@ -41,10 +42,12 @@ enum RefreshFailure {
     Cancelled,
 }
 
-type RefreshResult = Result<bool, RefreshFailure>;
+/// The identifier of a valid key, or nothing for a key that is not valid.
+type RefreshResult = Result<Option<Arc<str>>, RefreshFailure>;
 
 #[derive(Debug)]
 struct PositiveCacheEntry {
+    key_id: Arc<str>,
     expires_at: Instant,
     insertion_sequence: u64,
 }
@@ -57,18 +60,24 @@ struct AuthState {
 }
 
 impl AuthState {
-    fn is_valid_cached(&mut self, key: &str, now: Instant) -> bool {
-        let Some(entry) = self.positive_entries.get(key) else {
-            return false;
-        };
+    /// The identifier of a key whose validation is still fresh.
+    fn cached_key_id(&mut self, key: &str, now: Instant) -> Option<Arc<str>> {
+        let entry = self.positive_entries.get(key)?;
         if entry.expires_at > now {
-            return true;
+            return Some(Arc::clone(&entry.key_id));
         }
         self.positive_entries.remove(key);
-        false
+        None
     }
 
-    fn insert_positive(&mut self, key: String, now: Instant, ttl: Duration, max_entries: usize) {
+    fn insert_positive(
+        &mut self,
+        key: String,
+        key_id: Arc<str>,
+        now: Instant,
+        ttl: Duration,
+        max_entries: usize,
+    ) {
         if ttl.is_zero() {
             return;
         }
@@ -91,6 +100,7 @@ impl AuthState {
         self.positive_entries.insert(
             key,
             PositiveCacheEntry {
+                key_id,
                 expires_at: now + ttl,
                 insertion_sequence: self.next_insertion_sequence,
             },
@@ -180,11 +190,11 @@ impl ApiKeyAuthInner {
         })
     }
 
-    async fn is_valid_cached(&self, key: &str) -> bool {
+    async fn cached_key_id(&self, key: &str) -> Option<Arc<str>> {
         if self.config.positive_cache_ttl.is_zero() {
-            return false;
+            return None;
         }
-        self.state.lock().await.is_valid_cached(key, Instant::now())
+        self.state.lock().await.cached_key_id(key, Instant::now())
     }
 
     async fn authoritative_refresh(&self, api_key: &str) -> RefreshResult {
@@ -213,13 +223,13 @@ impl ApiKeyAuthInner {
             .fetch_max(elapsed_micros, Ordering::Relaxed);
 
         match result {
-            Ok(Ok(true)) => {
+            Ok(Ok(Some(key_id))) => {
                 self.metrics.backend_valid.fetch_add(1, Ordering::Relaxed);
-                Ok(true)
+                Ok(Some(key_id))
             }
-            Ok(Ok(false)) => {
+            Ok(Ok(None)) => {
                 self.metrics.backend_invalid.fetch_add(1, Ordering::Relaxed);
-                Ok(false)
+                Ok(None)
             }
             Ok(Err(error)) => {
                 self.metrics
@@ -244,9 +254,10 @@ impl ApiKeyAuthInner {
             let sender = {
                 let mut state = inner.state.lock().await;
                 let sender = state.in_flight.remove(&key);
-                if result == Ok(true) {
+                if let Ok(Some(key_id)) = &result {
                     state.insert_positive(
                         key,
+                        Arc::clone(key_id),
                         Instant::now(),
                         inner.config.positive_cache_ttl,
                         inner.config.positive_cache_max_entries,
@@ -359,15 +370,22 @@ impl ApiKeyInterceptor {
         }
     }
 
-    pub async fn validate(&self, api_key: &str) -> Result<bool, Status> {
+    /// Whether the key is valid. Tests ask this way.
+    #[cfg(test)]
+    async fn validate(&self, api_key: &str) -> Result<bool, Status> {
+        Ok(self.authorize(api_key).await?.is_some())
+    }
+
+    /// The identifier of a valid key, or nothing for a key that is not valid.
+    pub async fn authorize(&self, api_key: &str) -> Result<Option<Arc<str>>, Status> {
         self.inner.metrics.requests.fetch_add(1, Ordering::Relaxed);
 
-        if self.inner.is_valid_cached(api_key).await {
+        if let Some(key_id) = self.inner.cached_key_id(api_key).await {
             self.inner
                 .metrics
                 .cache_hits
                 .fetch_add(1, Ordering::Relaxed);
-            return Ok(true);
+            return Ok(Some(key_id));
         }
 
         let Ok(_pending_permit) = Arc::clone(&self.inner.pending_slots).try_acquire_owned() else {
@@ -383,14 +401,17 @@ impl ApiKeyInterceptor {
         let key = api_key.to_string();
         let (mut receiver, start_refresh) = {
             let mut state = self.inner.state.lock().await;
-            if !self.inner.config.positive_cache_ttl.is_zero()
-                && state.is_valid_cached(api_key, Instant::now())
-            {
+            let cached = if self.inner.config.positive_cache_ttl.is_zero() {
+                None
+            } else {
+                state.cached_key_id(api_key, Instant::now())
+            };
+            if let Some(key_id) = cached {
                 self.inner
                     .metrics
                     .cache_hits
                     .fetch_add(1, Ordering::Relaxed);
-                return Ok(true);
+                return Ok(Some(key_id));
             }
             if let Some(sender) = state.in_flight.get(&key) {
                 self.inner
@@ -414,7 +435,7 @@ impl ApiKeyInterceptor {
         }
 
         let result = loop {
-            let current = *receiver.borrow();
+            let current = receiver.borrow().clone();
             if let Some(result) = current {
                 break result;
             }
@@ -424,7 +445,7 @@ impl ApiKeyInterceptor {
         };
 
         match result {
-            Ok(is_valid) => Ok(is_valid),
+            Ok(key_id) => Ok(key_id),
             Err(
                 RefreshFailure::BackendUnavailable
                 | RefreshFailure::Timeout
@@ -454,6 +475,11 @@ mod tests {
     use std::sync::Mutex as StdMutex;
     use tokio::sync::Notify;
 
+    /// What a validator answers for a valid key and for one that is not.
+    fn key_id(is_valid: bool) -> Option<Arc<str>> {
+        is_valid.then(|| Arc::from("key-1"))
+    }
+
     fn config(ttl: Duration) -> ApiKeyAuthConfig {
         ApiKeyAuthConfig {
             positive_cache_ttl: ttl,
@@ -480,9 +506,14 @@ mod tests {
 
     #[tonic::async_trait]
     impl ApiKeyValidator for SequenceValidator {
-        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<bool> {
+        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<Option<Arc<str>>> {
             self.calls.fetch_add(1, Ordering::SeqCst);
-            self.results.lock().unwrap().pop_front().unwrap()
+            self.results
+                .lock()
+                .unwrap()
+                .pop_front()
+                .unwrap()
+                .map(key_id)
         }
     }
 
@@ -504,9 +535,9 @@ mod tests {
 
     #[tonic::async_trait]
     impl ApiKeyValidator for MutableValidator {
-        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<bool> {
+        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<Option<Arc<str>>> {
             self.calls.fetch_add(1, Ordering::SeqCst);
-            Ok(self.result.load(Ordering::SeqCst))
+            Ok(key_id(self.result.load(Ordering::SeqCst)))
         }
     }
 
@@ -519,25 +550,25 @@ mod tests {
 
     #[tonic::async_trait]
     impl ApiKeyValidator for SnapshotBlockingValidator {
-        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<bool> {
+        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<Option<Arc<str>>> {
             let call = self.calls.fetch_add(1, Ordering::SeqCst);
             let authoritative_result = self.result.load(Ordering::SeqCst);
             if call == 0 {
                 self.started.notify_waiters();
                 self.release.notified().await;
             }
-            Ok(authoritative_result)
+            Ok(key_id(authoritative_result))
         }
     }
 
     #[tonic::async_trait]
     impl ApiKeyValidator for TimeoutThenValidValidator {
-        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<bool> {
+        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<Option<Arc<str>>> {
             let call = self.calls.fetch_add(1, Ordering::SeqCst);
             if call == 0 {
                 std::future::pending::<()>().await;
             }
-            Ok(true)
+            Ok(key_id(true))
         }
     }
 
@@ -554,11 +585,11 @@ mod tests {
 
     #[tonic::async_trait]
     impl ApiKeyValidator for BlockingValidator {
-        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<bool> {
+        async fn validate_api_key(&self, _api_key: &str) -> anyhow::Result<Option<Arc<str>>> {
             self.calls.fetch_add(1, Ordering::SeqCst);
             self.started.notify_waiters();
             self.release.notified().await;
-            Ok(self.result.load(Ordering::SeqCst))
+            Ok(key_id(self.result.load(Ordering::SeqCst)))
         }
     }
 

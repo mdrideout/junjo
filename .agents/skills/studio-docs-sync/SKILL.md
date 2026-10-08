@@ -29,7 +29,7 @@ description: Use when auditing Junjo AI Studio docs or repo-local skills against
    - Studio ADRs under `apps/studio/docs/adr/` and
      `apps/studio/ingestion/adr/`
    - near-code docs such as `apps/studio/TESTING.md` and
-     `apps/studio/backend/app/db_sqlite/README.md`
+     `apps/studio/backend/README.md`
 2. Start from current code and tests.
 3. Check for stale file references, contradictory decisions, duplicated
    sources of truth, runtime defaults copied into prose, and implementation

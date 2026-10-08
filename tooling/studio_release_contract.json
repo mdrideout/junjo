@@ -25,10 +25,7 @@
   ],
   "images": {
     "backend": {
-      "repository": "mdrideout/junjo-ai-studio-backend"
-    },
-    "frontend": {
-      "repository": "mdrideout/junjo-ai-studio-frontend"
+      "repository": "mdrideout/junjo-ai-studio-app"
     },
     "ingestion": {
       "repository": "mdrideout/junjo-ai-studio-ingestion"

@@ -4,12 +4,12 @@
 
 # Rust build artifacts
 ingestion/target/
+backend/target/
 
-# Python virtual environments
-backend/.venv/
-backend/__pycache__/
+# Python caches and environments
 **/__pycache__/
 *.pyc
+ingestion/benchmarks/.venv/
 
 # Node modules
 frontend/node_modules/

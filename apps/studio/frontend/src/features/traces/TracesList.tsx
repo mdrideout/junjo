@@ -1,11 +1,10 @@
 import { useParams } from 'react-router'
 import { useEffect, useState } from 'react'
 import { OtelSpan } from '../traces/schemas/schemas'
-import { getApiHost } from '../../config'
 import { observabilityServicePath } from '../../util/telemetry-paths'
 import TraceListItem from './TraceListItem'
 
-export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
+export default function TracesList({ filterLLM, apiKeyId }: { filterLLM: boolean; apiKeyId: string }) {
   const { serviceName } = useParams<{ serviceName: string }>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -16,11 +15,14 @@ export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
       try {
         setLoading(true)
         setError(false)
-        // Use Python backend endpoints
+        // Use the backend's span endpoints
         const rootSpansPath = observabilityServicePath(serviceName ?? '', 'spans/root')
-        const endpoint = filterLLM ? `${rootSpansPath}?has_llm=true` : rootSpansPath
-        const apiHost = getApiHost()
-        const response = await fetch(`${apiHost}${endpoint}`, {
+        const parameters = new URLSearchParams()
+        if (filterLLM) parameters.set('has_llm', 'true')
+        if (apiKeyId !== '') parameters.set('api_key_id', apiKeyId)
+        const query = parameters.toString()
+        const endpoint = query === '' ? rootSpansPath : `${rootSpansPath}?${query}`
+        const response = await fetch(endpoint, {
           credentials: 'include',
         })
         if (!response.ok) {
@@ -36,7 +38,7 @@ export default function TracesList({ filterLLM }: { filterLLM: boolean }) {
     }
 
     fetchTraces()
-  }, [serviceName, filterLLM])
+  }, [serviceName, filterLLM, apiKeyId])
 
   if (loading) {
     return <div>Loading...</div>

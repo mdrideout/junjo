@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use opentelemetry_proto::tonic::common::v1::{any_value, AnyValue, KeyValue};
 use opentelemetry_proto::tonic::resource::v1::Resource;
 use opentelemetry_proto::tonic::trace::v1::Span;
@@ -27,11 +29,15 @@ pub struct SpanRecord {
     pub dropped_links_count: u32,
     pub resource_attributes: String,
     pub resource_dropped_attributes_count: u32,
+    /// The identifier of the API key that sent the span. Never the key value.
+    /// Every span of one export shares it.
+    pub api_key_id: Arc<str>,
 }
 
 impl SpanRecord {
-    /// Convert an OTLP span and resource to a SpanRecord.
-    pub fn from_otlp(span: &Span, resource: Option<&Resource>) -> Self {
+    /// Convert an OTLP span and resource to a SpanRecord, sent with the API
+    /// key that has this identifier.
+    pub fn from_otlp(span: &Span, resource: Option<&Resource>, api_key_id: &Arc<str>) -> Self {
         let span_id = hex::encode(&span.span_id);
         let trace_id = hex::encode(&span.trace_id);
         let parent_span_id = if span.parent_span_id.is_empty() {
@@ -101,6 +107,7 @@ impl SpanRecord {
             dropped_links_count: span.dropped_links_count,
             resource_attributes,
             resource_dropped_attributes_count,
+            api_key_id: Arc::clone(api_key_id),
         }
     }
 }
@@ -207,22 +214,29 @@ mod tests {
 
     #[test]
     fn shared_store_contract_survives_otlp_wal_and_parquet() {
-        use arrow::array::StringArray;
         use crate::wal::ArrowWal;
-        use parquet::arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder};
+        use arrow::array::StringArray;
+        use parquet::arrow::{arrow_reader::ParquetRecordBatchReaderBuilder, ArrowWriter};
         use std::fs::File;
         use tempfile::tempdir;
 
         fn attributes(value: &JsonValue) -> Vec<KeyValue> {
-            value.as_object().unwrap().iter().map(|(key, value)| {
-                let value = match value {
-                    JsonValue::String(text) => any_value::Value::StringValue(text.clone()),
-                    JsonValue::Bool(flag) => any_value::Value::BoolValue(*flag),
-                    JsonValue::Number(number) => any_value::Value::IntValue(number.as_i64().unwrap()),
-                    _ => panic!("Unexpected canonical attribute type"),
-                };
-                key_value(key, AnyValue { value: Some(value) })
-            }).collect()
+            value
+                .as_object()
+                .unwrap()
+                .iter()
+                .map(|(key, value)| {
+                    let value = match value {
+                        JsonValue::String(text) => any_value::Value::StringValue(text.clone()),
+                        JsonValue::Bool(flag) => any_value::Value::BoolValue(*flag),
+                        JsonValue::Number(number) => {
+                            any_value::Value::IntValue(number.as_i64().unwrap())
+                        }
+                        _ => panic!("Unexpected canonical attribute type"),
+                    };
+                    key_value(key, AnyValue { value: Some(value) })
+                })
+                .collect()
         }
 
         let fixture: JsonValue = serde_json::from_str(include_str!(
@@ -235,35 +249,79 @@ mod tests {
             let span = Span {
                 trace_id: hex::decode(raw["trace_id"].as_str().unwrap()).unwrap(),
                 span_id: hex::decode(raw["span_id"].as_str().unwrap()).unwrap(),
-                parent_span_id: raw["parent_span_id"].as_str().map(|value| hex::decode(value).unwrap()).unwrap_or_default(),
+                parent_span_id: raw["parent_span_id"]
+                    .as_str()
+                    .map(|value| hex::decode(value).unwrap())
+                    .unwrap_or_default(),
                 attributes: attributes(&raw["attributes_json"]),
-                events: raw["events_json"].as_array().unwrap().iter().map(|event| Event {
-                    name: event["name"].as_str().unwrap().to_string(),
-                    time_unix_nano: event["timeUnixNano"].as_str().unwrap().parse().unwrap(),
-                    attributes: attributes(&event["attributes"]),
-                    dropped_attributes_count: event["droppedAttributesCount"].as_u64().unwrap() as u32,
-                }).collect(),
+                events: raw["events_json"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|event| Event {
+                        name: event["name"].as_str().unwrap().to_string(),
+                        time_unix_nano: event["timeUnixNano"].as_str().unwrap().parse().unwrap(),
+                        attributes: attributes(&event["attributes"]),
+                        dropped_attributes_count: event["droppedAttributesCount"].as_u64().unwrap()
+                            as u32,
+                    })
+                    .collect(),
                 ..Default::default()
             };
-            wal.write_span(SpanRecord::from_otlp(&span, None)).unwrap();
+            wal.write_span(SpanRecord::from_otlp(&span, None, &Arc::from("key-1")))
+                .unwrap();
         }
         wal.flush_pending().unwrap();
         let batches = wal.read_batches().unwrap();
         let parquet_path = dir.path().join("shared.parquet");
-        let mut writer = ArrowWriter::try_new(File::create(&parquet_path).unwrap(), batches[0].schema(), None).unwrap();
-        for batch in &batches { writer.write(batch).unwrap(); }
+        let mut writer = ArrowWriter::try_new(
+            File::create(&parquet_path).unwrap(),
+            batches[0].schema(),
+            None,
+        )
+        .unwrap();
+        for batch in &batches {
+            writer.write(batch).unwrap();
+        }
         writer.close().unwrap();
-        let reader = ParquetRecordBatchReaderBuilder::try_new(File::open(parquet_path).unwrap()).unwrap().build().unwrap();
+        let reader = ParquetRecordBatchReaderBuilder::try_new(File::open(parquet_path).unwrap())
+            .unwrap()
+            .build()
+            .unwrap();
         let mut observed = 0;
         for batch in reader {
             let batch = batch.unwrap();
-            let ids = batch.column_by_name("span_id").unwrap().as_any().downcast_ref::<StringArray>().unwrap();
-            let attrs = batch.column_by_name("attributes").unwrap().as_any().downcast_ref::<StringArray>().unwrap();
-            let events = batch.column_by_name("events").unwrap().as_any().downcast_ref::<StringArray>().unwrap();
+            let ids = batch
+                .column_by_name("span_id")
+                .unwrap()
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .unwrap();
+            let attrs = batch
+                .column_by_name("attributes")
+                .unwrap()
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .unwrap();
+            let events = batch
+                .column_by_name("events")
+                .unwrap()
+                .as_any()
+                .downcast_ref::<StringArray>()
+                .unwrap();
             for row in 0..batch.num_rows() {
-                let expected = source.iter().find(|item| item["span_id"] == ids.value(row)).unwrap();
-                assert_eq!(serde_json::from_str::<JsonValue>(attrs.value(row)).unwrap(), expected["attributes_json"]);
-                assert_eq!(serde_json::from_str::<JsonValue>(events.value(row)).unwrap(), expected["events_json"]);
+                let expected = source
+                    .iter()
+                    .find(|item| item["span_id"] == ids.value(row))
+                    .unwrap();
+                assert_eq!(
+                    serde_json::from_str::<JsonValue>(attrs.value(row)).unwrap(),
+                    expected["attributes_json"]
+                );
+                assert_eq!(
+                    serde_json::from_str::<JsonValue>(events.value(row)).unwrap(),
+                    expected["events_json"]
+                );
                 observed += 1;
             }
         }
@@ -343,7 +401,7 @@ mod tests {
             entity_refs: vec![],
         };
 
-        let record = SpanRecord::from_otlp(&span, Some(&resource));
+        let record = SpanRecord::from_otlp(&span, Some(&resource), &Arc::from("key-1"));
         let attributes: serde_json::Value = serde_json::from_str(&record.attributes).unwrap();
         let resource_attributes: serde_json::Value =
             serde_json::from_str(&record.resource_attributes).unwrap();
@@ -429,7 +487,7 @@ mod tests {
             ..Default::default()
         };
 
-        let record = SpanRecord::from_otlp(&span, None);
+        let record = SpanRecord::from_otlp(&span, None, &Arc::from("key-1"));
         let events: serde_json::Value = serde_json::from_str(&record.events).unwrap();
         let event_list = events.as_array().unwrap();
 

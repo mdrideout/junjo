@@ -122,3 +122,24 @@ class AttemptEvidenceUnavailable(StudioError):
 
 class RunComparisonError(StudioError):
     """Two evaluation runs cannot be paired by exact locked case membership."""
+
+
+class CliSignInPending(StudioError):
+    """A CLI browser sign-in has not been approved or denied yet; collect again after the interval."""
+
+    def __init__(self) -> None:
+        super().__init__("The CLI sign-in has not been approved or denied yet.")
+
+
+class CliSignInDenied(StudioError):
+    """A person denied the CLI browser sign-in; no token was minted."""
+
+    def __init__(self) -> None:
+        super().__init__("The CLI sign-in was denied.")
+
+
+class CliSignInExpired(StudioError):
+    """The device code of a CLI browser sign-in is unknown, already used, or expired."""
+
+    def __init__(self) -> None:
+        super().__init__("The CLI sign-in is unknown, already used, or expired. Start a new sign-in.")

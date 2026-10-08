@@ -28,12 +28,18 @@ from junjo.studio import (
     AttemptResultWrite,
     CaseCreate,
     CaseRead,
+    CliSignInStart,
+    CliSignInStarted,
+    CliSignInToken,
+    CliSignInTokenRequest,
     ConflictResponse,
+    CurrentTokenRead,
     DatasetCreate,
     DatasetDetail,
     DatasetList,
     DatasetRead,
     DatasetSummary,
+    ErrorResponse,
     EvaluationNameFacet,
     EvidenceMembershipItem,
     EvidenceMembershipList,
@@ -52,6 +58,7 @@ from junjo.studio import (
     StudioHealth,
     TargetFacet,
     TargetKind,
+    TokenScope,
     TraceEvidenceRead,
 )
 
@@ -65,8 +72,8 @@ def _openapi() -> Schema:
     return json.loads(OPENAPI_PATH.read_text(encoding="utf-8"))
 
 
-def _response_ref(operation: Schema) -> str:
-    return operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].rsplit(
+def _response_ref(operation: Schema, status: str = "200") -> str:
+    return operation["responses"][status]["content"]["application/json"]["schema"]["$ref"].rsplit(
         "/",
         1,
     )[1]
@@ -221,6 +228,71 @@ def test_client_operation_routes_and_models_are_the_studio_openapi_contract() ->
         assert _response_ref(operation) == response_model
 
 
+def test_cli_sign_in_and_current_token_routes_and_models_are_the_studio_openapi_contract() -> None:
+    document = _openapi()
+    token_required = [{"EvaluationControlToken": []}]
+
+    for (
+        method,
+        path,
+        operation_id,
+        request_model,
+        success_status,
+        response_model,
+        security,
+    ) in [
+        (
+            "post",
+            "/api/v1/cli-sign-ins",
+            "start_cli_sign_in",
+            "CliSignInStart",
+            "201",
+            "CliSignInStarted",
+            None,
+        ),
+        (
+            "post",
+            "/api/v1/cli-sign-ins/token",
+            "collect_cli_sign_in_token",
+            "CliSignInTokenRequest",
+            "200",
+            "CliSignInToken",
+            None,
+        ),
+        (
+            "get",
+            "/api/v1/evaluation-tokens/current",
+            "get_current_evaluation_token",
+            None,
+            "200",
+            "EvaluationTokenCurrent",
+            token_required,
+        ),
+        (
+            "delete",
+            "/api/v1/evaluation-tokens/current",
+            "delete_current_evaluation_token",
+            None,
+            "204",
+            None,
+            token_required,
+        ),
+    ]:
+        operation = document["paths"][path][method]
+        assert operation["operationId"] == operation_id
+        assert _request_ref(operation) == request_model
+        if response_model is None:
+            assert "content" not in operation["responses"][success_status]
+        else:
+            assert _response_ref(operation, success_status) == response_model
+        # Starting and collecting a sign-in need no token; a token describes and revokes itself.
+        assert operation.get("security") == security
+
+    # The client reads the outcome of an undecided, denied, or expired sign-in from this body.
+    collect = document["paths"]["/api/v1/cli-sign-ins/token"]["post"]
+    assert _response_ref(collect, "400") == "ErrorResponse"
+
+
 def test_sdk_request_and_response_fields_match_openapi_components() -> None:
     document = _openapi()
     components = document["components"]["schemas"]
@@ -267,6 +339,11 @@ def test_sdk_request_and_response_fields_match_openapi_components() -> None:
         AttemptEvidenceSpanRequest: "SelectedSpanRequest",
         AttemptEvidenceSpanItem: "SelectedSpanEvidence",
         AttemptEvidenceSpans: "SelectedSpanEvidenceResponse",
+        CliSignInStart: "CliSignInStart",
+        CliSignInStarted: "CliSignInStarted",
+        CliSignInTokenRequest: "CliSignInTokenRequest",
+        CliSignInToken: "CliSignInToken",
+        CurrentTokenRead: "EvaluationTokenCurrent",
     }
     opaque_nested_fields = {
         ("ExecutableManifestEntry", "integrity"),
@@ -274,6 +351,11 @@ def test_sdk_request_and_response_fields_match_openapi_components() -> None:
         ("ExecutableRelationships", "parent"),
         ("ExecutableRelationships", "nested"),
         ("TraceEvidenceDiagnostic", "issue"),
+    }
+    # The SDK holds a token value as a secret string so that it is never
+    # represented or serialized; Studio's contract describes a plain string.
+    secret_string_fields = {
+        ("CliSignInToken", "access_token"),
     }
 
     for sdk_model, component_name in model_components.items():
@@ -295,6 +377,11 @@ def test_sdk_request_and_response_fields_match_openapi_components() -> None:
                     property_name,
                 )
                 in opaque_nested_fields
+                or (
+                    component_name,
+                    property_name,
+                )
+                in secret_string_fields
             ):
                 assert _outer_type(sdk_property, sdk_schema) == _outer_type(
                     studio_property,
@@ -320,6 +407,26 @@ def test_health_dto_covers_every_openapi_health_field() -> None:
     sdk_schema = StudioHealth.model_json_schema()
     assert set(sdk_schema["properties"]) == set(studio_schema["properties"])
     assert set(sdk_schema["required"]) == {"status", "version", "app_name"}
+
+
+def test_token_scopes_are_the_studio_openapi_token_scopes() -> None:
+    document = _openapi()
+    studio_values = set(document["components"]["schemas"]["EvaluationTokenScope"]["enum"])
+    assert studio_values == {member.value for member in TokenScope}
+    assert studio_values == {"evaluation:read", "evaluation:write", "evidence:read"}
+
+
+def test_error_dto_covers_every_openapi_error_field() -> None:
+    document = _openapi()
+    studio_schema = document["components"]["schemas"]["ErrorResponse"]
+    sdk_schema = ErrorResponse.model_json_schema()
+    assert set(sdk_schema["properties"]) == set(studio_schema["properties"])
+    assert set(sdk_schema["required"]) == set(studio_schema["required"]) == {"code", "message"}
+    for property_name in sdk_schema["properties"]:
+        assert _outer_type(sdk_schema["properties"][property_name], sdk_schema) == _outer_type(
+            studio_schema["properties"][property_name],
+            document,
+        )
 
 
 def _shallow_signature(schema: Schema, root: Schema) -> Any:

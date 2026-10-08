@@ -1,4 +1,3 @@
-import { getApiHost } from '../../../config'
 import {
   EvaluationTokenListSchema,
   type EvaluationTokenList,
@@ -10,7 +9,7 @@ export async function listEvaluationTokens(
   const parameters = new URLSearchParams({ limit: '50' })
   if (cursor !== undefined) parameters.set('cursor', cursor)
   const response = await fetch(
-    `${getApiHost()}/api/v1/evaluation-tokens?${parameters.toString()}`,
+    `/api/v1/evaluation-tokens?${parameters.toString()}`,
     { credentials: 'include' },
   )
   if (!response.ok) {

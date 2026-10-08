@@ -5,6 +5,12 @@ Baseline audited on 2026-09-20 at repository revision `1faadb5`. This map record
 the implemented scope and its original rationale; validation evidence is retained
 in [the implementation report](evidence/composable-stores-2026-09-20/README.md).
 
+Since 2026-10-03 the Studio backend is a Rust service
+([Studio ADR-011](../../apps/studio/docs/adr/011-rust-backend-and-single-origin-studio.md)).
+The Python backend modules this map links to no longer exist. The same evidence
+logic is in the [evidence crate](../../apps/studio/backend/evidence), and the
+routes and queries are in the [server crate](../../apps/studio/backend/server).
+
 ## Outcome and scope
 
 Support both application choices explicitly:

@@ -5,10 +5,8 @@ on:
     branches: [master]
     paths:
       - "apps/studio/VERSION"
-      - "apps/studio/backend/app/main.py"
-      - "apps/studio/backend/app/common/responses.py"
-      - "apps/studio/backend/pyproject.toml"
-      - "apps/studio/backend/uv.lock"
+      - "apps/studio/backend/Cargo.toml"
+      - "apps/studio/backend/Cargo.lock"
       - "apps/studio/ingestion/Cargo.toml"
       - "apps/studio/ingestion/Cargo.lock"
       - "apps/studio/frontend/package.json"

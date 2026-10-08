@@ -1,0 +1,655 @@
+--- benchmarks/auth_path_benchmark.repo.py
++++ benchmarks/auth_path_benchmark.py
+@@ -67,6 +67,29 @@
+ 
+ 
+ @dataclass(frozen=True)
++class Diagnostics:
++    """Evidence-run observation settings. Not part of the compared workload."""
++
++    idle_seconds: float = 0
++    observer_image: str = ""
++    observer_script: str = ""
++    index_deadline_seconds: float = 900
++    trace_queries: int = 0
++    list_queries: int = 0
++    # Spans exported after indexing completes and left unflushed, so the
++    # filtered queries run with a hot tier present.
++    hot_spans: int = 0
++    # What the workload's query workers ask for: services, trace, or list.
++    workload_query: str = "services"
++    # A command started with the workload: the real frontend in a browser and
++    # the real SDK, querying while spans arrive. It writes JSON to RW_OUT.
++    side_command: str = ""
++    # Export a small marker trace every two seconds during the workload and
++    # time how long it takes to become readable.
++    freshness_probe: bool = False
++
++
++@dataclass(frozen=True)
+ class BenchmarkConfig:
+     implementation_label: str
+     cache_ttl_seconds: int
+@@ -287,6 +310,26 @@
+                 end_time_unix_nano=now_ns + 1_000,
+             )
+         )
++    classifications = [
++        {"junjo.span_type": "workflow"},
++        {"junjo.span_type": "agent"},
++        {"openinference.span.kind": "LLM"},
++        {"gen_ai.provider.name": "xai"},
++        {"gen_ai.operation.name": "chat"},
++        {"junjo.span_type": "node"},
++    ]
++    for index, span in enumerate(spans):
++        attributes = {
++            **classifications[index % 6],
++            "input": "Synthetic request: 日本語",
++            "model": "synthetic",
++        }
++        for key, value in attributes.items():
++            span.attributes.append(
++                common_pb2.KeyValue(
++                    key=key, value=common_pb2.AnyValue(string_value=value)
++                )
++            )
+     return trace_service_pb2.ExportTraceServiceRequest(
+         resource_spans=[
+             trace_pb2.ResourceSpans(
+@@ -294,7 +337,10 @@
+                     attributes=[
+                         common_pb2.KeyValue(
+                             key="service.name",
+-                            value=common_pb2.AnyValue(string_value="auth-benchmark"),
++                            value=common_pb2.AnyValue(
++                                string_value="metadata-benchmark-"
++                                + str(exporter_id % 3)
++                            ),
+                         )
+                     ]
+                 ),
+@@ -408,18 +454,109 @@
+     stop: asyncio.Event,
+     latencies_ms: list[float],
+     result_codes: Counter[str],
++    paths: list[str],
++    rows: Counter[str] | None,
++    offset: int,
+ ) -> None:
++    index = offset
+     while not stop.is_set():
++        path = paths[index % len(paths)]
++        index += 1
+         started = time.perf_counter()
+         try:
+-            response = await client.get("/api/v1/observability/services", timeout=10)
++            response = await client.get(path, timeout=60)
+             result_codes[str(response.status_code)] += 1
++            if rows is not None and response.status_code == 200:
++                rows[str(len(response.json()))] += 1
+         except httpx.HTTPError:
+             result_codes["transport_error"] += 1
+         latencies_ms.append((time.perf_counter() - started) * 1000)
+         await asyncio.sleep(0.05)
++
++
++async def freshness_probe(
++    client: httpx.AsyncClient,
++    ingestion_target: str,
++    api_key: str,
++    stop: asyncio.Event,
++    results: list[dict[str, Any]],
++) -> None:
++    """Time from an accepted export to its spans being readable.
++
++    Every two seconds one trace of three spans is exported, then its trace
++    route is asked every 100 ms until it returns the three spans.
++    """
++    number = 0
++    async with grpc.aio.insecure_channel(ingestion_target) as channel:
++        stub = trace_service_pb2_grpc.TraceServiceStub(channel)
++        while not stop.is_set():
++            number += 1
++            request = make_export_request(3, 0)
++            trace_id = b"fresh" + number.to_bytes(11, "big")
++            for index, span in enumerate(request.resource_spans[0].scope_spans[0].spans):
++                span.trace_id = trace_id
++                span.span_id = (0xF0000000 + number * 8 + index).to_bytes(8, "big")
++            # Ingestion can refuse an export when it is saturated. An exporter
++            # retries, and so does the probe: the clock starts at acceptance.
++            refused = 0
++            code, _ = await export_once(stub, request, api_key)
++            while code == "UNAVAILABLE" and refused < 20:
++                refused += 1
++                await asyncio.sleep(0.05)
++                code, _ = await export_once(stub, request, api_key)
++            accepted = time.perf_counter()
++            entry: dict[str, Any] = {
++                "at_epoch_ms": int(time.time() * 1000),
++                "export_code": code,
++                "exports_refused_first": refused,
++                "visible_ms": None,
++                "polls": 0,
++                "codes": {},
++            }
++            if code == "OK":
++                path = f"/api/v1/observability/traces/{trace_id.hex()}/spans"
++                while time.perf_counter() - accepted < 30:
++                    entry["polls"] += 1
++                    try:
++                        response = await client.get(path, timeout=30)
++                        status = str(response.status_code)
++                        entry["codes"][status] = entry["codes"].get(status, 0) + 1
++                        if response.status_code == 200 and len(response.json()) == 3:
++                            entry["visible_ms"] = (time.perf_counter() - accepted) * 1000
++                            break
++                    except httpx.HTTPError:
++                        entry["codes"]["transport_error"] = (
++                            entry["codes"].get("transport_error", 0) + 1
++                        )
++                    await asyncio.sleep(0.1)
++            results.append(entry)
++            try:
++                await asyncio.wait_for(stop.wait(), timeout=2)
++            except asyncio.TimeoutError:
++                pass
++
++
++def workload_query_paths(kind: str, config: "BenchmarkConfig") -> list[str]:
++    """What the workload's query workers ask for while spans arrive."""
++    if kind == "services":
++        return ["/api/v1/observability/services"]
++    if kind == "trace":
++        # The first export of each exporter: one trace of spans_per_export
++        # spans, sent in the first moments of the workload.
++        from delivery import workload_trace_id
+ 
++        return [
++            f"/api/v1/observability/traces/{workload_trace_id(exporter_id, 0).hex()}/spans"
++            for exporter_id in range(config.exporters)
++        ]
++    if kind == "list":
++        return [
++            f"/api/v1/observability/services/metadata-benchmark-{index}/spans/root"
++            for index in range(3)
++        ]
++    raise ValueError(f"unknown workload query kind {kind}")
+ 
++
+ def parse_memory_mib(value: str) -> float:
+     match = re.fullmatch(r"([0-9.]+)\s*([KMGT]?i?B)", value.strip())
+     if match is None:
+@@ -809,6 +946,68 @@
+     return results
+ 
+ 
++MEMORY_BREAKDOWN_COMMAND = (
++    'echo "memory.current $(cat /sys/fs/cgroup/memory.current)"; '
++    'echo "memory.peak $(cat /sys/fs/cgroup/memory.peak)"; '
++    "grep -E '^(anon|file|kernel|shmem|file_mapped|inactive_file|active_file|"
++    "inactive_anon|active_anon|slab|sock|pagetables|kernel_stack) ' "
++    "/sys/fs/cgroup/memory.stat; "
++    "sed 's/^/events./' /sys/fs/cgroup/memory.events; "
++    "self=$$; for pid in $(cat /sys/fs/cgroup/cgroup.procs); do "
++    '[ "$pid" = "$self" ] && continue; '
++    "comm=$(cat /proc/$pid/comm 2>/dev/null || true); "
++    "rss=$(awk '/^VmRSS:/ {print $2}' /proc/$pid/status 2>/dev/null); "
++    "anon=$(awk '/^RssAnon:/ {print $2}' /proc/$pid/status 2>/dev/null); "
++    "threads=$(awk '/^Threads:/ {print $2}' /proc/$pid/status 2>/dev/null); "
++    'echo "process $pid ${comm:-gone} ${rss:-0} ${anon:-0} ${threads:-0}"; done'
++)
++
++
++def memory_breakdown(environment: dict[str, str], use_auth_proxy: bool) -> dict:
++    """Read cgroup and per-process memory for both services, inside each container."""
++    breakdown = {}
++    for service in ("backend", "ingestion"):
++        container_id = run(
++            compose_command(use_auth_proxy, "ps", "--quiet", service),
++            env=environment,
++        ).stdout.strip()
++        output = run(
++            ["docker", "exec", container_id, "sh", "-c", MEMORY_BREAKDOWN_COMMAND],
++            env=environment,
++        ).stdout
++        item: dict[str, Any] = {"stat": {}, "events": {}, "processes": []}
++        for line in output.splitlines():
++            parts = line.split()
++            if not parts:
++                continue
++            if parts[0] == "memory.current":
++                item["memory_current_bytes"] = int(parts[1])
++            elif parts[0] == "memory.peak":
++                item["memory_peak_bytes"] = int(parts[1])
++            elif parts[0].startswith("events."):
++                item["events"][parts[0][7:]] = int(parts[1])
++            elif parts[0] == "process":
++                rss_kib = int(parts[3])
++                if rss_kib and parts[2] not in {"sh", "cat", "awk", "grep", "sed"}:
++                    item["processes"].append(
++                        {
++                            "pid": int(parts[1]),
++                            "comm": parts[2],
++                            "rss_kib": rss_kib,
++                            "rss_anon_kib": int(parts[4]),
++                            "threads": int(parts[5]),
++                        }
++                    )
++            elif len(parts) == 2:
++                item["stat"][parts[0]] = int(parts[1])
++        item["working_set_bytes"] = item["memory_current_bytes"] - item["stat"].get(
++            "inactive_file", 0
++        )
++        item["process_rss_kib"] = sum(p["rss_kib"] for p in item["processes"])
++        breakdown[service] = item
++    return breakdown
++
++
+ def container_metrics(
+     environment: dict[str, str], use_auth_proxy: bool, *, stopped: bool = False
+ ) -> dict:
+@@ -822,6 +1021,14 @@
+             run(["docker", "inspect", container_id], env=environment).stdout
+         )[0]
+         item = {
++            "mounts": [
++                {
++                    "source": mount["Source"],
++                    "destination": mount["Destination"],
++                    "type": mount["Type"],
++                }
++                for mount in info["Mounts"]
++            ],
+             "image_id": info["Image"],
+             "state": info["State"]["Status"],
+             "exit_code": info["State"]["ExitCode"],
+@@ -855,10 +1062,99 @@
+                 / 1_000_000
+             )
+             item["peak_cgroup_memory_bytes"] = int(lines[-1])
++            item["cpu_stat"] = {
++                line.split()[0]: int(line.split()[1]) for line in lines[:-1]
++            }
+         metrics[service] = item
+     return metrics
++
++
++async def filtered_query_phase(
++    client: httpx.AsyncClient,
++    config: BenchmarkConfig,
++    diagnostics: Diagnostics,
++    environment: dict[str, str],
++) -> dict[str, Any]:
++    """Evidence-run phase: filtered queries over the indexed data.
++
++    Runs after ingestion and indexing have completed and the workload's query
++    workers have stopped, so only these queries use the backend. Two workers,
++    like the workload's query workers.
++
++    - Trace queries filter on one trace ID. With delivery verification on,
++      each export is one trace of `spans_per_export` spans, so a trace sits
++      in one cold file and the filter matches a small share of its rows.
++    - Listing queries filter on one of the three service names and keep the
++      most recent root spans, so the filter matches a third of the rows.
++    """
++
++    async def run_set(paths: list[str]) -> dict[str, Any]:
++        latencies: list[float] = []
++        codes: Counter[str] = Counter()
++        rows: Counter[str] = Counter()
++        pending = iter(paths)
++
++        async def worker() -> None:
++            for path in pending:
++                started = time.perf_counter()
++                try:
++                    response = await client.get(path, timeout=300)
++                    codes[str(response.status_code)] += 1
++                    if response.status_code == 200:
++                        rows[str(len(response.json()))] += 1
++                except httpx.HTTPError:
++                    codes["transport_error"] += 1
++                latencies.append((time.perf_counter() - started) * 1000)
++
++        before = container_metrics(environment, config.use_auth_proxy)
++        started = time.perf_counter()
++        await asyncio.gather(worker(), worker())
++        seconds = time.perf_counter() - started
++        after = container_metrics(environment, config.use_auth_proxy)
++        return {
++            "queries": len(paths),
++            "seconds": seconds,
++            "result_codes": dict(codes),
++            "rows_returned": dict(rows),
++            **latency_summary(latencies),
++            "backend_cpu_seconds": after["backend"]["cpu_usage_seconds"]
++            - before["backend"]["cpu_usage_seconds"],
++            "ingestion_cpu_seconds": after["ingestion"]["cpu_usage_seconds"]
++            - before["ingestion"]["cpu_usage_seconds"],
++            "backend_peak_cgroup_memory_bytes_before": before["backend"][
++                "peak_cgroup_memory_bytes"
++            ],
++            "backend_peak_cgroup_memory_bytes_after": after["backend"][
++                "peak_cgroup_memory_bytes"
++            ],
++        }
+ 
++    # Distinct traces the exporters wrote, spread over every exporter and over
++    # the whole run, so they fall in every cold file. Requires the delivery
++    # verification workload, whose trace identities are known.
++    from delivery import workload_trace_id
+ 
++    trace_paths = []
++    for index in range(diagnostics.trace_queries):
++        exporter_id = index % config.exporters
++        export_index = (index * 37) % config.exports_per_exporter
++        trace_id = workload_trace_id(exporter_id, export_index).hex()
++        trace_paths.append(f"/api/v1/observability/traces/{trace_id}/spans")
++    if len(set(trace_paths)) != len(trace_paths):
++        raise ValueError("trace query identities are not distinct")
++    list_paths = [
++        f"/api/v1/observability/services/metadata-benchmark-{index % 3}/spans/root"
++        for index in range(diagnostics.list_queries)
++    ]
++    result: dict[str, Any] = {"status": "measured"}
++    if trace_paths:
++        result["trace"] = await run_set(trace_paths)
++    if list_paths:
++        result["list"] = await run_set(list_paths)
++    result["memory"] = memory_breakdown(environment, config.use_auth_proxy)
++    return result
++
++
+ async def execute_benchmark(
+     config: BenchmarkConfig,
+     environment: dict[str, str],
+@@ -867,6 +1163,7 @@
+     proxy_port: int,
+     data_path: Path,
+     setup_paths: SetupPaths,
++    diagnostics: Diagnostics,
+ ) -> dict[str, Any]:
+     ingestion_target = f"127.0.0.1:{ingestion_port}"
+     async with (
+@@ -891,6 +1188,10 @@
+         export_final_codes: Counter[str] = Counter()
+         query_latencies: list[float] = []
+         query_codes: Counter[str] = Counter()
++        query_paths = workload_query_paths(diagnostics.workload_query, config)
++        query_rows: Counter[str] | None = (
++            None if diagnostics.workload_query == "services" else Counter()
++        )
+         resource_samples: dict[str, list[dict[str, float]]] = {
+             "backend": [],
+             "ingestion": [],
+@@ -925,9 +1226,17 @@
+         ]
+         query_tasks = [
+             asyncio.create_task(
+-                query_worker(client, query_stop, query_latencies, query_codes)
++                query_worker(
++                    client,
++                    query_stop,
++                    query_latencies,
++                    query_codes,
++                    query_paths,
++                    query_rows,
++                    worker * 7,
++                )
+             )
+-            for _ in range(config.query_workers)
++            for worker in range(config.query_workers)
+         ]
+         stats_task = asyncio.create_task(
+             sample_resources(
+@@ -938,14 +1247,141 @@
+             )
+         )
+ 
++        idle = None
++        if diagnostics.idle_seconds:
++            # Observation time only: nothing is offered while idle memory settles.
++            await asyncio.sleep(diagnostics.idle_seconds)
++            idle = {
++                "seconds_after_setup": diagnostics.idle_seconds,
++                "memory": memory_breakdown(environment, config.use_auth_proxy),
++                "containers": container_metrics(environment, config.use_auth_proxy),
++            }
+         resources_before = container_metrics(environment, config.use_auth_proxy)
+         workload_started = time.perf_counter()
++        workload_started_epoch_ms = int(time.time() * 1000)
+         start.set()
++        side_process = None
++        side_output = None
++        if diagnostics.side_command:
++            side_output = Path(tempfile.mkdtemp(prefix="junjo-realworld-")) / "side.json"
++            side_process = await asyncio.create_subprocess_shell(
++                diagnostics.side_command,
++                env={
++                    **os.environ,
++                    "RW_STUDIO_URL": f"http://127.0.0.1:{backend_port}",
++                    "RW_INGESTION_PORT": str(ingestion_port),
++                    "RW_OUT": str(side_output),
++                    "JUNJO_STUDIO_E2E_EXISTING_EMAIL": SYNTHETIC_EMAIL,
++                    "JUNJO_STUDIO_E2E_EXISTING_PASSWORD": SYNTHETIC_PASSWORD,
++                },
++            )
++        freshness_results: list[dict[str, Any]] = []
++        freshness_stop = asyncio.Event()
++        freshness_task = (
++            asyncio.create_task(
++                freshness_probe(
++                    client, ingestion_target, api_keys[0], freshness_stop, freshness_results
++                )
++            )
++            if diagnostics.freshness_probe
++            else None
++        )
+         await asyncio.gather(*exporters)
+         workload_seconds = time.perf_counter() - workload_started
++        workload_ended_epoch_ms = int(time.time() * 1000)
++        freshness_stop.set()
++        if freshness_task is not None:
++            await freshness_task
++        real_world: dict[str, Any] = {"status": "not_run"}
++        if side_process is not None:
++            side_exit = await side_process.wait()
++            real_world = {"status": "ran", "exit_code": side_exit}
++            if side_output is not None and side_output.is_file():
++                real_world.update(json.loads(side_output.read_text()))
++        real_world["workload_started_epoch_ms"] = workload_started_epoch_ms
++        real_world["workload_ended_epoch_ms"] = workload_ended_epoch_ms
++        real_world["freshness"] = freshness_results
++        offered_spans = (
++            config.exporters * config.exports_per_exporter * config.spans_per_export
++        )
++        acknowledged_spans = (
++            sum(acknowledged.values()) if acknowledged is not None else None
++        )
++        ingestion_phase = {
++            "offered_spans": offered_spans,
++            "acknowledged_spans": acknowledged_spans,
++            "workload_seconds": workload_seconds,
++            "containers": container_metrics(environment, config.use_auth_proxy),
++            "memory": memory_breakdown(environment, config.use_auth_proxy),
++            "queries": {
++                "result_codes": dict(query_codes),
++                "kind": diagnostics.workload_query,
++                "rows_returned": dict(query_rows) if query_rows is not None else None,
++                **latency_summary(query_latencies),
++            },
++        }
++        if not diagnostics.observer_image:
++            indexing = {"status": "not_measured", "indexed_rows": None}
++        elif acknowledged_spans != offered_spans:
++            # Failed exports already fail acceptance; never wait for rows that
++            # were not accepted.
++            indexing = {"status": "skipped_after_failed_exports", "indexed_rows": None}
++        else:
++            observer = await asyncio.to_thread(
++                run,
++                [
++                    "docker",
++                    "run",
++                    "--rm",
++                    "--network",
++                    f"{PROJECT_NAME}_junjo-network",
++                    "--env",
++                    "JUNJO_INTERNAL_GRPC_TOKEN=benchmark-internal-grpc-token-32-bytes-long",
++                    "--env",
++                    "JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db",
++                    "--env",
++                    "JUNJO_OBSERVER_AT_LEAST="
++                    + ("1" if diagnostics.side_command or diagnostics.freshness_probe else "0"),
++                    "--volume",
++                    f"{data_path}:/app/.dbdata",
++                    "--volume",
++                    f"{diagnostics.observer_script}:/observer/finish_indexing.py:ro",
++                    "--entrypoint",
++                    "python",
++                    diagnostics.observer_image,
++                    "/observer/finish_indexing.py",
++                    str(offered_spans),
++                    str(diagnostics.index_deadline_seconds),
++                ],
++                env=environment,
++                check=False,
++            )
++            try:
++                indexing = json.loads(observer.stdout.strip().splitlines()[-1])
++            except (IndexError, ValueError):
++                indexing = {
++                    "status": "observer_failed",
++                    "indexed_rows": None,
++                    "output": observer.stdout[-2000:],
++                }
++        completed_work_seconds = time.perf_counter() - workload_started
+         query_stop.set()
+         await asyncio.gather(*query_tasks)
+         resources_after = container_metrics(environment, config.use_auth_proxy)
++        memory_after = memory_breakdown(environment, config.use_auth_proxy)
++        hot_tier: dict[str, Any] = {"spans": 0}
++        if diagnostics.hot_spans:
++            request = make_export_request(diagnostics.hot_spans, 999_999)
++            async with grpc.aio.insecure_channel(ingestion_target) as channel:
++                stub = trace_service_pb2_grpc.TraceServiceStub(channel)
++                code, _ = await export_once(stub, request, identities[0][1])
++            hot_tier = {"spans": diagnostics.hot_spans, "result_code": code}
++        filtered_queries = (
++            await filtered_query_phase(client, config, diagnostics, environment)
++            if diagnostics.trace_queries or diagnostics.list_queries
++            else {"status": "not_measured"}
++        )
++        filtered_queries["hot_tier"] = hot_tier
+         workload_authorization_stats = (
+             await proxy_stats(proxy_client)
+             if config.use_auth_proxy
+@@ -1070,6 +1506,18 @@
+ 
+     acceptance = {
+         "all_exports_succeeded": successful_exports == total_exports,
++        **(
++            {
++                "all_offered_spans_indexed": (
++                    indexing["indexed_rows"] is not None
++                    and indexing["indexed_rows"] >= total_exports * config.spans_per_export
++                )
++                if diagnostics.side_command or diagnostics.freshness_probe
++                else indexing["indexed_rows"] == total_exports * config.spans_per_export
++            }
++            if diagnostics.observer_image
++            else {}
++        ),
+         "all_queries_succeeded": set(query_codes) <= {"200"},
+         "no_oom_or_restarts": all(
+             not item["oom_killed"] and item["restart_count"] == 0
+@@ -1093,6 +1541,18 @@
+         acceptance["revocation_acceptance_bound_met"] = revocation_bound_met
+ 
+     return {
++        "idle": idle,
++        "ingestion_phase": ingestion_phase,
++        "indexing": indexing,
++        "completed_work_seconds": completed_work_seconds,
++        "memory_after_completed_work": memory_after,
++        "filtered_queries": filtered_queries,
++        "real_world": real_world,
++        "diagnostics": {
++            "idle_seconds": diagnostics.idle_seconds,
++            "observer_image": diagnostics.observer_image,
++            "index_deadline_seconds": diagnostics.index_deadline_seconds,
++        },
+         "container_before": resources_before,
+         "container_after": resources_after,
+         "container_after_recovery": resources_recovered,
+@@ -1123,6 +1583,8 @@
+         },
+         "queries": {
+             "result_codes": dict(query_codes),
++            "kind": diagnostics.workload_query,
++            "rows_returned": dict(query_rows) if query_rows is not None else None,
+             **latency_summary(query_latencies),
+         },
+         "resources": resource_summary,
+@@ -1221,6 +1683,17 @@
+     parser.add_argument("--backend-port", type=int, default=27154)
+     parser.add_argument("--ingestion-port", type=int, default=27155)
+     parser.add_argument("--proxy-port", type=int, default=27156)
++    parser.add_argument("--idle-seconds", type=float, default=0)
++    parser.add_argument("--observer-image", default="")
++    parser.add_argument("--index-deadline-seconds", type=float, default=900)
++    parser.add_argument("--trace-queries", type=int, default=0)
++    parser.add_argument("--list-queries", type=int, default=0)
++    parser.add_argument("--hot-spans", type=int, default=0)
++    parser.add_argument("--side-command", default="")
++    parser.add_argument("--freshness-probe", action="store_true")
++    parser.add_argument(
++        "--workload-query", choices=["services", "trace", "list"], default="services"
++    )
+     parser.add_argument(
+         "--first-user-path",
+         default=SetupPaths.first_user,
+@@ -1327,6 +1800,21 @@
+                         first_user=args.first_user_path,
+                         api_keys=args.api_keys_path,
+                     ),
++                    Diagnostics(
++                        idle_seconds=args.idle_seconds,
++                        observer_image=args.observer_image,
++                        observer_script=str(
++                            Path(__file__).resolve().parent.parent
++                            / "finish_indexing.py"
++                        ),
++                        index_deadline_seconds=args.index_deadline_seconds,
++                        trace_queries=args.trace_queries,
++                        list_queries=args.list_queries,
++                        hot_spans=args.hot_spans,
++                        workload_query=args.workload_query,
++                        side_command=args.side_command,
++                        freshness_probe=args.freshness_probe,
++                    ),
+                 )
+             )
+             if config.verify_delivery:
+@@ -1362,6 +1850,20 @@
+                 result["acceptance"]["all_acknowledged_spans_persisted"] = result[
+                     "delivery"
+                 ]["all_acknowledged_spans_persisted"]
++        except Exception as error:
++            if args.output:
++                args.output.parent.mkdir(parents=True, exist_ok=True)
++                args.output.with_suffix(".failure.json").write_text(
++                    json.dumps(
++                        {
++                            "implementation_label": config.implementation_label,
++                            "error": str(error),
++                        },
++                        indent=2,
++                    )
++                    + "\n"
++                )
++            raise
+         finally:
+             if args.output:
+                 service_logs = run(

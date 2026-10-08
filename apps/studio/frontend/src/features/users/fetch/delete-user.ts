@@ -3,11 +3,9 @@
  * @param id The ID of the user to delete.
  * @throws Will throw an error if the fetch request fails.
  */
-import { getApiHost } from '../../../config'
-
 export const deleteUser = async (id: string): Promise<void> => {
-  const endpoint = `/users/${id}`
-  const response = await fetch(`${getApiHost()}${endpoint}`, {
+  const endpoint = `/api/v1/users/${id}`
+  const response = await fetch(endpoint, {
     method: 'DELETE',
     credentials: 'include',
     headers: {

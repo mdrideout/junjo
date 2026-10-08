@@ -239,7 +239,7 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
             self.assertIn('"service_name": "agent-proof"', output.read_text(encoding="utf-8"))
 
     def test_shared_store_projection_uses_each_execution_interval(self) -> None:
-        fixture = REPOSITORY_ROOT / "apps/studio/backend/tests/generated/composable_store_trace.json"
+        fixture = REPOSITORY_ROOT / "apps/studio/backend/evidence/tests/generated/composable_store_trace.json"
         evidence = json.loads(fixture.read_text())
         agent = next(item for item in evidence["executables_by_span_id"].values()
                      if item["executable_type"] == "agent")
@@ -353,17 +353,17 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
         self.assertEqual(
             requests,
             [
-                ("/api_keys/key-id", "DELETE", None),
-                ("/sign-out", "POST", None),
+                ("/api/v1/api-keys/key-id", "DELETE", None),
+                ("/api/v1/sign-out", "POST", None),
                 (
-                    "/sign-in",
+                    "/api/v1/sign-in",
                     "POST",
                     {
                         "email": validator.LOCAL_ADMIN_EMAIL,
                         "password": validator.LOCAL_ADMIN_PASSWORD,
                     },
                 ),
-                ("/users/user-id", "DELETE", None),
+                ("/api/v1/users/user-id", "DELETE", None),
             ],
         )
 
@@ -379,7 +379,7 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
                 body: object = None,
             ) -> object:
                 requests.append((path, method, body))
-                if path == "/auth-test":
+                if path == "/api/v1/auth-test":
                     return {"user_email": validator.LOCAL_ADMIN_EMAIL}
                 return None
 
@@ -389,16 +389,16 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
         self.assertEqual(
             requests,
             [
-                ("/sign-out", "POST", None),
+                ("/api/v1/sign-out", "POST", None),
                 (
-                    "/sign-in",
+                    "/api/v1/sign-in",
                     "POST",
                     {
                         "email": validator.LOCAL_ADMIN_EMAIL,
                         "password": validator.LOCAL_ADMIN_PASSWORD,
                     },
                 ),
-                ("/auth-test", "GET", None),
+                ("/api/v1/auth-test", "GET", None),
             ],
         )
 
@@ -416,13 +416,13 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
                 body: object = None,
             ) -> object:
                 requests.append((path, method, body))
-                if path == "/users/db-has-users":
+                if path == "/api/v1/users/db-has-users":
                     return {"users_exist": False}
-                if path == "/auth-test":
+                if path == "/api/v1/auth-test":
                     return {"user_email": test_email}
-                if path == "/users" and method == "GET":
+                if path == "/api/v1/users" and method == "GET":
                     return [{"id": "test-user-id", "email": test_email}]
-                if path == "/api_keys":
+                if path == "/api/v1/api-keys":
                     return {"id": "test-key-id", "key": "jtel_" + "a" * 64}
                 return None
 
@@ -439,9 +439,9 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
         self.assertEqual(
             requests[:2],
             [
-                ("/users/db-has-users", "GET", None),
+                ("/api/v1/users/db-has-users", "GET", None),
                 (
-                    "/users/create-first-user",
+                    "/api/v1/users/create-first-user",
                     "POST",
                     {
                         "email": validator.LOCAL_ADMIN_EMAIL,
@@ -452,7 +452,7 @@ class AgentStudioE2EToolingTests(unittest.TestCase):
         )
         self.assertIn(
             (
-                "/users",
+                "/api/v1/users",
                 "POST",
                 {"email": test_email, "password": test_password},
             ),

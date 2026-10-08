@@ -7,19 +7,21 @@ description: Use when a Junjo AI Studio backend endpoint is added or changed and
 
 ## Contract Decisions
 
-- Backend routes and Pydantic schemas own REST contracts.
+- Backend routes and their Rust request and response types own REST contracts.
 - Generated OpenAPI is a transport artifact, not a hand-edited source.
 - Frontend Zod schemas and request code are consumers and change with the
   backend contract.
-- Authentication, cookies, CORS, status codes, and error envelopes are part of
-  the endpoint contract.
+- Authentication, cookies, status codes, and the `{code, message}` error body
+  are part of the endpoint contract.
 - A cross-boundary change is incomplete until the producer and every affected
   consumer are validated together.
 
 ## Surface To Inspect
 
-- `apps/studio/backend/app/features/` and the owning backend tests
-- `apps/studio/backend/scripts/export_openapi_schema.py`
+- `apps/studio/backend/server/src/features/` and the owning backend tests
+- `apps/studio/backend/server/src/app.rs`, where every route is registered
+- `apps/studio/backend/scripts/validate_rest_api_contracts.sh`, which exports
+  the OpenAPI document
 - `apps/studio/frontend/backend/openapi.json`
 - `apps/studio/frontend/src/features/` or `apps/studio/frontend/src/auth/`
 - `apps/studio/frontend/src/__tests__/contracts/`
@@ -28,8 +30,8 @@ description: Use when a Junjo AI Studio backend endpoint is added or changed and
 
 ## Routing
 
-Use `studio-backend-python` for backend implementation,
+Use `studio-backend-rust` for backend implementation,
 `studio-frontend-react` for browser implementation, and
-`studio-security-auth` when the contract includes credentials, sessions, or
-CORS. Validation commands remain owned by scoped `AGENTS.md` files; concrete
+`studio-security-auth` when the contract includes credentials or sessions.
+Validation commands remain owned by scoped `AGENTS.md` files; concrete
 behavior remains owned by code and tests.

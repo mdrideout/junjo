@@ -1,4 +1,3 @@
-import { getApiHost } from '../../../config'
 import {
   EvaluationDatasetDetailSchema,
   EvaluationIdSchema,
@@ -10,7 +9,7 @@ export async function getEvaluationDataset(
 ): Promise<EvaluationDatasetDetail> {
   const validatedDatasetId = EvaluationIdSchema.parse(datasetId)
   const response = await fetch(
-    `${getApiHost()}/api/v1/evaluation/datasets/${encodeURIComponent(validatedDatasetId)}`,
+    `/api/v1/evaluation/datasets/${encodeURIComponent(validatedDatasetId)}`,
     { credentials: 'include' },
   )
   if (!response.ok) {

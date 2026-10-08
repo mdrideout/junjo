@@ -1,0 +1,2797 @@
+{
+ "proto-base": [
+  {
+   "name": "rw-proto-base-realworld-1",
+   "accepted": false,
+   "not_accepted": [
+    "all_exports_succeeded",
+    "all_offered_spans_indexed"
+   ],
+   "spans_acknowledged": 1439936,
+   "export_p95_ms": 16.8,
+   "export_p99_ms": 83.4,
+   "exports_refused_once": 382,
+   "exports_failed": 2,
+   "backend_cpu_s": 43.41,
+   "ingestion_cpu_s": 9.5,
+   "backend_peak_mib": 450,
+   "backend_rss_mib": 201,
+   "backend_memory_events": {
+    "max": 7268
+   },
+   "pages": {
+    "services list": {
+     "n": 46,
+     "outcomes": {
+      "rows": 46
+     },
+     "p50_ms": 367,
+     "p95_ms": 1868,
+     "max_ms": 2566
+    },
+    "trace detail": {
+     "n": 40,
+     "outcomes": {
+      "rows": 40
+     },
+     "p50_ms": 186,
+     "p95_ms": 779,
+     "max_ms": 1191
+    },
+    "traces list, all": {
+     "n": 45,
+     "outcomes": {
+      "error": 2,
+      "rows": 43
+     },
+     "p50_ms": 897,
+     "p95_ms": 10809,
+     "max_ms": 15215
+    },
+    "traces list, has LLM (default view)": {
+     "n": 46,
+     "outcomes": {
+      "empty": 15,
+      "error": 1,
+      "rows": 30
+     },
+     "p50_ms": 949,
+     "p95_ms": 14623,
+     "max_ms": 20518
+    },
+    "workflow list": {
+     "n": 42,
+     "outcomes": {
+      "rows": 42
+     },
+     "p50_ms": 597,
+     "p95_ms": 3904,
+     "max_ms": 5211
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 134,
+     "statuses": {
+      "200": 134
+     },
+     "p50_ms": 43,
+     "p95_ms": 708,
+     "p99_ms": 1061
+    },
+    "/api/v1/observability/services": {
+     "n": 46,
+     "statuses": {
+      "200": 46
+     },
+     "p50_ms": 92,
+     "p95_ms": 1688,
+     "p99_ms": 2387
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 45,
+     "statuses": {
+      "200": 43,
+      "500": 2
+     },
+     "p50_ms": 866,
+     "p95_ms": 10762,
+     "p99_ms": 15167
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 46,
+     "statuses": {
+      "200": 45,
+      "500": 1
+     },
+     "p50_ms": 641,
+     "p95_ms": 14290,
+     "p99_ms": 20210
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 42,
+     "statuses": {
+      "200": 42
+     },
+     "p50_ms": 288,
+     "p95_ms": 3252,
+     "p99_ms": 3974
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 40,
+     "statuses": {
+      "200": 40
+     },
+     "p50_ms": 150,
+     "p95_ms": 755,
+     "p99_ms": 1169
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 134,
+     "statuses": {
+      "200": 134
+     },
+     "p50_ms": 36,
+     "p95_ms": 551,
+     "p99_ms": 1017
+    }
+   },
+   "api_total": 487,
+   "api_5xx": 3,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 219,
+   "pages_not_rows": {
+    "traces list, all": {
+     "error": 2
+    },
+    "traces list, has LLM (default view)": {
+     "empty": 15,
+     "error": 1
+    }
+   },
+   "sdk_runs": 4,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.8,
+    10.89,
+    15.33,
+    10.88
+   ],
+   "browser_proof_s": [
+    5.65,
+    6.05,
+    7.51,
+    6.3
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 28,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 1133,
+   "freshness_p95_ms": 2996,
+   "freshness_max_ms": 3610,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "two-tier root span query failed: Parquet error: External: Generic LocalFileSystem error: Requ": 1,
+    "two-tier LLM root span query failed: Parquet error: External: Object at location /app/.dbdata/spa": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 9.0 MB fo": 1
+   },
+   "snapshot_reruns": 0
+  },
+  {
+   "name": "rw-proto-base-realworld-2",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 57.9,
+   "export_p99_ms": 171.0,
+   "exports_refused_once": 458,
+   "exports_failed": 0,
+   "backend_cpu_s": 45.85,
+   "ingestion_cpu_s": 13.56,
+   "backend_peak_mib": 450,
+   "backend_rss_mib": 174,
+   "backend_memory_events": {
+    "max": 5558
+   },
+   "pages": {
+    "services list": {
+     "n": 35,
+     "outcomes": {
+      "rows": 35
+     },
+     "p50_ms": 495,
+     "p95_ms": 3258,
+     "max_ms": 4488
+    },
+    "trace detail": {
+     "n": 30,
+     "outcomes": {
+      "rows": 30
+     },
+     "p50_ms": 300,
+     "p95_ms": 1459,
+     "max_ms": 1677
+    },
+    "traces list, all": {
+     "n": 32,
+     "outcomes": {
+      "error": 1,
+      "rows": 31
+     },
+     "p50_ms": 1506,
+     "p95_ms": 12388,
+     "max_ms": 14575
+    },
+    "traces list, has LLM (default view)": {
+     "n": 35,
+     "outcomes": {
+      "empty": 11,
+      "error": 2,
+      "rows": 22
+     },
+     "p50_ms": 1787,
+     "p95_ms": 15833,
+     "max_ms": 20781
+    },
+    "workflow list": {
+     "n": 31,
+     "outcomes": {
+      "error": 1,
+      "rows": 30
+     },
+     "p50_ms": 1106,
+     "p95_ms": 4414,
+     "max_ms": 8307
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 101,
+     "statuses": {
+      "200": 101
+     },
+     "p50_ms": 37,
+     "p95_ms": 639,
+     "p99_ms": 1455
+    },
+    "/api/v1/observability/services": {
+     "n": 35,
+     "statuses": {
+      "200": 35
+     },
+     "p50_ms": 199,
+     "p95_ms": 1605,
+     "p99_ms": 3222
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 32,
+     "statuses": {
+      "200": 31,
+      "500": 1
+     },
+     "p50_ms": 1465,
+     "p95_ms": 12349,
+     "p99_ms": 14539
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 35,
+     "statuses": {
+      "200": 33,
+      "500": 2
+     },
+     "p50_ms": 1334,
+     "p95_ms": 15082,
+     "p99_ms": 20087
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 31,
+     "statuses": {
+      "200": 30,
+      "500": 1
+     },
+     "p50_ms": 667,
+     "p95_ms": 3169,
+     "p99_ms": 7899
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 30,
+     "statuses": {
+      "200": 30
+     },
+     "p50_ms": 276,
+     "p95_ms": 1406,
+     "p99_ms": 1648
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 101,
+     "statuses": {
+      "200": 101
+     },
+     "p50_ms": 30,
+     "p95_ms": 830,
+     "p99_ms": 1451
+    }
+   },
+   "api_total": 365,
+   "api_5xx": 4,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 163,
+   "pages_not_rows": {
+    "traces list, all": {
+     "error": 1
+    },
+    "traces list, has LLM (default view)": {
+     "empty": 11,
+     "error": 2
+    },
+    "workflow list": {
+     "error": 1
+    }
+   },
+   "sdk_runs": 3,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    8.57,
+    16.12,
+    20.75
+   ],
+   "browser_proof_s": [
+    7.18,
+    9.0,
+    7.6
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 29,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 1079,
+   "freshness_p95_ms": 2194,
+   "freshness_max_ms": 3282,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "two-tier workflow span query failed: Parquet error: External: Generic LocalFileSystem error: Requ": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 4.9 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 8.0 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 8.9 MB fo": 1
+   },
+   "snapshot_reruns": 0
+  }
+ ],
+ "proto-dedupe": [
+  {
+   "name": "rw-proto-dedupe-realworld-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 9.8,
+   "export_p99_ms": 40.8,
+   "exports_refused_once": 173,
+   "exports_failed": 0,
+   "backend_cpu_s": 43.57,
+   "ingestion_cpu_s": 10.36,
+   "backend_peak_mib": 116,
+   "backend_rss_mib": 73,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 233,
+     "outcomes": {
+      "rows": 233
+     },
+     "p50_ms": 268,
+     "p95_ms": 509,
+     "max_ms": 673
+    },
+    "trace detail": {
+     "n": 232,
+     "outcomes": {
+      "error": 1,
+      "rows": 231
+     },
+     "p50_ms": 142,
+     "p95_ms": 296,
+     "max_ms": 591
+    },
+    "traces list, all": {
+     "n": 232,
+     "outcomes": {
+      "rows": 232
+     },
+     "p50_ms": 207,
+     "p95_ms": 415,
+     "max_ms": 817
+    },
+    "traces list, has LLM (default view)": {
+     "n": 232,
+     "outcomes": {
+      "empty": 55,
+      "rows": 177
+     },
+     "p50_ms": 386,
+     "p95_ms": 687,
+     "max_ms": 1263
+    },
+    "workflow list": {
+     "n": 232,
+     "outcomes": {
+      "error": 1,
+      "rows": 231
+     },
+     "p50_ms": 410,
+     "p95_ms": 718,
+     "max_ms": 1208
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 697,
+     "statuses": {
+      "200": 697
+     },
+     "p50_ms": 29,
+     "p95_ms": 101,
+     "p99_ms": 150
+    },
+    "/api/v1/observability/services": {
+     "n": 233,
+     "statuses": {
+      "200": 233
+     },
+     "p50_ms": 86,
+     "p95_ms": 286,
+     "p99_ms": 315
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 232,
+     "statuses": {
+      "200": 232
+     },
+     "p50_ms": 169,
+     "p95_ms": 375,
+     "p99_ms": 573
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 232,
+     "statuses": {
+      "200": 232
+     },
+     "p50_ms": 198,
+     "p95_ms": 486,
+     "p99_ms": 702
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 232,
+     "statuses": {
+      "200": 231,
+      "500": 1
+     },
+     "p50_ms": 215,
+     "p95_ms": 502,
+     "p99_ms": 695
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 232,
+     "statuses": {
+      "200": 231,
+      "500": 1
+     },
+     "p50_ms": 117,
+     "p95_ms": 269,
+     "p99_ms": 367
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 697,
+     "statuses": {
+      "200": 697
+     },
+     "p50_ms": 25,
+     "p95_ms": 79,
+     "p99_ms": 139
+    }
+   },
+   "api_total": 2555,
+   "api_5xx": 2,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 1161,
+   "pages_not_rows": {
+    "trace detail": {
+     "error": 1
+    },
+    "traces list, has LLM (default view)": {
+     "empty": 55
+    },
+    "workflow list": {
+     "error": 1
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    6.15,
+    7.37,
+    7.49,
+    7.94,
+    7.54,
+    7.36
+   ],
+   "browser_proof_s": [
+    3.11,
+    3.22,
+    3.16,
+    3.75,
+    3.65,
+    3.4
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 35,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 480,
+   "freshness_p95_ms": 1194,
+   "freshness_max_ms": 1384,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "two-tier workflow span query failed: Parquet error: External: Parquet argument error: Parquet err": 1,
+    "two-tier trace query failed: Parquet error: External: Parquet argument error: Parquet err": 1
+   },
+   "snapshot_reruns": 0
+  },
+  {
+   "name": "rw-proto-dedupe-realworld-2",
+   "accepted": false,
+   "not_accepted": [
+    "all_exports_succeeded",
+    "all_offered_spans_indexed"
+   ],
+   "spans_acknowledged": 1439840,
+   "export_p95_ms": 25.0,
+   "export_p99_ms": 56.3,
+   "exports_refused_once": 148,
+   "exports_failed": 5,
+   "backend_cpu_s": 42.14,
+   "ingestion_cpu_s": 11.92,
+   "backend_peak_mib": 114,
+   "backend_rss_mib": 72,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 189,
+     "outcomes": {
+      "rows": 189
+     },
+     "p50_ms": 296,
+     "p95_ms": 688,
+     "max_ms": 1623
+    },
+    "trace detail": {
+     "n": 188,
+     "outcomes": {
+      "rows": 188
+     },
+     "p50_ms": 163,
+     "p95_ms": 377,
+     "max_ms": 491
+    },
+    "traces list, all": {
+     "n": 189,
+     "outcomes": {
+      "rows": 189
+     },
+     "p50_ms": 231,
+     "p95_ms": 511,
+     "max_ms": 682
+    },
+    "traces list, has LLM (default view)": {
+     "n": 189,
+     "outcomes": {
+      "empty": 44,
+      "error": 1,
+      "rows": 144
+     },
+     "p50_ms": 418,
+     "p95_ms": 979,
+     "max_ms": 3425
+    },
+    "workflow list": {
+     "n": 187,
+     "outcomes": {
+      "rows": 187
+     },
+     "p50_ms": 458,
+     "p95_ms": 933,
+     "max_ms": 2120
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 565,
+     "statuses": {
+      "200": 565
+     },
+     "p50_ms": 30,
+     "p95_ms": 132,
+     "p99_ms": 187
+    },
+    "/api/v1/observability/services": {
+     "n": 189,
+     "statuses": {
+      "200": 189
+     },
+     "p50_ms": 92,
+     "p95_ms": 210,
+     "p99_ms": 304
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 189,
+     "statuses": {
+      "200": 189
+     },
+     "p50_ms": 182,
+     "p95_ms": 462,
+     "p99_ms": 581
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 189,
+     "statuses": {
+      "200": 188,
+      "500": 1
+     },
+     "p50_ms": 210,
+     "p95_ms": 502,
+     "p99_ms": 681
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 187,
+     "statuses": {
+      "200": 187
+     },
+     "p50_ms": 265,
+     "p95_ms": 511,
+     "p99_ms": 677
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 188,
+     "statuses": {
+      "200": 188
+     },
+     "p50_ms": 137,
+     "p95_ms": 353,
+     "p99_ms": 369
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 565,
+     "statuses": {
+      "200": 565
+     },
+     "p50_ms": 27,
+     "p95_ms": 116,
+     "p99_ms": 185
+    }
+   },
+   "api_total": 2072,
+   "api_5xx": 1,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 942,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 44,
+     "error": 1
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.45,
+    6.6,
+    3.96,
+    8.91,
+    6.99,
+    7.26
+   ],
+   "browser_proof_s": [
+    2.79,
+    4.18,
+    4.65,
+    3.7,
+    2.17,
+    3.9
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 37,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 310,
+   "freshness_p95_ms": 1077,
+   "freshness_max_ms": 1316,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "hot snapshot LLM trace query failed: Parquet error: External: Generic LocalFileSystem error: Requ": 1
+   },
+   "snapshot_reruns": 0
+  }
+ ],
+ "proto-retry": [
+  {
+   "name": "rw-proto-retry-realworld-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 28.9,
+   "export_p99_ms": 75.4,
+   "exports_refused_once": 322,
+   "exports_failed": 0,
+   "backend_cpu_s": 44.41,
+   "ingestion_cpu_s": 10.46,
+   "backend_peak_mib": 450,
+   "backend_rss_mib": 202,
+   "backend_memory_events": {
+    "max": 7006
+   },
+   "pages": {
+    "services list": {
+     "n": 41,
+     "outcomes": {
+      "rows": 41
+     },
+     "p50_ms": 484,
+     "p95_ms": 2774,
+     "max_ms": 3466
+    },
+    "trace detail": {
+     "n": 37,
+     "outcomes": {
+      "rows": 37
+     },
+     "p50_ms": 186,
+     "p95_ms": 1542,
+     "max_ms": 2462
+    },
+    "traces list, all": {
+     "n": 40,
+     "outcomes": {
+      "rows": 40
+     },
+     "p50_ms": 837,
+     "p95_ms": 16698,
+     "max_ms": 20398
+    },
+    "traces list, has LLM (default view)": {
+     "n": 41,
+     "outcomes": {
+      "empty": 14,
+      "error": 1,
+      "rows": 26
+     },
+     "p50_ms": 977,
+     "p95_ms": 10990,
+     "max_ms": 19499
+    },
+    "workflow list": {
+     "n": 37,
+     "outcomes": {
+      "rows": 37
+     },
+     "p50_ms": 814,
+     "p95_ms": 3925,
+     "max_ms": 5098
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 119,
+     "statuses": {
+      "200": 119
+     },
+     "p50_ms": 49,
+     "p95_ms": 518,
+     "p99_ms": 912
+    },
+    "/api/v1/observability/services": {
+     "n": 41,
+     "statuses": {
+      "200": 41
+     },
+     "p50_ms": 102,
+     "p95_ms": 1973,
+     "p99_ms": 2956
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 40,
+     "statuses": {
+      "200": 40
+     },
+     "p50_ms": 799,
+     "p95_ms": 16666,
+     "p99_ms": 20353
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 41,
+     "statuses": {
+      "200": 40,
+      "500": 1
+     },
+     "p50_ms": 725,
+     "p95_ms": 10716,
+     "p99_ms": 19130
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 37,
+     "statuses": {
+      "200": 37
+     },
+     "p50_ms": 372,
+     "p95_ms": 3434,
+     "p99_ms": 4485
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 37,
+     "statuses": {
+      "200": 37
+     },
+     "p50_ms": 155,
+     "p95_ms": 1508,
+     "p99_ms": 2437
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 119,
+     "statuses": {
+      "200": 119
+     },
+     "p50_ms": 41,
+     "p95_ms": 458,
+     "p99_ms": 866
+    }
+   },
+   "api_total": 434,
+   "api_5xx": 1,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 196,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 14,
+     "error": 1
+    }
+   },
+   "sdk_runs": 3,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.77,
+    11.45,
+    19.19
+   ],
+   "browser_proof_s": [
+    5.93,
+    5.24,
+    9.21
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 30,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 929,
+   "freshness_p95_ms": 2226,
+   "freshness_max_ms": 2384,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "hot snapshot LLM trace query failed: Parquet error: External: Generic LocalFileSystem error: Requ": 1
+   },
+   "snapshot_reruns": 3
+  },
+  {
+   "name": "rw-proto-retry-realworld-2",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 63.9,
+   "export_p99_ms": 262.2,
+   "exports_refused_once": 455,
+   "exports_failed": 0,
+   "backend_cpu_s": 45.47,
+   "ingestion_cpu_s": 16.73,
+   "backend_peak_mib": 450,
+   "backend_rss_mib": 196,
+   "backend_memory_events": {
+    "max": 6372
+   },
+   "pages": {
+    "services list": {
+     "n": 39,
+     "outcomes": {
+      "rows": 39
+     },
+     "p50_ms": 735,
+     "p95_ms": 1884,
+     "max_ms": 2585
+    },
+    "trace detail": {
+     "n": 35,
+     "outcomes": {
+      "rows": 35
+     },
+     "p50_ms": 182,
+     "p95_ms": 1488,
+     "max_ms": 2142
+    },
+    "traces list, all": {
+     "n": 38,
+     "outcomes": {
+      "error": 2,
+      "rows": 36
+     },
+     "p50_ms": 1548,
+     "p95_ms": 13144,
+     "max_ms": 13323
+    },
+    "traces list, has LLM (default view)": {
+     "n": 39,
+     "outcomes": {
+      "empty": 13,
+      "error": 5,
+      "rows": 21
+     },
+     "p50_ms": 1911,
+     "p95_ms": 11978,
+     "max_ms": 16605
+    },
+    "workflow list": {
+     "n": 37,
+     "outcomes": {
+      "error": 1,
+      "rows": 36
+     },
+     "p50_ms": 1009,
+     "p95_ms": 5450,
+     "max_ms": 6266
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 115,
+     "statuses": {
+      "200": 115
+     },
+     "p50_ms": 40,
+     "p95_ms": 526,
+     "p99_ms": 1146
+    },
+    "/api/v1/observability/services": {
+     "n": 39,
+     "statuses": {
+      "200": 39
+     },
+     "p50_ms": 233,
+     "p95_ms": 1610,
+     "p99_ms": 2025
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 38,
+     "statuses": {
+      "200": 36,
+      "500": 2
+     },
+     "p50_ms": 1520,
+     "p95_ms": 13115,
+     "p99_ms": 13292
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 39,
+     "statuses": {
+      "200": 34,
+      "500": 5
+     },
+     "p50_ms": 1321,
+     "p95_ms": 11587,
+     "p99_ms": 15902
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 37,
+     "statuses": {
+      "200": 36,
+      "500": 1
+     },
+     "p50_ms": 663,
+     "p95_ms": 5104,
+     "p99_ms": 5891
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 35,
+     "statuses": {
+      "200": 35
+     },
+     "p50_ms": 154,
+     "p95_ms": 1465,
+     "p99_ms": 2112
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 115,
+     "statuses": {
+      "200": 115
+     },
+     "p50_ms": 36,
+     "p95_ms": 450,
+     "p99_ms": 752
+    }
+   },
+   "api_total": 418,
+   "api_5xx": 8,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 188,
+   "pages_not_rows": {
+    "traces list, all": {
+     "error": 2
+    },
+    "traces list, has LLM (default view)": {
+     "empty": 13,
+     "error": 5
+    },
+    "workflow list": {
+     "error": 1
+    }
+   },
+   "sdk_runs": 3,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    7.95,
+    13.28,
+    20.9
+   ],
+   "browser_proof_s": [
+    5.82,
+    7.99,
+    9.83
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 30,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 888,
+   "freshness_p95_ms": 2599,
+   "freshness_max_ms": 2607,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "hot snapshot LLM trace query failed: Parquet error: External: Parquet argument error: Parquet err": 1,
+    "two-tier workflow span query failed: Parquet error: External: Generic LocalFileSystem error: Requ": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 5.4 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 6.8 MB fo": 2,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 5.7 MB fo": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 4.7 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 6.9 MB fo": 1
+   },
+   "snapshot_reruns": 4
+  }
+ ],
+ "proto-both": [
+  {
+   "name": "rw-proto-both-realworld-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 49.7,
+   "export_p99_ms": 139.5,
+   "exports_refused_once": 203,
+   "exports_failed": 0,
+   "backend_cpu_s": 43.19,
+   "ingestion_cpu_s": 14.16,
+   "backend_peak_mib": 117,
+   "backend_rss_mib": 70,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 174,
+     "outcomes": {
+      "rows": 174
+     },
+     "p50_ms": 324,
+     "p95_ms": 700,
+     "max_ms": 1371
+    },
+    "trace detail": {
+     "n": 172,
+     "outcomes": {
+      "rows": 172
+     },
+     "p50_ms": 189,
+     "p95_ms": 490,
+     "max_ms": 1021
+    },
+    "traces list, all": {
+     "n": 172,
+     "outcomes": {
+      "rows": 172
+     },
+     "p50_ms": 290,
+     "p95_ms": 618,
+     "max_ms": 1656
+    },
+    "traces list, has LLM (default view)": {
+     "n": 173,
+     "outcomes": {
+      "empty": 39,
+      "rows": 134
+     },
+     "p50_ms": 467,
+     "p95_ms": 940,
+     "max_ms": 1910
+    },
+    "workflow list": {
+     "n": 172,
+     "outcomes": {
+      "rows": 172
+     },
+     "p50_ms": 511,
+     "p95_ms": 971,
+     "max_ms": 1729
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 519,
+     "statuses": {
+      "200": 519
+     },
+     "p50_ms": 39,
+     "p95_ms": 154,
+     "p99_ms": 259
+    },
+    "/api/v1/observability/services": {
+     "n": 174,
+     "statuses": {
+      "200": 174
+     },
+     "p50_ms": 113,
+     "p95_ms": 399,
+     "p99_ms": 544
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 172,
+     "statuses": {
+      "200": 172
+     },
+     "p50_ms": 249,
+     "p95_ms": 573,
+     "p99_ms": 816
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 173,
+     "statuses": {
+      "200": 173
+     },
+     "p50_ms": 269,
+     "p95_ms": 653,
+     "p99_ms": 790
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 172,
+     "statuses": {
+      "200": 172
+     },
+     "p50_ms": 303,
+     "p95_ms": 702,
+     "p99_ms": 1020
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 172,
+     "statuses": {
+      "200": 172
+     },
+     "p50_ms": 159,
+     "p95_ms": 462,
+     "p99_ms": 740
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 519,
+     "statuses": {
+      "200": 519
+     },
+     "p50_ms": 33,
+     "p95_ms": 141,
+     "p99_ms": 252
+    }
+   },
+   "api_total": 1901,
+   "api_5xx": 0,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 863,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 39
+    }
+   },
+   "sdk_runs": 5,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.8,
+    9.84,
+    7.47,
+    10.17,
+    8.22
+   ],
+   "browser_proof_s": [
+    4.18,
+    3.61,
+    4.57,
+    4.55,
+    3.72
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 35,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 470,
+   "freshness_p95_ms": 1274,
+   "freshness_max_ms": 1422,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {},
+   "snapshot_reruns": 2
+  },
+  {
+   "name": "rw-proto-both-realworld-2",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 32.0,
+   "export_p99_ms": 62.5,
+   "exports_refused_once": 128,
+   "exports_failed": 0,
+   "backend_cpu_s": 44.03,
+   "ingestion_cpu_s": 11.61,
+   "backend_peak_mib": 116,
+   "backend_rss_mib": 75,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 226,
+     "outcomes": {
+      "rows": 226
+     },
+     "p50_ms": 279,
+     "p95_ms": 499,
+     "max_ms": 799
+    },
+    "trace detail": {
+     "n": 224,
+     "outcomes": {
+      "rows": 224
+     },
+     "p50_ms": 152,
+     "p95_ms": 313,
+     "max_ms": 728
+    },
+    "traces list, all": {
+     "n": 224,
+     "outcomes": {
+      "rows": 224
+     },
+     "p50_ms": 207,
+     "p95_ms": 526,
+     "max_ms": 1258
+    },
+    "traces list, has LLM (default view)": {
+     "n": 226,
+     "outcomes": {
+      "empty": 60,
+      "error": 1,
+      "rows": 165
+     },
+     "p50_ms": 370,
+     "p95_ms": 710,
+     "max_ms": 1227
+    },
+    "workflow list": {
+     "n": 223,
+     "outcomes": {
+      "rows": 223
+     },
+     "p50_ms": 391,
+     "p95_ms": 907,
+     "max_ms": 1393
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 675,
+     "statuses": {
+      "200": 675
+     },
+     "p50_ms": 30,
+     "p95_ms": 96,
+     "p99_ms": 178
+    },
+    "/api/v1/observability/services": {
+     "n": 226,
+     "statuses": {
+      "200": 226
+     },
+     "p50_ms": 95,
+     "p95_ms": 290,
+     "p99_ms": 494
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 224,
+     "statuses": {
+      "200": 224
+     },
+     "p50_ms": 167,
+     "p95_ms": 474,
+     "p99_ms": 838
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 226,
+     "statuses": {
+      "200": 225,
+      "500": 1
+     },
+     "p50_ms": 199,
+     "p95_ms": 500,
+     "p99_ms": 770
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 223,
+     "statuses": {
+      "200": 223
+     },
+     "p50_ms": 206,
+     "p95_ms": 686,
+     "p99_ms": 1024
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 224,
+     "statuses": {
+      "200": 224
+     },
+     "p50_ms": 124,
+     "p95_ms": 288,
+     "p99_ms": 462
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 675,
+     "statuses": {
+      "200": 675
+     },
+     "p50_ms": 26,
+     "p95_ms": 79,
+     "p99_ms": 148
+    }
+   },
+   "api_total": 2473,
+   "api_5xx": 1,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 1123,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 60,
+     "error": 1
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.14,
+    7.17,
+    6.15,
+    7.65,
+    7.82,
+    7.97
+   ],
+   "browser_proof_s": [
+    3.21,
+    3.15,
+    2.98,
+    3.27,
+    3.71,
+    3.36
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 37,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 263,
+   "freshness_p95_ms": 1301,
+   "freshness_max_ms": 1395,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "hot snapshot LLM trace query failed: Parquet error: External: Parquet argument error: Parquet err": 1
+   },
+   "snapshot_reruns": 0
+  }
+ ],
+ "proto2-base": [
+  {
+   "name": "rw-proto2-base-realworld-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 11.1,
+   "export_p99_ms": 65.5,
+   "exports_refused_once": 469,
+   "exports_failed": 0,
+   "backend_cpu_s": 45.13,
+   "ingestion_cpu_s": 8.51,
+   "backend_peak_mib": 450,
+   "backend_rss_mib": 181,
+   "backend_memory_events": {
+    "max": 9337
+   },
+   "pages": {
+    "services list": {
+     "n": 52,
+     "outcomes": {
+      "rows": 52
+     },
+     "p50_ms": 359,
+     "p95_ms": 1557,
+     "max_ms": 2402
+    },
+    "trace detail": {
+     "n": 47,
+     "outcomes": {
+      "rows": 47
+     },
+     "p50_ms": 254,
+     "p95_ms": 966,
+     "max_ms": 1818
+    },
+    "traces list, all": {
+     "n": 52,
+     "outcomes": {
+      "error": 1,
+      "rows": 51
+     },
+     "p50_ms": 566,
+     "p95_ms": 11707,
+     "max_ms": 14899
+    },
+    "traces list, has LLM (default view)": {
+     "n": 52,
+     "outcomes": {
+      "empty": 13,
+      "error": 3,
+      "rows": 36
+     },
+     "p50_ms": 937,
+     "p95_ms": 11792,
+     "max_ms": 12645
+    },
+    "workflow list": {
+     "n": 48,
+     "outcomes": {
+      "error": 1,
+      "rows": 47
+     },
+     "p50_ms": 593,
+     "p95_ms": 2502,
+     "max_ms": 6132
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 152,
+     "statuses": {
+      "200": 152
+     },
+     "p50_ms": 40,
+     "p95_ms": 379,
+     "p99_ms": 610
+    },
+    "/api/v1/observability/services": {
+     "n": 52,
+     "statuses": {
+      "200": 52
+     },
+     "p50_ms": 94,
+     "p95_ms": 814,
+     "p99_ms": 1721
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 52,
+     "statuses": {
+      "200": 51,
+      "500": 1
+     },
+     "p50_ms": 524,
+     "p95_ms": 11674,
+     "p99_ms": 12968
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 52,
+     "statuses": {
+      "200": 49,
+      "500": 3
+     },
+     "p50_ms": 689,
+     "p95_ms": 11590,
+     "p99_ms": 11774
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 48,
+     "statuses": {
+      "200": 47,
+      "500": 1
+     },
+     "p50_ms": 270,
+     "p95_ms": 2268,
+     "p99_ms": 5282
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 47,
+     "statuses": {
+      "200": 47
+     },
+     "p50_ms": 233,
+     "p95_ms": 946,
+     "p99_ms": 1795
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 152,
+     "statuses": {
+      "200": 152
+     },
+     "p50_ms": 38,
+     "p95_ms": 389,
+     "p99_ms": 641
+    }
+   },
+   "api_total": 555,
+   "api_5xx": 5,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 251,
+   "pages_not_rows": {
+    "traces list, all": {
+     "error": 1
+    },
+    "traces list, has LLM (default view)": {
+     "empty": 13,
+     "error": 3
+    },
+    "workflow list": {
+     "error": 1
+    }
+   },
+   "sdk_runs": 4,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.52,
+    11.09,
+    11.09,
+    14.18
+   ],
+   "browser_proof_s": [
+    4.12,
+    7.31,
+    6.36,
+    6.93
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 31,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 849,
+   "freshness_p95_ms": 1979,
+   "freshness_max_ms": 3411,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "two-tier workflow span query failed: Parquet error: External: Generic LocalFileSystem error: Requ": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 4.3 MB fo": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 4.5 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 292.1 KB ": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 6.7 MB fo": 1
+   },
+   "snapshot_reruns": 0
+  },
+  {
+   "name": "rw-proto2-base-realworld-heavy-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 5760000,
+   "export_p95_ms": 8.5,
+   "export_p99_ms": 52.0,
+   "exports_refused_once": 448,
+   "exports_failed": 0,
+   "backend_cpu_s": 47.33,
+   "ingestion_cpu_s": 21.41,
+   "backend_peak_mib": 450,
+   "backend_rss_mib": 190,
+   "backend_memory_events": {
+    "max": 42578
+   },
+   "pages": {
+    "services list": {
+     "n": 18,
+     "outcomes": {
+      "rows": 18
+     },
+     "p50_ms": 773,
+     "p95_ms": 1796,
+     "max_ms": 2376
+    },
+    "trace detail": {
+     "n": 7,
+     "outcomes": {
+      "rows": 7
+     },
+     "p50_ms": 311,
+     "p95_ms": 670,
+     "max_ms": 670
+    },
+    "traces list, all": {
+     "n": 17,
+     "outcomes": {
+      "error": 8,
+      "rows": 9
+     },
+     "p50_ms": 8303,
+     "p95_ms": 27735,
+     "max_ms": 28902
+    },
+    "traces list, has LLM (default view)": {
+     "n": 17,
+     "outcomes": {
+      "empty": 2,
+      "error": 7,
+      "rows": 8
+     },
+     "p50_ms": 7711,
+     "p95_ms": 14634,
+     "max_ms": 14802
+    },
+    "workflow list": {
+     "n": 15,
+     "outcomes": {
+      "error": 8,
+      "rows": 7
+     },
+     "p50_ms": 5015,
+     "p95_ms": 10215,
+     "max_ms": 13163
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 50,
+     "statuses": {
+      "200": 50
+     },
+     "p50_ms": 133,
+     "p95_ms": 455,
+     "p99_ms": 526
+    },
+    "/api/v1/observability/services": {
+     "n": 18,
+     "statuses": {
+      "200": 18
+     },
+     "p50_ms": 466,
+     "p95_ms": 1115,
+     "p99_ms": 2187
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 17,
+     "statuses": {
+      "200": 9,
+      "500": 8
+     },
+     "p50_ms": 8273,
+     "p95_ms": 27701,
+     "p99_ms": 28855
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 17,
+     "statuses": {
+      "200": 10,
+      "500": 7
+     },
+     "p50_ms": 7109,
+     "p95_ms": 14412,
+     "p99_ms": 14509
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 15,
+     "statuses": {
+      "200": 7,
+      "500": 8
+     },
+     "p50_ms": 4409,
+     "p95_ms": 9957,
+     "p99_ms": 11889
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 7,
+     "statuses": {
+      "200": 7
+     },
+     "p50_ms": 282,
+     "p95_ms": 642,
+     "p99_ms": 642
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 50,
+     "statuses": {
+      "200": 50
+     },
+     "p50_ms": 114,
+     "p95_ms": 509,
+     "p99_ms": 924
+    }
+   },
+   "api_total": 174,
+   "api_5xx": 23,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 74,
+   "pages_not_rows": {
+    "traces list, all": {
+     "error": 8
+    },
+    "traces list, has LLM (default view)": {
+     "empty": 2,
+     "error": 7
+    },
+    "workflow list": {
+     "error": 8
+    }
+   },
+   "sdk_runs": 4,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    8.9,
+    12.27,
+    12.07,
+    14.35
+   ],
+   "browser_proof_s": [
+    5.79,
+    8.97,
+    5.82,
+    5.68
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 28,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 1138,
+   "freshness_p95_ms": 2619,
+   "freshness_max_ms": 3204,
+   "freshness_poll_errors": {
+    "500": 2
+   },
+   "backend_error_lines": {
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 6.1 MB fo": 1,
+    "two-tier trace query failed: Parquet error: External: Parquet argument error: Parquet err": 1,
+    "two-tier workflow span query failed: Resources exhausted: Failed to allocate additional 292.1 KB ": 2,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 292.1 KB ": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 8.4 MB fo": 1,
+    "two-tier workflow span query failed: Resources exhausted: Failed to allocate additional 7.2 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 8.9 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 4.4 MB fo": 1,
+    "two-tier workflow span query failed: Resources exhausted: Failed to allocate additional 4.5 MB fo": 1,
+    "two-tier trace query failed: Not enough memory to continue external sort. Consider increa": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 8.8 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 6.5 MB fo": 2,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 6.8 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 4.5 MB fo": 1,
+    "failed to query distinct service names: Not enough memory to continue external sort. Consider increa": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 5.3 MB fo": 1,
+    "two-tier workflow span query failed: Resources exhausted: Failed to allocate additional 7.8 MB fo": 1,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 4.1 MB fo": 1,
+    "two-tier workflow span query failed: Resources exhausted: Failed to allocate additional 5.6 MB fo": 2,
+    "two-tier LLM root span query failed: Resources exhausted: Failed to allocate additional 4.2 MB fo": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 2.8 MB fo": 1,
+    "two-tier root span query failed: Resources exhausted: Failed to allocate additional 8.1 MB fo": 1,
+    "two-tier workflow span query failed: Resources exhausted: Failed to allocate additional 9.6 MB fo": 1
+   },
+   "snapshot_reruns": 0
+  }
+ ],
+ "proto2-both": [
+  {
+   "name": "rw-proto2-both-realworld-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 11.5,
+   "export_p99_ms": 45.7,
+   "exports_refused_once": 222,
+   "exports_failed": 0,
+   "backend_cpu_s": 43.29,
+   "ingestion_cpu_s": 9.19,
+   "backend_peak_mib": 113,
+   "backend_rss_mib": 65,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 257,
+     "outcomes": {
+      "rows": 257
+     },
+     "p50_ms": 227,
+     "p95_ms": 410,
+     "max_ms": 593
+    },
+    "trace detail": {
+     "n": 256,
+     "outcomes": {
+      "rows": 256
+     },
+     "p50_ms": 107,
+     "p95_ms": 282,
+     "max_ms": 489
+    },
+    "traces list, all": {
+     "n": 256,
+     "outcomes": {
+      "rows": 256
+     },
+     "p50_ms": 187,
+     "p95_ms": 390,
+     "max_ms": 557
+    },
+    "traces list, has LLM (default view)": {
+     "n": 257,
+     "outcomes": {
+      "empty": 63,
+      "rows": 194
+     },
+     "p50_ms": 335,
+     "p95_ms": 665,
+     "max_ms": 888
+    },
+    "workflow list": {
+     "n": 255,
+     "outcomes": {
+      "rows": 255
+     },
+     "p50_ms": 355,
+     "p95_ms": 690,
+     "max_ms": 925
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 769,
+     "statuses": {
+      "200": 769
+     },
+     "p50_ms": 24,
+     "p95_ms": 84,
+     "p99_ms": 150
+    },
+    "/api/v1/observability/services": {
+     "n": 257,
+     "statuses": {
+      "200": 257
+     },
+     "p50_ms": 44,
+     "p95_ms": 205,
+     "p99_ms": 289
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 256,
+     "statuses": {
+      "200": 256
+     },
+     "p50_ms": 154,
+     "p95_ms": 351,
+     "p99_ms": 461
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 257,
+     "statuses": {
+      "200": 257
+     },
+     "p50_ms": 168,
+     "p95_ms": 407,
+     "p99_ms": 574
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 255,
+     "statuses": {
+      "200": 255
+     },
+     "p50_ms": 192,
+     "p95_ms": 389,
+     "p99_ms": 512
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 256,
+     "statuses": {
+      "200": 256
+     },
+     "p50_ms": 83,
+     "p95_ms": 256,
+     "p99_ms": 358
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 769,
+     "statuses": {
+      "200": 769
+     },
+     "p50_ms": 22,
+     "p95_ms": 78,
+     "p99_ms": 141
+    }
+   },
+   "api_total": 2819,
+   "api_5xx": 0,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 1281,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 63
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    4.87,
+    6.61,
+    6.67,
+    7.68,
+    7.13,
+    7.1
+   ],
+   "browser_proof_s": [
+    2.96,
+    2.84,
+    2.91,
+    3.58,
+    3.16,
+    2.98
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 36,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 319,
+   "freshness_p95_ms": 1210,
+   "freshness_max_ms": 1466,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {},
+   "snapshot_reruns": 2
+  },
+  {
+   "name": "rw-proto2-both-realworld-2",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 17.6,
+   "export_p99_ms": 51.2,
+   "exports_refused_once": 209,
+   "exports_failed": 0,
+   "backend_cpu_s": 43.28,
+   "ingestion_cpu_s": 10.14,
+   "backend_peak_mib": 118,
+   "backend_rss_mib": 72,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 248,
+     "outcomes": {
+      "rows": 248
+     },
+     "p50_ms": 228,
+     "p95_ms": 457,
+     "max_ms": 686
+    },
+    "trace detail": {
+     "n": 246,
+     "outcomes": {
+      "rows": 246
+     },
+     "p50_ms": 110,
+     "p95_ms": 297,
+     "max_ms": 487
+    },
+    "traces list, all": {
+     "n": 246,
+     "outcomes": {
+      "rows": 246
+     },
+     "p50_ms": 207,
+     "p95_ms": 399,
+     "max_ms": 496
+    },
+    "traces list, has LLM (default view)": {
+     "n": 248,
+     "outcomes": {
+      "empty": 58,
+      "rows": 190
+     },
+     "p50_ms": 331,
+     "p95_ms": 610,
+     "max_ms": 970
+    },
+    "workflow list": {
+     "n": 246,
+     "outcomes": {
+      "rows": 246
+     },
+     "p50_ms": 397,
+     "p95_ms": 710,
+     "max_ms": 920
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 742,
+     "statuses": {
+      "200": 742
+     },
+     "p50_ms": 27,
+     "p95_ms": 88,
+     "p99_ms": 147
+    },
+    "/api/v1/observability/services": {
+     "n": 248,
+     "statuses": {
+      "200": 248
+     },
+     "p50_ms": 66,
+     "p95_ms": 201,
+     "p99_ms": 292
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 246,
+     "statuses": {
+      "200": 246
+     },
+     "p50_ms": 168,
+     "p95_ms": 367,
+     "p99_ms": 448
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 248,
+     "statuses": {
+      "200": 248
+     },
+     "p50_ms": 194,
+     "p95_ms": 401,
+     "p99_ms": 475
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 246,
+     "statuses": {
+      "200": 246
+     },
+     "p50_ms": 208,
+     "p95_ms": 409,
+     "p99_ms": 521
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 246,
+     "statuses": {
+      "200": 246
+     },
+     "p50_ms": 86,
+     "p95_ms": 271,
+     "p99_ms": 444
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 742,
+     "statuses": {
+      "200": 742
+     },
+     "p50_ms": 24,
+     "p95_ms": 78,
+     "p99_ms": 144
+    }
+   },
+   "api_total": 2718,
+   "api_5xx": 0,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 1234,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 58
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.02,
+    7.3,
+    7.74,
+    7.81,
+    7.33,
+    6.93
+   ],
+   "browser_proof_s": [
+    3.08,
+    3.07,
+    3.47,
+    3.09,
+    2.96,
+    3.02
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 37,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 280,
+   "freshness_p95_ms": 1104,
+   "freshness_max_ms": 1225,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {},
+   "snapshot_reruns": 1
+  },
+  {
+   "name": "rw-proto2-both-realworld-3",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 10.5,
+   "export_p99_ms": 48.6,
+   "exports_refused_once": 175,
+   "exports_failed": 0,
+   "backend_cpu_s": 42.7,
+   "ingestion_cpu_s": 9.35,
+   "backend_peak_mib": 115,
+   "backend_rss_mib": 70,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 260,
+     "outcomes": {
+      "rows": 260
+     },
+     "p50_ms": 244,
+     "p95_ms": 474,
+     "max_ms": 1049
+    },
+    "trace detail": {
+     "n": 257,
+     "outcomes": {
+      "rows": 257
+     },
+     "p50_ms": 104,
+     "p95_ms": 219,
+     "max_ms": 510
+    },
+    "traces list, all": {
+     "n": 257,
+     "outcomes": {
+      "rows": 257
+     },
+     "p50_ms": 183,
+     "p95_ms": 398,
+     "max_ms": 605
+    },
+    "traces list, has LLM (default view)": {
+     "n": 258,
+     "outcomes": {
+      "empty": 60,
+      "rows": 198
+     },
+     "p50_ms": 322,
+     "p95_ms": 598,
+     "max_ms": 1199
+    },
+    "workflow list": {
+     "n": 257,
+     "outcomes": {
+      "rows": 257
+     },
+     "p50_ms": 352,
+     "p95_ms": 625,
+     "max_ms": 1226
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 775,
+     "statuses": {
+      "200": 775
+     },
+     "p50_ms": 20,
+     "p95_ms": 83,
+     "p99_ms": 127
+    },
+    "/api/v1/observability/services": {
+     "n": 260,
+     "statuses": {
+      "200": 260
+     },
+     "p50_ms": 49,
+     "p95_ms": 193,
+     "p99_ms": 219
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 257,
+     "statuses": {
+      "200": 257
+     },
+     "p50_ms": 154,
+     "p95_ms": 361,
+     "p99_ms": 451
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 258,
+     "statuses": {
+      "200": 258
+     },
+     "p50_ms": 177,
+     "p95_ms": 391,
+     "p99_ms": 403
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 257,
+     "statuses": {
+      "200": 257
+     },
+     "p50_ms": 193,
+     "p95_ms": 387,
+     "p99_ms": 421
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 257,
+     "statuses": {
+      "200": 257
+     },
+     "p50_ms": 77,
+     "p95_ms": 197,
+     "p99_ms": 287
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 775,
+     "statuses": {
+      "200": 775
+     },
+     "p50_ms": 18,
+     "p95_ms": 74,
+     "p99_ms": 113
+    }
+   },
+   "api_total": 2839,
+   "api_5xx": 0,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 1289,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 60
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.05,
+    6.02,
+    5.31,
+    7.14,
+    6.62,
+    7.27
+   ],
+   "browser_proof_s": [
+    2.68,
+    3.0,
+    2.97,
+    3.28,
+    2.96,
+    2.89
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 37,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 242,
+   "freshness_p95_ms": 1110,
+   "freshness_max_ms": 1389,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {},
+   "snapshot_reruns": 1
+  },
+  {
+   "name": "rw-proto2-both-realworld-heavy-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 5760000,
+   "export_p95_ms": 11.8,
+   "export_p99_ms": 54.9,
+   "exports_refused_once": 243,
+   "exports_failed": 0,
+   "backend_cpu_s": 44.06,
+   "ingestion_cpu_s": 23.6,
+   "backend_peak_mib": 126,
+   "backend_rss_mib": 85,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 137,
+     "outcomes": {
+      "rows": 137
+     },
+     "p50_ms": 315,
+     "p95_ms": 598,
+     "max_ms": 1121
+    },
+    "trace detail": {
+     "n": 134,
+     "outcomes": {
+      "rows": 134
+     },
+     "p50_ms": 242,
+     "p95_ms": 461,
+     "max_ms": 779
+    },
+    "traces list, all": {
+     "n": 135,
+     "outcomes": {
+      "rows": 135
+     },
+     "p50_ms": 413,
+     "p95_ms": 956,
+     "max_ms": 1531
+    },
+    "traces list, has LLM (default view)": {
+     "n": 137,
+     "outcomes": {
+      "empty": 2,
+      "rows": 135
+     },
+     "p50_ms": 617,
+     "p95_ms": 1119,
+     "max_ms": 1428
+    },
+    "workflow list": {
+     "n": 134,
+     "outcomes": {
+      "rows": 134
+     },
+     "p50_ms": 804,
+     "p95_ms": 1492,
+     "max_ms": 2004
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 408,
+     "statuses": {
+      "200": 408
+     },
+     "p50_ms": 37,
+     "p95_ms": 148,
+     "p99_ms": 266
+    },
+    "/api/v1/observability/services": {
+     "n": 137,
+     "statuses": {
+      "200": 137
+     },
+     "p50_ms": 107,
+     "p95_ms": 390,
+     "p99_ms": 590
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 135,
+     "statuses": {
+      "200": 135
+     },
+     "p50_ms": 374,
+     "p95_ms": 923,
+     "p99_ms": 1278
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 137,
+     "statuses": {
+      "200": 137
+     },
+     "p50_ms": 412,
+     "p95_ms": 836,
+     "p99_ms": 1075
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 134,
+     "statuses": {
+      "200": 134
+     },
+     "p50_ms": 621,
+     "p95_ms": 1193,
+     "p99_ms": 1576
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 134,
+     "statuses": {
+      "200": 134
+     },
+     "p50_ms": 215,
+     "p95_ms": 442,
+     "p99_ms": 539
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 408,
+     "statuses": {
+      "200": 408
+     },
+     "p50_ms": 35,
+     "p95_ms": 141,
+     "p99_ms": 262
+    }
+   },
+   "api_total": 1493,
+   "api_5xx": 0,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 677,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 2
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.75,
+    6.68,
+    6.76,
+    8.61,
+    8.73,
+    7.66
+   ],
+   "browser_proof_s": [
+    3.0,
+    3.15,
+    3.7,
+    3.67,
+    3.91,
+    3.27
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 37,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 463,
+   "freshness_p95_ms": 1076,
+   "freshness_max_ms": 1171,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {
+    "failed to query distinct service names: Arrow error: Parquet argument error: Parquet error: Unexpect": 1
+   },
+   "snapshot_reruns": 4
+  }
+ ],
+ "rust-adopted": [
+  {
+   "name": "rw-rust-adopted-realworld-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 1440000,
+   "export_p95_ms": 17.4,
+   "export_p99_ms": 41.0,
+   "exports_refused_once": 143,
+   "exports_failed": 0,
+   "backend_cpu_s": 43.75,
+   "ingestion_cpu_s": 9.42,
+   "backend_peak_mib": 117,
+   "backend_rss_mib": 71,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 263,
+     "outcomes": {
+      "rows": 263
+     },
+     "p50_ms": 216,
+     "p95_ms": 419,
+     "max_ms": 526
+    },
+    "trace detail": {
+     "n": 259,
+     "outcomes": {
+      "rows": 259
+     },
+     "p50_ms": 112,
+     "p95_ms": 296,
+     "max_ms": 405
+    },
+    "traces list, all": {
+     "n": 259,
+     "outcomes": {
+      "rows": 259
+     },
+     "p50_ms": 200,
+     "p95_ms": 365,
+     "max_ms": 491
+    },
+    "traces list, has LLM (default view)": {
+     "n": 262,
+     "outcomes": {
+      "empty": 60,
+      "rows": 202
+     },
+     "p50_ms": 321,
+     "p95_ms": 602,
+     "max_ms": 1115
+    },
+    "workflow list": {
+     "n": 259,
+     "outcomes": {
+      "rows": 259
+     },
+     "p50_ms": 342,
+     "p95_ms": 606,
+     "max_ms": 807
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 784,
+     "statuses": {
+      "200": 784
+     },
+     "p50_ms": 27,
+     "p95_ms": 73,
+     "p99_ms": 146
+    },
+    "/api/v1/observability/services": {
+     "n": 263,
+     "statuses": {
+      "200": 263
+     },
+     "p50_ms": 65,
+     "p95_ms": 202,
+     "p99_ms": 278
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 259,
+     "statuses": {
+      "200": 259
+     },
+     "p50_ms": 159,
+     "p95_ms": 332,
+     "p99_ms": 372
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 262,
+     "statuses": {
+      "200": 262
+     },
+     "p50_ms": 185,
+     "p95_ms": 396,
+     "p99_ms": 510
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 259,
+     "statuses": {
+      "200": 259
+     },
+     "p50_ms": 204,
+     "p95_ms": 412,
+     "p99_ms": 508
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 259,
+     "statuses": {
+      "200": 259
+     },
+     "p50_ms": 87,
+     "p95_ms": 267,
+     "p99_ms": 351
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 784,
+     "statuses": {
+      "200": 784
+     },
+     "p50_ms": 24,
+     "p95_ms": 70,
+     "p99_ms": 141
+    }
+   },
+   "api_total": 2870,
+   "api_5xx": 0,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 1302,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 60
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    5.14,
+    7.0,
+    6.64,
+    7.36,
+    6.53,
+    7.01
+   ],
+   "browser_proof_s": [
+    3.08,
+    2.94,
+    3.16,
+    3.15,
+    3.33,
+    2.83
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 37,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 306,
+   "freshness_p95_ms": 1143,
+   "freshness_max_ms": 1287,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {},
+   "snapshot_reruns": 5
+  },
+  {
+   "name": "rw-rust-adopted-realworld-heavy-1",
+   "accepted": true,
+   "not_accepted": [],
+   "spans_acknowledged": 5760000,
+   "export_p95_ms": 14.2,
+   "export_p99_ms": 57.1,
+   "exports_refused_once": 247,
+   "exports_failed": 0,
+   "backend_cpu_s": 43.56,
+   "ingestion_cpu_s": 24.45,
+   "backend_peak_mib": 126,
+   "backend_rss_mib": 82,
+   "backend_memory_events": {},
+   "pages": {
+    "services list": {
+     "n": 128,
+     "outcomes": {
+      "rows": 128
+     },
+     "p50_ms": 315,
+     "p95_ms": 705,
+     "max_ms": 2149
+    },
+    "trace detail": {
+     "n": 126,
+     "outcomes": {
+      "rows": 126
+     },
+     "p50_ms": 216,
+     "p95_ms": 529,
+     "max_ms": 694
+    },
+    "traces list, all": {
+     "n": 126,
+     "outcomes": {
+      "rows": 126
+     },
+     "p50_ms": 399,
+     "p95_ms": 898,
+     "max_ms": 1202
+    },
+    "traces list, has LLM (default view)": {
+     "n": 128,
+     "outcomes": {
+      "empty": 2,
+      "rows": 126
+     },
+     "p50_ms": 601,
+     "p95_ms": 1397,
+     "max_ms": 2285
+    },
+    "workflow list": {
+     "n": 125,
+     "outcomes": {
+      "rows": 125
+     },
+     "p50_ms": 911,
+     "p95_ms": 1640,
+     "max_ms": 1942
+    }
+   },
+   "api": {
+    "/api/v1/auth-test": {
+     "n": 381,
+     "statuses": {
+      "200": 381
+     },
+     "p50_ms": 37,
+     "p95_ms": 144,
+     "p99_ms": 202
+    },
+    "/api/v1/observability/services": {
+     "n": 128,
+     "statuses": {
+      "200": 128
+     },
+     "p50_ms": 111,
+     "p95_ms": 399,
+     "p99_ms": 839
+    },
+    "/api/v1/observability/services/{service}/spans/root": {
+     "n": 126,
+     "statuses": {
+      "200": 126
+     },
+     "p50_ms": 362,
+     "p95_ms": 854,
+     "p99_ms": 1153
+    },
+    "/api/v1/observability/services/{service}/spans/root?has_llm=true": {
+     "n": 128,
+     "statuses": {
+      "200": 128
+     },
+     "p50_ms": 399,
+     "p95_ms": 994,
+     "p99_ms": 1402
+    },
+    "/api/v1/observability/services/{service}/workflows": {
+     "n": 125,
+     "statuses": {
+      "200": 125
+     },
+     "p50_ms": 693,
+     "p95_ms": 1291,
+     "p99_ms": 1609
+    },
+    "/api/v1/trace-evidence/{trace}": {
+     "n": 126,
+     "statuses": {
+      "200": 126
+     },
+     "p50_ms": 189,
+     "p95_ms": 504,
+     "p99_ms": 661
+    },
+    "/api/v1/users/db-has-users": {
+     "n": 381,
+     "statuses": {
+      "200": 381
+     },
+     "p50_ms": 35,
+     "p95_ms": 140,
+     "p99_ms": 166
+    }
+   },
+   "api_total": 1395,
+   "api_5xx": 0,
+   "request_failures": 0,
+   "page_errors": 0,
+   "page_actions": 633,
+   "pages_not_rows": {
+    "traces list, has LLM (default view)": {
+     "empty": 2
+    }
+   },
+   "sdk_runs": 6,
+   "sdk_failed": 0,
+   "sdk_to_studio_s": [
+    4.08,
+    6.61,
+    6.7,
+    8.65,
+    8.44,
+    8.49
+   ],
+   "browser_proof_s": [
+    2.6,
+    3.61,
+    3.25,
+    3.97,
+    3.41,
+    3.44
+   ],
+   "sdk_failure_output": [],
+   "freshness_probes": 37,
+   "freshness_not_visible": 0,
+   "freshness_not_exported": 0,
+   "freshness_p50_ms": 406,
+   "freshness_p95_ms": 886,
+   "freshness_max_ms": 1517,
+   "freshness_poll_errors": {},
+   "backend_error_lines": {},
+   "snapshot_reruns": 3
+  }
+ ]
+}

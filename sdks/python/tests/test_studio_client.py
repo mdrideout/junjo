@@ -16,6 +16,10 @@ from junjo.studio import (
     AttemptStatus,
     CaseCreate,
     CaseOrigin,
+    CliSignInDenied,
+    CliSignInExpired,
+    CliSignInPending,
+    CliSignInStart,
     DatasetCreate,
     ExecutableType,
     ExecutionEvidencePending,
@@ -31,11 +35,14 @@ from junjo.studio import (
     StudioTransientError,
     StudioValidationError,
     TargetKind,
+    TokenScope,
 )
 
 NOW = "2026-07-27T12:00:00Z"
 TRACE_ID = "a" * 32
 SPAN_ID = "b" * 16
+DEVICE_CODE = "jdev_" + "d" * 64
+ACCESS_TOKEN = "jcli_" + "t" * 64
 
 
 def _dataset() -> dict[str, Any]:
@@ -867,3 +874,186 @@ def test_client_rejects_unsafe_origins() -> None:
         StudioClient(base_url="https://user:password@studio.example.com")
     with pytest.raises(ValueError, match="application path"):
         StudioClient(base_url="https://studio.example.com/prefix")
+
+
+@pytest.mark.asyncio
+async def test_cli_sign_in_starts_and_collects_without_a_token_and_redacts_secrets() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        assert "authorization" not in request.headers
+        if request.url.path == "/api/v1/cli-sign-ins":
+            return httpx.Response(
+                201,
+                json={
+                    "device_code": DEVICE_CODE,
+                    "user_code": "WZRP-JWSQ",
+                    "verification_path": "/cli-sign-in",
+                    "expires_in": 900,
+                    "interval": 5,
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "access_token": ACCESS_TOKEN,
+                "token_type": "bearer",
+                "token_id": "example-token-id",
+                "scopes": ["evaluation:read", "evidence:read"],
+                "expires_at": None,
+            },
+        )
+
+    async with StudioClient(
+        base_url="https://studio.test",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        started = await client.start_cli_sign_in(
+            CliSignInStart(
+                client_name="junjo CLI on laptop",
+                scopes=(TokenScope.EVALUATION_READ, TokenScope.EVIDENCE_READ),
+            )
+        )
+        token = await client.collect_cli_sign_in_token(started.device_code)
+
+    assert [(request.method, request.url.path) for request in requests] == [
+        ("POST", "/api/v1/cli-sign-ins"),
+        ("POST", "/api/v1/cli-sign-ins/token"),
+    ]
+    assert json.loads(requests[0].content) == {
+        "client_name": "junjo CLI on laptop",
+        "scopes": ["evaluation:read", "evidence:read"],
+    }
+    assert json.loads(requests[1].content) == {"device_code": DEVICE_CODE}
+    assert started.device_code == DEVICE_CODE
+    assert started.user_code == "WZRP-JWSQ"
+    assert started.verification_path == "/cli-sign-in"
+    assert (started.expires_in, started.interval) == (900, 5)
+    assert DEVICE_CODE not in repr(started)
+    assert token.access_token.get_secret_value() == ACCESS_TOKEN
+    assert token.token_type == "bearer"
+    assert token.token_id == "example-token-id"
+    assert token.scopes == (TokenScope.EVALUATION_READ, TokenScope.EVIDENCE_READ)
+    assert token.expires_at is None
+    assert ACCESS_TOKEN not in repr(token)
+    assert ACCESS_TOKEN not in token.model_dump_json()
+
+
+@pytest.mark.asyncio
+async def test_cli_sign_in_collection_outcomes_are_typed_and_never_retried() -> None:
+    answer = httpx.Response(
+        400,
+        json={
+            "code": "authorization_pending",
+            "message": "The CLI sign-in has not been approved or denied yet",
+        },
+    )
+    calls = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return answer
+
+    async with StudioClient(
+        base_url="https://studio.test",
+        retry_backoff_seconds=0,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(CliSignInPending):
+            await client.collect_cli_sign_in_token(DEVICE_CODE)
+        assert calls == 1
+
+        answer = httpx.Response(
+            400,
+            json={"code": "access_denied", "message": "The CLI sign-in was denied"},
+        )
+        with pytest.raises(CliSignInDenied):
+            await client.collect_cli_sign_in_token(DEVICE_CODE)
+        assert calls == 2
+
+        answer = httpx.Response(
+            400,
+            json={
+                "code": "expired_token",
+                "message": "The device code is unknown, already used, or expired",
+            },
+        )
+        with pytest.raises(CliSignInExpired):
+            await client.collect_cli_sign_in_token(DEVICE_CODE)
+        assert calls == 3
+
+        answer = httpx.Response(400, json={"code": "slow_down", "message": "Poll less often"})
+        with pytest.raises(StudioContractError, match="unsupported outcome code"):
+            await client.collect_cli_sign_in_token(DEVICE_CODE)
+        assert calls == 4
+
+        answer = httpx.Response(400, json={"detail": "not the Studio error body"})
+        with pytest.raises(StudioContractError, match="ErrorResponse"):
+            await client.collect_cli_sign_in_token(DEVICE_CODE)
+        assert calls == 5
+
+        answer = httpx.Response(
+            422,
+            json={"code": "invalid_request", "message": "device_code: unknown field"},
+        )
+        with pytest.raises(StudioValidationError):
+            await client.collect_cli_sign_in_token(DEVICE_CODE)
+        assert calls == 6
+
+        with pytest.raises(ValidationError, match="device_code"):
+            await client.collect_cli_sign_in_token("jdev_too-short")
+        assert calls == 6
+
+
+@pytest.mark.asyncio
+async def test_a_token_describes_and_revokes_itself_until_studio_rejects_it() -> None:
+    requests: list[httpx.Request] = []
+    revoked = False
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal revoked
+        requests.append(request)
+        assert request.url.path == "/api/v1/evaluation-tokens/current"
+        assert request.headers["authorization"] == f"Bearer {ACCESS_TOKEN}"
+        if revoked:
+            return httpx.Response(
+                401,
+                headers={"WWW-Authenticate": "Bearer"},
+                json={"code": "unauthorized", "message": "Invalid or expired evaluation token"},
+            )
+        if request.method == "DELETE":
+            revoked = True
+            return httpx.Response(204)
+        return httpx.Response(
+            200,
+            json={
+                "id": "example-token-id",
+                "name": "junjo CLI on laptop",
+                "scopes": ["evaluation:read", "evidence:read"],
+                "expires_at": None,
+                "created_at": "2026-10-04T05:17:09Z",
+            },
+        )
+
+    async with StudioClient(
+        base_url="https://studio.test",
+        token=ACCESS_TOKEN,
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        current = await client.get_current_token()
+        deleted = await client.delete_current_token()
+        with pytest.raises(StudioAuthenticationError):
+            await client.get_current_token()
+        with pytest.raises(StudioAuthenticationError):
+            await client.delete_current_token()
+
+    assert current.id == "example-token-id"
+    assert current.name == "junjo CLI on laptop"
+    assert current.scopes == (TokenScope.EVALUATION_READ, TokenScope.EVIDENCE_READ)
+    assert current.expires_at is None
+    assert current.created_at.isoformat() == "2026-10-04T05:17:09+00:00"
+    assert deleted is None
+    assert [request.method for request in requests] == ["GET", "DELETE", "GET", "DELETE"]
+    assert requests[1].content == b""

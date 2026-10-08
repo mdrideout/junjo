@@ -1,0 +1,17 @@
+# Whole-stack single-CPU profile: both services share one virtual CPU and have
+# no individual CPU quota. Memory limits and no-swap are unchanged.
+services:
+  backend:
+    image: junjo-rsmig-python-backend:local
+    cpuset: "0"
+    cpus: 0
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  ingestion:
+    image: junjo-rsmig-ingestion:local
+    cpuset: "0"
+    cpus: 0
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  auth-proxy:
+    image: junjo-rsmig-python-backend:local

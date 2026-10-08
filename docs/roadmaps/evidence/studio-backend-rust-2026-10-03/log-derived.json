@@ -1,0 +1,59 @@
+{
+ "rust_memory_floor": {
+  "run": "load-rust-floor-mixed-1",
+  "stages": [
+   {
+    "stage": "runtime started",
+    "rss_kib": 14164,
+    "rss_anon_kib": 4084,
+    "rss_file_kib": 10080,
+    "threads": 2
+   },
+   {
+    "stage": "listeners bound",
+    "rss_kib": 14228,
+    "rss_anon_kib": 4084,
+    "rss_file_kib": 10144,
+    "threads": 2
+   },
+   {
+    "stage": "sqlite open",
+    "rss_kib": 16564,
+    "rss_anon_kib": 4564,
+    "rss_file_kib": 12000,
+    "threads": 5
+   },
+   {
+    "stage": "datafusion runtime created",
+    "rss_kib": 17656,
+    "rss_anon_kib": 4568,
+    "rss_file_kib": 13088,
+    "threads": 5
+   },
+   {
+    "stage": "servers started",
+    "rss_kib": 19148,
+    "rss_anon_kib": 4652,
+    "rss_file_kib": 14496,
+    "threads": 6
+   },
+   {
+    "stage": "first query completed",
+    "rss_kib": 51700,
+    "rss_anon_kib": 5696,
+    "rss_file_kib": 46004,
+    "threads": 8
+   }
+  ]
+ },
+ "hot_snapshots": {
+  "diag-python-inglog-mixed-1": {
+   "hot_snapshot_builds": 29,
+   "prepare_hot_snapshot_calls": 1556
+  },
+  "diag-rust-system-inglog-mixed-1": {
+   "hot_snapshot_builds": 30,
+   "prepare_hot_snapshot_calls": 1643
+  }
+ }
+}

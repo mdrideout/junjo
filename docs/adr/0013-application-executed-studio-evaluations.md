@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-07-27
+- Amended: 2026-10-04 by Studio ADR-012 (the CLI signs in through the browser
+  and stores its credential)
 - Owners: Junjo platform
 - Correction: Replaces the unshipped, same-day draft that assigned generic
   evaluation mechanics to AI Chat and excluded them from the Junjo SDK.
@@ -242,6 +244,39 @@ smaller window.
 - Store result files or trace bundles as the primary contract: they are not a
   queryable shared control plane and duplicate evidence already received by
   Studio.
+
+## 2026-10-04 amendment
+
+[Studio ADR-012](../../apps/studio/docs/adr/012-studio-authentication.md) adds
+a browser sign-in for the CLI and a stored credential to the decision under
+"Authentication is separately scoped".
+
+- `junjo auth login` starts a sign-in that follows the OAuth device
+  authorization grant. A person approves it in their authenticated Studio
+  browser session. Approval mints an ordinary developer access token, and the
+  CLI collects it once.
+- The CLI stores that token in a private file in the user's configuration
+  directory, keyed by Studio origin. This adds no SDK dependency.
+- `JUNJO_AI_STUDIO_CLI_TOKEN` takes precedence over the stored credential. A
+  command that needs a token does not read the stored credential when the
+  variable is set, so automation, CI, and coding agents behave exactly as
+  before.
+- A developer access token may describe and revoke itself, which
+  `junjo auth status` and `junjo auth logout` use. Listing, creating, and
+  deleting other tokens still require the browser session.
+
+This extends the statement that human users "create, copy, and delete those
+credentials through their authenticated Studio browser session". Creating a
+token still requires that session. A person no longer has to copy the token by
+hand, and the CLI that holds a token can delete it. Creating a token in Studio
+and supplying it through the environment variable remains supported. The
+installed CLI gains a `junjo auth` command group beside `junjo eval`.
+
+The rest of this decision is unchanged. The developer access token stays
+separately scoped and recoverable in Studio, plain HTTP is accepted only for a
+loopback Studio origin, the Application Telemetry API key is never reused for
+evaluation control, and neither the CLI nor the SDK evaluation client accepts
+a Studio account password.
 
 ## Related decisions
 

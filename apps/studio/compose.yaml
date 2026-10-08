@@ -1,6 +1,9 @@
 services:
   backend:
     restart: unless-stopped
+    # Keep development's cargo-watch wrapper out of PID 1 so SIGTERM can
+    # terminate the wrapper after it forwards the signal to the backend.
+    init: true
     mem_reservation: ${JUNJO_BACKEND_MEM_RESERVATION:-300m}
     mem_limit: ${JUNJO_BACKEND_MEM_LIMIT:-450m}
     memswap_limit: ${JUNJO_BACKEND_MEMSWAP_LIMIT:-900m}
@@ -11,7 +14,14 @@ services:
       target: ${JUNJO_BUILD_TARGET:-production}
     volumes:
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
-      - ./backend/app:/app/app
+      - ./backend/server:/app/backend/server:ro
+      - ./backend/evidence:/app/backend/evidence:ro
+      - ./backend/schema:/app/backend/schema:ro
+      - ./proto:/app/proto:ro
+      - ./backend/Cargo.toml:/app/backend/Cargo.toml:ro
+      - ./backend/Cargo.lock:/app/backend/Cargo.lock:ro
+      - backend-cargo-cache:/usr/local/cargo/registry
+      - backend-target-cache:/app/backend/target
     ports:
       - "26154:26154"
     networks:
@@ -21,9 +31,10 @@ services:
     environment:
       INGESTION_HOST: ingestion
       INGESTION_PORT: 50052
+      # Pinned so a stray PORT in the shared .env cannot move the HTTP listener off the published port
+      PORT: 26154
       # Pinned so a stray GRPC_PORT in the shared .env cannot rewire the backend's internal RPC listener
       GRPC_PORT: 50053
-      RUN_MIGRATIONS: "true"
       JUNJO_SQLITE_PATH: /app/.dbdata/sqlite/junjo.db
       JUNJO_METADATA_DB_PATH: /app/.dbdata/sqlite/metadata.db
       JUNJO_PARQUET_STORAGE_PATH: /app/.dbdata/spans/parquet
@@ -85,30 +96,36 @@ services:
       retries: 5
       start_period: 30s
 
+  # The Vite development server. It runs only with the development profile:
+  # a production build serves the UI from the backend on 26154.
   frontend:
+    profiles: ["development"]
     restart: unless-stopped
     init: true
     build:
       context: .
       dockerfile: frontend/Dockerfile
-      target: ${JUNJO_BUILD_TARGET:-production}
+      target: development
     volumes:
       - frontend-modules:/app/node_modules
       - ./frontend:/app
     ports:
       - "26151:26151"
-      - "26153:26153"
     networks:
       - junjo-network
     env_file:
       - .env
     environment:
       JUNJO_INTERNAL_GRPC_TOKEN: ""
+      # Where the Vite server proxies /api/ and /health
+      JUNJO_DEV_BACKEND_URL: http://backend:26154
     depends_on:
       backend:
         condition: service_started
 
 volumes:
+  backend-cargo-cache:
+  backend-target-cache:
   frontend-modules:
   ingestion-cargo-cache:
   ingestion-target-cache:

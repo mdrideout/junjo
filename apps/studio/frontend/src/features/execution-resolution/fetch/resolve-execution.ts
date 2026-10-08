@@ -1,4 +1,3 @@
-import { getApiHost } from '../../../config'
 import {
   ExecutionResolutionConflictSchema,
   ExecutionResolutionRequestSchema,
@@ -19,7 +18,7 @@ export async function resolveExecution(
     runtime_id: validated.runtime_id,
   })
   const response = await fetch(
-    `${getApiHost()}/api/v1/execution-resolution?${parameters.toString()}`,
+    `/api/v1/execution-resolution?${parameters.toString()}`,
     { credentials: 'include', signal },
   )
   if (response.status === 404) return null

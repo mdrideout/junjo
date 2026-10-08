@@ -5,11 +5,11 @@
 #
 # Usage:
 #   ./download_staging_certs.sh your-domain.com
-#   OR
-#   ./download_staging_certs.sh (will extract domain from JUNJO_PROD_FRONTEND_URL in .env)
+#
+# your-domain.com is the Studio hostname configured in caddy/Caddyfile
+# (for example: junjo.example.com).
 
 # --- Configuration ---
-ENV_FILE=".env"
 OUTPUT_DIR=".certs"
 # ---------------------
 
@@ -82,34 +82,11 @@ get_cert_by_cn() {
 mkdir -p "$OUTPUT_DIR"
 echo "Certificates will be saved in the '$OUTPUT_DIR' directory."
 
-# Get domain from command-line argument or extract from .env file
-if [ -n "$1" ]; then
-  DOMAIN="$1"
-  echo "Using domain from command-line argument: $DOMAIN"
-else
-  # Check if the .env file exists
-  if [ ! -f "$ENV_FILE" ]; then
-    echo "Error: The '$ENV_FILE' file was not found in the current directory."
-    echo "Usage: $0 your-domain.com"
-    exit 1
-  fi
-
-  # Try to extract domain from JUNJO_PROD_FRONTEND_URL
-  FRONTEND_URL=$(grep '^JUNJO_PROD_FRONTEND_URL=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '"')
-
-  if [ -z "$FRONTEND_URL" ]; then
-    echo "Error: No domain provided and JUNJO_PROD_FRONTEND_URL is not set in '$ENV_FILE'."
-    echo "Usage: $0 your-domain.com"
-    exit 1
-  fi
-
-  # Extract domain from URL (remove https://, http://, and any path)
-  DOMAIN=$(echo "$FRONTEND_URL" | sed -E 's|^https?://||' | sed 's|/.*||')
-  echo "Extracted domain from JUNJO_PROD_FRONTEND_URL: $DOMAIN"
-fi
+# Get the Studio domain from the command-line argument
+DOMAIN="$1"
 
 if [ -z "$DOMAIN" ]; then
-  echo "Error: Could not determine domain."
+  echo "Error: No domain provided."
   echo "Usage: $0 your-domain.com"
   exit 1
 fi
@@ -120,7 +97,7 @@ echo "Using domain: $DOMAIN"
 get_cert_by_cn "$DOMAIN" "$DOMAIN" "$OUTPUT_DIR" "$DOMAIN.pem"
 
 # Download the server certificate for the wildcard subdomain by matching its CN
-get_cert_by_cn "api.$DOMAIN" "*.$DOMAIN" "$OUTPUT_DIR" "_$DOMAIN.pem"
+get_cert_by_cn "ingestion.$DOMAIN" "*.$DOMAIN" "$OUTPUT_DIR" "_$DOMAIN.pem"
 
 echo "--------------------------------------------------"
 echo "Script finished."

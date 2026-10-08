@@ -25,4 +25,7 @@ message ValidateApiKeyRequest {
 message ValidateApiKeyResponse {
   // Whether the API key is valid.
   bool is_valid = 1;
+  // The identifier of the valid key. Never the key value. Empty when the key
+  // is not valid. Ingestion stores it on every span the key sends.
+  string api_key_id = 2;
 }

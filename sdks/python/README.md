@@ -278,7 +278,7 @@ cp .env.example .env
 # Start services
 docker compose up -d
 
-# Access the UI at http://localhost:26153
+# Access the UI at http://localhost:26154
 ```
 
 **Features:**

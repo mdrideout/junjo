@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Benchmark Studio's real OTLP -> ingestion -> backend authorization path.
 
-Run through the backend's locked Python environment from ``apps/studio``:
+Run through this directory's locked Python project, from this directory:
 
-    uv run --project backend python ingestion/benchmarks/auth_path_benchmark.py
+    uv run python auth_path_benchmark.py
 
 The harness starts only the canonical backend and ingestion services with a
 Compose overlay that constrains them to one shared vCPU and 800 MiB of combined
@@ -51,6 +51,42 @@ SYNTHETIC_EMAIL = "auth-benchmark@example.com"
 SYNTHETIC_PASSWORD = "benchmark-password-123"
 REVOCATION_ACCEPTANCE_TOLERANCE_SECONDS = 1.0
 WAL_MTIME_COMPARISON_TOLERANCE_MS = 2.0
+# The services that Studio-shaped traces are written to, one per exporter in
+# turn.
+STUDIO_SERVICE_NAMES = tuple(f"studio-benchmark-{index}" for index in range(3))
+# What follows the Workflow root span of a Studio-shaped trace, in turn. Two of
+# every six are LLM spans, one in each convention Studio classifies.
+# The SDK gives every Workflow and Agent execution its own runtime identity.
+STUDIO_RUNTIME_ID_KEY = "junjo.executable_runtime_id"
+STUDIO_EXECUTABLE_SPAN_TYPES = ("workflow", "agent")
+STUDIO_CHILD_SPAN_ATTRIBUTES: tuple[dict[str, str], ...] = (
+    {"junjo.span_type": "node"},
+    {"openinference.span.kind": "LLM"},
+    {"junjo.span_type": "node"},
+    {"junjo.span_type": "agent"},
+    {"gen_ai.provider.name": "synthetic", "gen_ai.operation.name": "chat"},
+    {"junjo.span_type": "node"},
+)
+FRESHNESS_PROBE_SPANS = 3
+# Outside the range of workload exporters, like the other probes' identities.
+FRESHNESS_PROBE_EXPORTER_ID = 888_888
+FRESHNESS_PROBE_INTERVAL_SECONDS = 2.0
+FRESHNESS_PROBE_POLL_SECONDS = 0.1
+# A probe trace that is not readable by then is recorded as not seen.
+FRESHNESS_PROBE_GIVE_UP_SECONDS = 30.0
+
+
+@dataclass(frozen=True)
+class SetupPaths:
+    """Backend routes used only to create the benchmark user and API keys.
+
+    They are not part of the measured workload, so they stay out of
+    ``BenchmarkConfig``. Two backends with different setup routes therefore
+    still produce comparable results.
+    """
+
+    first_user: str = "/api/v1/users/create-first-user"
+    api_keys: str = "/api/v1/api-keys"
 
 
 @dataclass(frozen=True)
@@ -79,6 +115,13 @@ class BenchmarkConfig:
     restart_count: int
     verify_delivery: bool = False
     recovery_seconds: float = 0
+    # What the exporters send: "plain" spans that carry identity only, or
+    # "studio" traces that Studio's pages can list.
+    span_shape: str = "plain"
+    # Time how long an accepted trace takes to become readable.
+    freshness_probe: bool = False
+    # A command started with the workload, for activity beside it.
+    side_command: str = ""
 
 
 def percentile(values: list[float], percentile_value: float) -> float:
@@ -221,12 +264,16 @@ async def wait_for_proxy(client: httpx.AsyncClient) -> None:
 
 
 async def create_api_keys(
-    client: httpx.AsyncClient, key_count: int, *, name_prefix: str
+    client: httpx.AsyncClient,
+    key_count: int,
+    *,
+    name_prefix: str,
+    api_keys_path: str,
 ) -> list[tuple[str, str]]:
     identities: list[tuple[str, str]] = []
     for key_index in range(key_count):
         response = await client.post(
-            "/api_keys",
+            api_keys_path,
             json={"name": f"{name_prefix}-{key_index}"},
             timeout=15,
         )
@@ -237,15 +284,20 @@ async def create_api_keys(
 
 
 async def create_benchmark_identities(
-    client: httpx.AsyncClient, key_count: int
+    client: httpx.AsyncClient, key_count: int, setup_paths: SetupPaths
 ) -> list[tuple[str, str]]:
     response = await client.post(
-        "/users/create-first-user",
+        setup_paths.first_user,
         json={"email": SYNTHETIC_EMAIL, "password": SYNTHETIC_PASSWORD},
         timeout=15,
     )
     response.raise_for_status()
-    return await create_api_keys(client, key_count, name_prefix="auth-benchmark")
+    return await create_api_keys(
+        client,
+        key_count,
+        name_prefix="auth-benchmark",
+        api_keys_path=setup_paths.api_keys,
+    )
 
 
 def make_export_request(
@@ -282,6 +334,98 @@ def make_export_request(
     )
 
 
+def make_studio_export_request(
+    spans_per_export: int, exporter_id: int
+) -> trace_service_pb2.ExportTraceServiceRequest:
+    """One trace that Studio's pages can list.
+
+    The first span is a Workflow root and every other span is its child, so a
+    trace is one row of the Traces page and one row of the Workflow page, and
+    it has LLM spans for the Traces page's default filter. Span identifiers
+    are 1 to ``spans_per_export``, which is what delivery verification writes
+    as well, so the parent of every child stays the root. The Workflow span
+    and every Agent span carry a runtime identity.
+    """
+    root_span_id = (1).to_bytes(8, "big")
+    spans: list[trace_pb2.Span] = []
+    for span_index in range(spans_per_export):
+        if span_index == 0:
+            attributes = {"junjo.span_type": "workflow"}
+        else:
+            attributes = STUDIO_CHILD_SPAN_ATTRIBUTES[
+                (span_index - 1) % len(STUDIO_CHILD_SPAN_ATTRIBUTES)
+            ]
+        if attributes.get("junjo.span_type") in STUDIO_EXECUTABLE_SPAN_TYPES:
+            attributes = {**attributes, STUDIO_RUNTIME_ID_KEY: ""}
+        spans.append(
+            trace_pb2.Span(
+                trace_id=(exporter_id + 1).to_bytes(16, "big"),
+                span_id=(span_index + 1).to_bytes(8, "big"),
+                parent_span_id=b"" if span_index == 0 else root_span_id,
+                name="junjo.studio.benchmark",
+                kind=trace_pb2.Span.SPAN_KIND_INTERNAL,
+                attributes=[
+                    common_pb2.KeyValue(
+                        key=key, value=common_pb2.AnyValue(string_value=value)
+                    )
+                    for key, value in {
+                        **attributes,
+                        "input": "Synthetic request: 日本語",
+                        "model": "synthetic",
+                    }.items()
+                ],
+            )
+        )
+    request = trace_service_pb2.ExportTraceServiceRequest(
+        resource_spans=[
+            trace_pb2.ResourceSpans(
+                resource=resource_pb2.Resource(
+                    attributes=[
+                        common_pb2.KeyValue(
+                            key="service.name",
+                            value=common_pb2.AnyValue(
+                                string_value=STUDIO_SERVICE_NAMES[
+                                    exporter_id % len(STUDIO_SERVICE_NAMES)
+                                ]
+                            ),
+                        )
+                    ]
+                ),
+                scope_spans=[trace_pb2.ScopeSpans(spans=spans)],
+            )
+        ]
+    )
+    stamp_span_times(request)
+    stamp_runtime_ids(request, f"{exporter_id}-0")
+    return request
+
+
+def stamp_runtime_ids(
+    request: trace_service_pb2.ExportTraceServiceRequest, trace_name: str
+) -> None:
+    """Give every execution of a trace a runtime identity no other trace has."""
+    for index, span in enumerate(request.resource_spans[0].scope_spans[0].spans):
+        for attribute in span.attributes:
+            if attribute.key == STUDIO_RUNTIME_ID_KEY:
+                attribute.value.string_value = f"run-{trace_name}-{index}"
+
+
+def stamp_span_times(request: trace_service_pb2.ExportTraceServiceRequest) -> None:
+    """Give a trace the time it is exported at, so newer traces sort first."""
+    now_ns = time.time_ns()
+    for index, span in enumerate(request.resource_spans[0].scope_spans[0].spans):
+        span.start_time_unix_nano = now_ns + index * 1_000
+        span.end_time_unix_nano = now_ns + index * 1_000 + 1_000
+
+
+def make_workload_request(
+    config: BenchmarkConfig, spans_per_export: int, exporter_id: int
+) -> trace_service_pb2.ExportTraceServiceRequest:
+    if config.span_shape == "studio":
+        return make_studio_export_request(spans_per_export, exporter_id)
+    return make_export_request(spans_per_export, exporter_id)
+
+
 async def export_once(
     stub: trace_service_pb2_grpc.TraceServiceStub,
     request: trace_service_pb2.ExportTraceServiceRequest,
@@ -313,7 +457,7 @@ async def export_worker(
     round_barrier: asyncio.Barrier | None,
     acknowledged: dict[str, int] | None = None,
 ) -> None:
-    request = make_export_request(config.spans_per_export, exporter_id)
+    request = make_workload_request(config, config.spans_per_export, exporter_id)
     async with grpc.aio.insecure_channel(ingestion_target) as channel:
         stub = trace_service_pb2_grpc.TraceServiceStub(channel)
         await start.wait()
@@ -341,6 +485,9 @@ async def export_worker(
                 ):
                     span.trace_id = trace_id
                     span.span_id = (index + 1).to_bytes(8, "big")
+            if config.span_shape == "studio":
+                stamp_span_times(request)
+                stamp_runtime_ids(request, f"{exporter_id}-{export_index}")
             started = time.perf_counter()
             for attempt in range(config.max_retries + 1):
                 try:
@@ -396,6 +543,80 @@ async def query_worker(
             result_codes["transport_error"] += 1
         latencies_ms.append((time.perf_counter() - started) * 1000)
         await asyncio.sleep(0.05)
+
+
+async def freshness_probe(
+    client: httpx.AsyncClient,
+    config: BenchmarkConfig,
+    ingestion_target: str,
+    api_key: str,
+    stop: asyncio.Event,
+    results: list[dict[str, Any]],
+) -> None:
+    """Time from an accepted export to its spans being readable.
+
+    Every two seconds one small trace is exported, and its trace route is then
+    asked every 100 ms until it returns every span of the trace. An exporter
+    retries a refused export, and so does the probe: the clock starts when
+    ingestion accepts the trace.
+    """
+    number = 0
+    async with grpc.aio.insecure_channel(ingestion_target) as channel:
+        stub = trace_service_pb2_grpc.TraceServiceStub(channel)
+        while not stop.is_set():
+            number += 1
+            request = make_workload_request(
+                config, FRESHNESS_PROBE_SPANS, FRESHNESS_PROBE_EXPORTER_ID
+            )
+            trace_id = b"fresh" + number.to_bytes(11, "big")
+            for span in request.resource_spans[0].scope_spans[0].spans:
+                span.trace_id = trace_id
+            refused = 0
+            code, _ = await export_once(stub, request, api_key)
+            while code == "UNAVAILABLE" and refused < config.max_retries:
+                await asyncio.sleep(
+                    retry_delay_seconds(FRESHNESS_PROBE_EXPORTER_ID, refused)
+                )
+                refused += 1
+                code, _ = await export_once(stub, request, api_key)
+            accepted = time.perf_counter()
+            entry: dict[str, Any] = {
+                "export_code": code,
+                "exports_refused_first": refused,
+                "readable_ms": None,
+                "result_codes": {},
+            }
+            path = f"/api/v1/observability/traces/{trace_id.hex()}/spans"
+            while (
+                code == "OK"
+                and time.perf_counter() - accepted < FRESHNESS_PROBE_GIVE_UP_SECONDS
+            ):
+                try:
+                    response = await client.get(
+                        path, timeout=FRESHNESS_PROBE_GIVE_UP_SECONDS
+                    )
+                    result_code = str(response.status_code)
+                    readable = (
+                        response.status_code == 200
+                        and len(response.json()) == FRESHNESS_PROBE_SPANS
+                    )
+                except httpx.HTTPError:
+                    result_code = "transport_error"
+                    readable = False
+                entry["result_codes"][result_code] = (
+                    entry["result_codes"].get(result_code, 0) + 1
+                )
+                if readable:
+                    entry["readable_ms"] = (time.perf_counter() - accepted) * 1000
+                    break
+                await asyncio.sleep(FRESHNESS_PROBE_POLL_SECONDS)
+            results.append(entry)
+            try:
+                await asyncio.wait_for(
+                    stop.wait(), timeout=FRESHNESS_PROBE_INTERVAL_SECONDS
+                )
+            except TimeoutError:
+                pass
 
 
 def parse_memory_mib(value: str) -> float:
@@ -501,6 +722,7 @@ async def measure_revocation(
     api_key: str,
     ttl_seconds: int,
     ingestion_target: str,
+    api_keys_path: str,
 ) -> dict[str, float | int | str | None]:
     request = make_export_request(1, 999_999)
     async with grpc.aio.insecure_channel(ingestion_target) as channel:
@@ -512,7 +734,7 @@ async def measure_revocation(
             await asyncio.sleep(ttl_seconds + 0.1)
         await stub.Export(request, metadata=(("x-junjo-api-key", api_key),), timeout=10)
         deleted_at = time.perf_counter()
-        response = await client.delete(f"/api_keys/{api_key_id}", timeout=15)
+        response = await client.delete(f"{api_keys_path}/{api_key_id}", timeout=15)
         response.raise_for_status()
 
         accepted_after_delete = 0
@@ -634,6 +856,7 @@ async def run_failure_probes(
     client: httpx.AsyncClient,
     proxy_client: httpx.AsyncClient,
     ingestion_target: str,
+    api_keys_path: str,
 ) -> dict[str, Any]:
     await proxy_mode(proxy_client)
     await proxy_reset(proxy_client)
@@ -642,6 +865,7 @@ async def run_failure_probes(
         client,
         probe_key_count,
         name_prefix="auth-failure-probe",
+        api_keys_path=api_keys_path,
     )
     keys = [api_key for _, api_key in identities]
     request = make_export_request(1, 777_777)
@@ -841,6 +1065,7 @@ async def execute_benchmark(
     ingestion_port: int,
     proxy_port: int,
     data_path: Path,
+    setup_paths: SetupPaths,
 ) -> dict[str, Any]:
     ingestion_target = f"127.0.0.1:{ingestion_port}"
     async with (
@@ -856,7 +1081,7 @@ async def execute_benchmark(
             )
             await proxy_reset(proxy_client)
         key_count = 1 if config.key_topology == "shared" else config.exporters
-        identities = await create_benchmark_identities(client, key_count)
+        identities = await create_benchmark_identities(client, key_count, setup_paths)
         api_keys = [api_key for _, api_key in identities]
 
         acknowledged: dict[str, int] | None = {} if config.verify_delivery else None
@@ -913,12 +1138,53 @@ async def execute_benchmark(
         )
 
         resources_before = container_metrics(environment, config.use_auth_proxy)
+        freshness: list[dict[str, Any]] = []
+        freshness_stop = asyncio.Event()
+        freshness_task = (
+            asyncio.create_task(
+                freshness_probe(
+                    client,
+                    config,
+                    ingestion_target,
+                    api_keys[0],
+                    freshness_stop,
+                    freshness,
+                )
+            )
+            if config.freshness_probe
+            else None
+        )
+        side_process = None
+        side_output = data_path.parent / "side-command.json"
+        if config.side_command:
+            side_process = await asyncio.create_subprocess_shell(
+                config.side_command,
+                env={
+                    **os.environ,
+                    "JUNJO_BENCHMARK_STUDIO_URL": f"http://127.0.0.1:{backend_port}",
+                    "JUNJO_BENCHMARK_INGESTION_PORT": str(ingestion_port),
+                    "JUNJO_BENCHMARK_SERVICES": ",".join(STUDIO_SERVICE_NAMES),
+                    "JUNJO_BENCHMARK_SIDE_OUTPUT": str(side_output),
+                    "JUNJO_STUDIO_E2E_EXISTING_EMAIL": SYNTHETIC_EMAIL,
+                    "JUNJO_STUDIO_E2E_EXISTING_PASSWORD": SYNTHETIC_PASSWORD,
+                },
+            )
         workload_started = time.perf_counter()
         start.set()
         await asyncio.gather(*exporters)
         workload_seconds = time.perf_counter() - workload_started
         query_stop.set()
         await asyncio.gather(*query_tasks)
+        freshness_stop.set()
+        if freshness_task is not None:
+            await freshness_task
+        side: dict[str, Any] = {"status": "not_run"}
+        if side_process is not None:
+            # The command decides how long it runs. Containers are measured
+            # after it ends, so its requests are part of what is measured.
+            side = {"status": "ran", "exit_code": await side_process.wait()}
+            if side_output.is_file():
+                side["output"] = json.loads(side_output.read_text(encoding="utf-8"))
         resources_after = container_metrics(environment, config.use_auth_proxy)
         workload_authorization_stats = (
             await proxy_stats(proxy_client)
@@ -959,6 +1225,7 @@ async def execute_benchmark(
                 client,
                 proxy_client,
                 ingestion_target,
+                setup_paths.api_keys,
             )
             if config.run_failure_probes
             else {"status": "skipped"}
@@ -970,6 +1237,7 @@ async def execute_benchmark(
                 identities[0][1],
                 config.cache_ttl_seconds,
                 ingestion_target,
+                setup_paths.api_keys,
             )
             if config.measure_revocation
             else {"status": "skipped"}
@@ -1048,6 +1316,8 @@ async def execute_benchmark(
             for item in resources_after.values()
         ),
     }
+    if config.side_command:
+        acceptance["side_command_completed"] = side.get("exit_code") == 0
     if config.wal_probe_spans > 0:
         acceptance["wal_durable_before_acknowledgement"] = bool(
             wal_durability["durable_before_acknowledgement"]
@@ -1072,6 +1342,7 @@ async def execute_benchmark(
         "acknowledged_workload": acknowledged,
         "raw_resource_samples": resource_samples,
         "config": asdict(config),
+        "setup_paths": asdict(setup_paths),
         "constraints": {
             "backend_cpus": 0.45 if config.use_auth_proxy else 0.5,
             "backend_memory_mib": 450,
@@ -1097,6 +1368,8 @@ async def execute_benchmark(
             **latency_summary(query_latencies),
         },
         "resources": resource_summary,
+        "freshness": freshness,
+        "side_activity": side,
         "authorization_proxy": workload_authorization_stats,
         "wal_durability": wal_durability,
         "failure_probes": failure_probes,
@@ -1188,10 +1461,36 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="idle observation period after measured work; does not configure production timers",
     )
+    parser.add_argument(
+        "--span-shape",
+        choices=("plain", "studio"),
+        default="plain",
+        help="plain identity-only spans, or traces that Studio's pages can list",
+    )
+    parser.add_argument(
+        "--freshness-probe",
+        action="store_true",
+        help="time how long an accepted trace takes to become readable",
+    )
+    parser.add_argument(
+        "--side-command",
+        default="",
+        help="a shell command started with the workload; see the README",
+    )
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--backend-port", type=int, default=27154)
     parser.add_argument("--ingestion-port", type=int, default=27155)
     parser.add_argument("--proxy-port", type=int, default=27156)
+    parser.add_argument(
+        "--first-user-path",
+        default=SetupPaths.first_user,
+        help="backend route that creates the first Studio user",
+    )
+    parser.add_argument(
+        "--api-keys-path",
+        default=SetupPaths.api_keys,
+        help="backend route that creates and deletes ingestion API keys",
+    )
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
 
@@ -1223,6 +1522,9 @@ def main() -> int:
         restart_count=args.restart_count,
         verify_delivery=args.verify_delivery,
         recovery_seconds=args.recovery_seconds,
+        span_shape=args.span_shape,
+        freshness_probe=args.freshness_probe,
+        side_command=args.side_command,
     )
     if config.run_failure_probes and not config.use_auth_proxy:
         raise ValueError("--run-failure-probes requires --use-auth-proxy")
@@ -1284,6 +1586,10 @@ def main() -> int:
                     args.ingestion_port,
                     args.proxy_port,
                     data_path,
+                    SetupPaths(
+                        first_user=args.first_user_path,
+                        api_keys=args.api_keys_path,
+                    ),
                 )
             )
             if config.verify_delivery:

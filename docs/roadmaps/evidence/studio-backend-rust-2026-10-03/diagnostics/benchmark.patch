@@ -1,0 +1,323 @@
+--- benchmarks/auth_path_benchmark.repo.py	2026-10-03 12:11:03
++++ benchmarks/auth_path_benchmark.py	2026-10-03 12:11:03
+@@ -67,6 +67,16 @@
+ 
+ 
+ @dataclass(frozen=True)
++class Diagnostics:
++    """Evidence-run observation settings. Not part of the compared workload."""
++
++    idle_seconds: float = 0
++    observer_image: str = ""
++    observer_script: str = ""
++    index_deadline_seconds: float = 900
++
++
++@dataclass(frozen=True)
+ class BenchmarkConfig:
+     implementation_label: str
+     cache_ttl_seconds: int
+@@ -287,6 +297,26 @@
+                 end_time_unix_nano=now_ns + 1_000,
+             )
+         )
++    classifications = [
++        {"junjo.span_type": "workflow"},
++        {"junjo.span_type": "agent"},
++        {"openinference.span.kind": "LLM"},
++        {"gen_ai.provider.name": "xai"},
++        {"gen_ai.operation.name": "chat"},
++        {"junjo.span_type": "node"},
++    ]
++    for index, span in enumerate(spans):
++        attributes = {
++            **classifications[index % 6],
++            "input": "Synthetic request: 日本語",
++            "model": "synthetic",
++        }
++        for key, value in attributes.items():
++            span.attributes.append(
++                common_pb2.KeyValue(
++                    key=key, value=common_pb2.AnyValue(string_value=value)
++                )
++            )
+     return trace_service_pb2.ExportTraceServiceRequest(
+         resource_spans=[
+             trace_pb2.ResourceSpans(
+@@ -294,7 +324,10 @@
+                     attributes=[
+                         common_pb2.KeyValue(
+                             key="service.name",
+-                            value=common_pb2.AnyValue(string_value="auth-benchmark"),
++                            value=common_pb2.AnyValue(
++                                string_value="metadata-benchmark-"
++                                + str(exporter_id % 3)
++                            ),
+                         )
+                     ]
+                 ),
+@@ -809,6 +842,68 @@
+     return results
+ 
+ 
++MEMORY_BREAKDOWN_COMMAND = (
++    'echo "memory.current $(cat /sys/fs/cgroup/memory.current)"; '
++    'echo "memory.peak $(cat /sys/fs/cgroup/memory.peak)"; '
++    "grep -E '^(anon|file|kernel|shmem|file_mapped|inactive_file|active_file|"
++    "inactive_anon|active_anon|slab|sock|pagetables|kernel_stack) ' "
++    "/sys/fs/cgroup/memory.stat; "
++    "sed 's/^/events./' /sys/fs/cgroup/memory.events; "
++    "self=$$; for pid in $(cat /sys/fs/cgroup/cgroup.procs); do "
++    '[ "$pid" = "$self" ] && continue; '
++    "comm=$(cat /proc/$pid/comm 2>/dev/null || true); "
++    "rss=$(awk '/^VmRSS:/ {print $2}' /proc/$pid/status 2>/dev/null); "
++    "anon=$(awk '/^RssAnon:/ {print $2}' /proc/$pid/status 2>/dev/null); "
++    "threads=$(awk '/^Threads:/ {print $2}' /proc/$pid/status 2>/dev/null); "
++    'echo "process $pid ${comm:-gone} ${rss:-0} ${anon:-0} ${threads:-0}"; done'
++)
++
++
++def memory_breakdown(environment: dict[str, str], use_auth_proxy: bool) -> dict:
++    """Read cgroup and per-process memory for both services, inside each container."""
++    breakdown = {}
++    for service in ("backend", "ingestion"):
++        container_id = run(
++            compose_command(use_auth_proxy, "ps", "--quiet", service),
++            env=environment,
++        ).stdout.strip()
++        output = run(
++            ["docker", "exec", container_id, "sh", "-c", MEMORY_BREAKDOWN_COMMAND],
++            env=environment,
++        ).stdout
++        item: dict[str, Any] = {"stat": {}, "events": {}, "processes": []}
++        for line in output.splitlines():
++            parts = line.split()
++            if not parts:
++                continue
++            if parts[0] == "memory.current":
++                item["memory_current_bytes"] = int(parts[1])
++            elif parts[0] == "memory.peak":
++                item["memory_peak_bytes"] = int(parts[1])
++            elif parts[0].startswith("events."):
++                item["events"][parts[0][7:]] = int(parts[1])
++            elif parts[0] == "process":
++                rss_kib = int(parts[3])
++                if rss_kib and parts[2] not in {"sh", "cat", "awk", "grep", "sed"}:
++                    item["processes"].append(
++                        {
++                            "pid": int(parts[1]),
++                            "comm": parts[2],
++                            "rss_kib": rss_kib,
++                            "rss_anon_kib": int(parts[4]),
++                            "threads": int(parts[5]),
++                        }
++                    )
++            elif len(parts) == 2:
++                item["stat"][parts[0]] = int(parts[1])
++        item["working_set_bytes"] = item["memory_current_bytes"] - item["stat"].get(
++            "inactive_file", 0
++        )
++        item["process_rss_kib"] = sum(p["rss_kib"] for p in item["processes"])
++        breakdown[service] = item
++    return breakdown
++
++
+ def container_metrics(
+     environment: dict[str, str], use_auth_proxy: bool, *, stopped: bool = False
+ ) -> dict:
+@@ -822,6 +917,14 @@
+             run(["docker", "inspect", container_id], env=environment).stdout
+         )[0]
+         item = {
++            "mounts": [
++                {
++                    "source": mount["Source"],
++                    "destination": mount["Destination"],
++                    "type": mount["Type"],
++                }
++                for mount in info["Mounts"]
++            ],
+             "image_id": info["Image"],
+             "state": info["State"]["Status"],
+             "exit_code": info["State"]["ExitCode"],
+@@ -855,6 +958,9 @@
+                 / 1_000_000
+             )
+             item["peak_cgroup_memory_bytes"] = int(lines[-1])
++            item["cpu_stat"] = {
++                line.split()[0]: int(line.split()[1]) for line in lines[:-1]
++            }
+         metrics[service] = item
+     return metrics
+ 
+@@ -867,6 +973,7 @@
+     proxy_port: int,
+     data_path: Path,
+     setup_paths: SetupPaths,
++    diagnostics: Diagnostics,
+ ) -> dict[str, Any]:
+     ingestion_target = f"127.0.0.1:{ingestion_port}"
+     async with (
+@@ -940,14 +1047,83 @@
+             )
+         )
+ 
++        idle = None
++        if diagnostics.idle_seconds:
++            # Observation time only: nothing is offered while idle memory settles.
++            await asyncio.sleep(diagnostics.idle_seconds)
++            idle = {
++                "seconds_after_setup": diagnostics.idle_seconds,
++                "memory": memory_breakdown(environment, config.use_auth_proxy),
++                "containers": container_metrics(environment, config.use_auth_proxy),
++            }
+         resources_before = container_metrics(environment, config.use_auth_proxy)
+         workload_started = time.perf_counter()
+         start.set()
+         await asyncio.gather(*exporters)
+         workload_seconds = time.perf_counter() - workload_started
++        offered_spans = (
++            config.exporters * config.exports_per_exporter * config.spans_per_export
++        )
++        acknowledged_spans = (
++            sum(acknowledged.values()) if acknowledged is not None else None
++        )
++        ingestion_phase = {
++            "offered_spans": offered_spans,
++            "acknowledged_spans": acknowledged_spans,
++            "workload_seconds": workload_seconds,
++            "containers": container_metrics(environment, config.use_auth_proxy),
++            "memory": memory_breakdown(environment, config.use_auth_proxy),
++            "queries": {
++                "result_codes": dict(query_codes),
++                **latency_summary(query_latencies),
++            },
++        }
++        if not diagnostics.observer_image:
++            indexing = {"status": "not_measured", "indexed_rows": None}
++        elif acknowledged_spans != offered_spans:
++            # Failed exports already fail acceptance; never wait for rows that
++            # were not accepted.
++            indexing = {"status": "skipped_after_failed_exports", "indexed_rows": None}
++        else:
++            observer = await asyncio.to_thread(
++                run,
++                [
++                    "docker",
++                    "run",
++                    "--rm",
++                    "--network",
++                    f"{PROJECT_NAME}_junjo-network",
++                    "--env",
++                    "JUNJO_INTERNAL_GRPC_TOKEN=benchmark-internal-grpc-token-32-bytes-long",
++                    "--env",
++                    "JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db",
++                    "--volume",
++                    f"{data_path}:/app/.dbdata",
++                    "--volume",
++                    f"{diagnostics.observer_script}:/observer/finish_indexing.py:ro",
++                    "--entrypoint",
++                    "python",
++                    diagnostics.observer_image,
++                    "/observer/finish_indexing.py",
++                    str(offered_spans),
++                    str(diagnostics.index_deadline_seconds),
++                ],
++                env=environment,
++                check=False,
++            )
++            try:
++                indexing = json.loads(observer.stdout.strip().splitlines()[-1])
++            except (IndexError, ValueError):
++                indexing = {
++                    "status": "observer_failed",
++                    "indexed_rows": None,
++                    "output": observer.stdout[-2000:],
++                }
++        completed_work_seconds = time.perf_counter() - workload_started
+         query_stop.set()
+         await asyncio.gather(*query_tasks)
+         resources_after = container_metrics(environment, config.use_auth_proxy)
++        memory_after = memory_breakdown(environment, config.use_auth_proxy)
+         workload_authorization_stats = (
+             await proxy_stats(proxy_client)
+             if config.use_auth_proxy
+@@ -1072,6 +1248,14 @@
+ 
+     acceptance = {
+         "all_exports_succeeded": successful_exports == total_exports,
++        **(
++            {
++                "all_offered_spans_indexed": indexing["indexed_rows"]
++                == total_exports * config.spans_per_export
++            }
++            if diagnostics.observer_image
++            else {}
++        ),
+         "all_queries_succeeded": set(query_codes) <= {"200"},
+         "no_oom_or_restarts": all(
+             not item["oom_killed"] and item["restart_count"] == 0
+@@ -1095,6 +1279,16 @@
+         acceptance["revocation_acceptance_bound_met"] = revocation_bound_met
+ 
+     return {
++        "idle": idle,
++        "ingestion_phase": ingestion_phase,
++        "indexing": indexing,
++        "completed_work_seconds": completed_work_seconds,
++        "memory_after_completed_work": memory_after,
++        "diagnostics": {
++            "idle_seconds": diagnostics.idle_seconds,
++            "observer_image": diagnostics.observer_image,
++            "index_deadline_seconds": diagnostics.index_deadline_seconds,
++        },
+         "container_before": resources_before,
+         "container_after": resources_after,
+         "container_after_recovery": resources_recovered,
+@@ -1223,6 +1417,9 @@
+     parser.add_argument("--backend-port", type=int, default=27154)
+     parser.add_argument("--ingestion-port", type=int, default=27155)
+     parser.add_argument("--proxy-port", type=int, default=27156)
++    parser.add_argument("--idle-seconds", type=float, default=0)
++    parser.add_argument("--observer-image", default="")
++    parser.add_argument("--index-deadline-seconds", type=float, default=900)
+     parser.add_argument(
+         "--first-user-path",
+         default=SetupPaths.first_user,
+@@ -1329,6 +1526,15 @@
+                         first_user=args.first_user_path,
+                         api_keys=args.api_keys_path,
+                     ),
++                    Diagnostics(
++                        idle_seconds=args.idle_seconds,
++                        observer_image=args.observer_image,
++                        observer_script=str(
++                            Path(__file__).resolve().parent.parent
++                            / "finish_indexing.py"
++                        ),
++                        index_deadline_seconds=args.index_deadline_seconds,
++                    ),
+                 )
+             )
+             if config.verify_delivery:
+@@ -1364,6 +1570,20 @@
+                 result["acceptance"]["all_acknowledged_spans_persisted"] = result[
+                     "delivery"
+                 ]["all_acknowledged_spans_persisted"]
++        except Exception as error:
++            if args.output:
++                args.output.parent.mkdir(parents=True, exist_ok=True)
++                args.output.with_suffix(".failure.json").write_text(
++                    json.dumps(
++                        {
++                            "implementation_label": config.implementation_label,
++                            "error": str(error),
++                        },
++                        indent=2,
++                    )
++                    + "\n"
++                )
++            raise
+         finally:
+             if args.output:
+                 service_logs = run(

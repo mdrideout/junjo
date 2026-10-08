@@ -1,0 +1,21 @@
+[package]
+name = "junjo-evidence"
+description = "Pure evidence logic for Junjo AI Studio"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+# Insertion-ordered maps for the indexes in trace evidence.
+indexmap = { version = "2", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+# `preserve_order` keeps object members in emitted order, as the producers and
+# the Python backend did. `float_roundtrip` keeps canonical hashes exact.
+serde_json = { version = "1", features = ["float_roundtrip", "preserve_order"] }
+serde_jcs = "0.2.0"
+sha2 = "0.11"
+# Schema descriptions for the HTTP contract. Derive macros only.
+utoipa = { version = "6.0.0", features = ["indexmap", "preserve_order"] }

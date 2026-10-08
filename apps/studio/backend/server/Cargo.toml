@@ -1,0 +1,72 @@
+[package]
+name = "junjo-backend"
+description = "Junjo AI Studio backend"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+# Pure evidence logic: payload parsing, Store replay, and diagnostics.
+junjo-evidence = { path = "../evidence" }
+
+# HTTP
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio"] }
+tower = { version = "0.5.3", features = ["util"] }
+tower-http = { version = "0.7.1", features = ["catch-panic", "fs", "trace"] }
+tower-sessions = { version = "0.15.0", default-features = false, features = ["axum-core"] }
+
+# OpenAPI, generated from the handler types and routes
+utoipa = { version = "6.0.0", features = ["axum_extras", "indexmap", "preserve_order"] }
+utoipa-axum = "0.3.0"
+
+# Async runtime
+tokio = { version = "1.53", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-util = "0.7.19"
+
+# Internal gRPC
+tonic = "0.14.6"
+tonic-prost = "0.14.6"
+prost = "0.14.4"
+
+# SQLite
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+tokio-rusqlite = "0.8.0"
+
+# Query engine. Arrow and Parquet are used through DataFusion's re-exports so
+# one version family is guaranteed.
+datafusion = { version = "55.1.0", default-features = false, features = ["parquet", "sql"] }
+
+# Serialization
+indexmap = { version = "2", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+# `preserve_order` keeps object members in emitted order. The OpenAPI export
+# and every response depend on it.
+serde_json = { version = "1", features = ["float_roundtrip", "preserve_order", "raw_value"] }
+
+# Credentials and identifiers
+base64 = "0.23.1"
+bcrypt = "0.19.3"
+email_address = "0.2.9"
+nanoid = "0.5"
+subtle = "2.6"
+
+# Time
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+time = "0.3"
+
+# Logging and errors
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+thiserror = "2"
+anyhow = "1"
+async-trait = "0.1"
+
+[build-dependencies]
+tonic-prost-build = "0.14.6"
+
+[dev-dependencies]
+# The OTLP client the cross-service tests use to send spans to ingestion.
+opentelemetry-proto = { version = "0.31", features = ["gen-tonic", "trace"] }
+tempfile = "3"

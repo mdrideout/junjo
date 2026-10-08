@@ -234,6 +234,7 @@ mod tests {
             dropped_links_count: 0,
             resource_attributes: "{}".to_string(),
             resource_dropped_attributes_count: 0,
+            api_key_id: std::sync::Arc::from("key-1"),
         }
     }
 

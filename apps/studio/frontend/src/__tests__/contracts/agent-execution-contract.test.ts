@@ -51,7 +51,7 @@ describe('API Contract: Agent execution routes', () => {
     expect(operation.responses['422']).toMatchObject({
       content: {
         'application/json': {
-          schema: { $ref: '#/components/schemas/HTTPValidationError' },
+          schema: { $ref: '#/components/schemas/ErrorResponse' },
         },
       },
     })
@@ -116,7 +116,7 @@ describe('API Contract: Agent execution routes', () => {
     expect(detailOperation.responses['422']).toMatchObject({
       content: {
         'application/json': {
-          schema: { $ref: '#/components/schemas/HTTPValidationError' },
+          schema: { $ref: '#/components/schemas/ErrorResponse' },
         },
       },
     })

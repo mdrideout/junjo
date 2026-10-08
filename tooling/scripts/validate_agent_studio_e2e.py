@@ -245,7 +245,7 @@ def provision_test_identity(client: JsonClient) -> TestIdentity:
     """Retain the local admin and authenticate one disposable proof identity."""
 
     has_users_response = _require_object(
-        client.request("/users/db-has-users"),
+        client.request("/api/v1/users/db-has-users"),
         "db-has-users response",
     )
     require(
@@ -266,13 +266,13 @@ def provision_test_identity(client: JsonClient) -> TestIdentity:
         if has_users_response["users_exist"]:
             existing_email, existing_password = existing_owner_credentials()
             client.request(
-                "/sign-in",
+                "/api/v1/sign-in",
                 method="POST",
                 body={"email": existing_email, "password": existing_password},
             )
         else:
             client.request(
-                "/users/create-first-user",
+                "/api/v1/users/create-first-user",
                 method="POST",
                 body={
                     "email": LOCAL_ADMIN_EMAIL,
@@ -280,19 +280,19 @@ def provision_test_identity(client: JsonClient) -> TestIdentity:
                 },
             )
 
-        client.request("/users", method="POST", body=credentials)
+        client.request("/api/v1/users", method="POST", body=credentials)
         test_user_created = True
-        client.request("/sign-out", method="POST")
-        client.request("/sign-in", method="POST", body=credentials)
+        client.request("/api/v1/sign-out", method="POST")
+        client.request("/api/v1/sign-in", method="POST", body=credentials)
 
         authenticated = _require_object(
-            client.request("/auth-test"), "auth-test response"
+            client.request("/api/v1/auth-test"), "auth-test response"
         )
         require(
             authenticated.get("user_email") == test_email,
             "Studio did not authenticate the fresh E2E user",
         )
-        users = _require_list(client.request("/users"), "users response")
+        users = _require_list(client.request("/api/v1/users"), "users response")
         matches = [
             user
             for user in users
@@ -304,7 +304,7 @@ def provision_test_identity(client: JsonClient) -> TestIdentity:
 
         created_key = _require_object(
             client.request(
-                "/api_keys",
+                "/api/v1/api-keys",
                 method="POST",
                 body={"name": "Junjo Agent Horizon 1 E2E"},
             ),
@@ -356,7 +356,7 @@ def _cleanup_partial_identity(
     failures: list[str] = []
     try:
         client.request(
-            "/sign-in",
+            "/api/v1/sign-in",
             method="POST",
             body={"email": email, "password": password},
         )
@@ -364,12 +364,12 @@ def _cleanup_partial_identity(
         return ["sign-in"]
     if api_key_id is not None:
         try:
-            client.request(f"/api_keys/{api_key_id}", method="DELETE")
+            client.request(f"/api/v1/api-keys/{api_key_id}", method="DELETE")
         except BaseException:
             failures.append("API-key deletion")
     user_deleted = False
     try:
-        users = _require_list(client.request("/users"), "users response")
+        users = _require_list(client.request("/api/v1/users"), "users response")
         user_ids = [
             user.get("id")
             for user in users
@@ -378,13 +378,13 @@ def _cleanup_partial_identity(
         if len(user_ids) != 1 or not isinstance(user_ids[0], str):
             failures.append("user lookup")
         else:
-            client.request(f"/users/{user_ids[0]}", method="DELETE")
+            client.request(f"/api/v1/users/{user_ids[0]}", method="DELETE")
             user_deleted = True
     except BaseException:
         failures.append("user deletion")
     if not user_deleted:
         try:
-            client.request("/sign-out", method="POST")
+            client.request("/api/v1/sign-out", method="POST")
         except BaseException:
             failures.append("sign-out")
     return failures
@@ -393,28 +393,30 @@ def _cleanup_partial_identity(
 def cleanup_test_identity(client: JsonClient, identity: TestIdentity) -> None:
     """Delete only artifacts created by this validator run."""
 
-    client.request(f"/api_keys/{identity.api_key_id}", method="DELETE")
-    client.request("/sign-out", method="POST")
+    client.request(f"/api/v1/api-keys/{identity.api_key_id}", method="DELETE")
+    client.request("/api/v1/sign-out", method="POST")
     owner_email, owner_password = existing_owner_credentials()
     client.request(
-        "/sign-in",
+        "/api/v1/sign-in",
         method="POST",
         body={"email": owner_email, "password": owner_password},
     )
-    client.request(f"/users/{identity.user_id}", method="DELETE")
+    client.request(f"/api/v1/users/{identity.user_id}", method="DELETE")
 
 
 def verify_owner_reauthentication(client: JsonClient) -> None:
     """Prove the retained owner can complete a fresh sign-out/sign-in flow."""
 
     owner_email, owner_password = existing_owner_credentials()
-    client.request("/sign-out", method="POST")
+    client.request("/api/v1/sign-out", method="POST")
     client.request(
-        "/sign-in",
+        "/api/v1/sign-in",
         method="POST",
         body={"email": owner_email, "password": owner_password},
     )
-    authenticated = _require_object(client.request("/auth-test"), "auth-test response")
+    authenticated = _require_object(
+        client.request("/api/v1/auth-test"), "auth-test response"
+    )
     require(
         authenticated.get("user_email") == owner_email,
         "Studio did not reauthenticate the retained owner",

@@ -5,8 +5,8 @@
  * the backend OpenAPI specification. This ensures MSW mocks stay
  * in sync with backend schema changes.
  *
- * The backend openapi.json is generated from FastAPI Pydantic schemas
- * which include Field(examples=[...]) for realistic test data.
+ * The backend openapi.json is generated from the backend's response types,
+ * which include examples for realistic test data.
  */
 
 import OpenAPIBackend, { type Document } from 'openapi-backend'
@@ -16,18 +16,18 @@ import openapiSpec from '../../../backend/openapi.json'
 export const api = new OpenAPIBackend({
   definition: openapiSpec as Document,
   strict: false, // Don't fail on unknown operations
-  validate: false, // Disable OpenAPI spec validation (FastAPI uses 3.1.0 with JSON Schema 2020-12)
-  quick: true, // Skip validation during init (FastAPI 3.1.0 not fully compatible with openapi-backend)
+  validate: false, // Disable OpenAPI spec validation (the document is 3.1.0 with JSON Schema 2020-12)
+  quick: true, // Skip validation during init (3.1.0 is not fully compatible with openapi-backend)
 })
 
 // Initialize the API (must be called before use)
-// FastAPI generates OpenAPI 3.1.0 which uses JSON Schema 2020-12
+// The backend exports OpenAPI 3.1.0 which uses JSON Schema 2020-12
 // openapi-backend validates against OpenAPI 3.0.x, so we skip validation
 try {
   api.init()
 } catch {
-  // Ignore validation errors - FastAPI 3.1.0 compatibility issue
-  console.warn('OpenAPI validation skipped (FastAPI 3.1.0 compatibility)')
+  // Ignore validation errors - OpenAPI 3.1.0 compatibility issue
+  console.warn('OpenAPI validation skipped (OpenAPI 3.1.0 compatibility)')
 }
 
 /**

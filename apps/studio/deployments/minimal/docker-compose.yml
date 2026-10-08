@@ -5,13 +5,12 @@
 # https://github.com/mdrideout/junjo/tree/master/apps/studio
 #
 # Production images:
-#   - mdrideout/junjo-ai-studio-backend:0.85.0
-#   - mdrideout/junjo-ai-studio-ingestion:0.85.0
-#   - mdrideout/junjo-ai-studio-frontend:0.85.0
+#   - mdrideout/junjo-ai-studio-app:0.86.0
+#   - mdrideout/junjo-ai-studio-ingestion:0.86.0
 
 services:
-  junjo-ai-studio-backend:
-    image: mdrideout/junjo-ai-studio-backend:0.85.0
+  junjo-ai-studio-app:
+    image: mdrideout/junjo-ai-studio-app:0.86.0
     restart: unless-stopped
     # Memory guardrails (tuned for small VMs; override in .env as needed)
     mem_reservation: ${JUNJO_BACKEND_MEM_RESERVATION:-300m}
@@ -22,7 +21,7 @@ services:
       # Database storage (required for all modes)
       - ${JUNJO_HOST_DB_DATA_PATH:-./.dbdata}:/app/.dbdata
     ports:
-      - "${JUNJO_BACKEND_HOST_PORT:-26154}:26154" # Backend HTTP API
+      - "${JUNJO_BACKEND_HOST_PORT:-26154}:26154" # Studio web UI and HTTP API
     networks:
       - junjo-network
     env_file:
@@ -31,10 +30,10 @@ services:
       # Override host/port for Docker network communication
       - INGESTION_HOST=junjo-ai-studio-ingestion
       - INGESTION_PORT=50052
+      # Studio web UI and HTTP API listener (pinned to the published container port)
+      - PORT=26154
       # Private ingestion authentication RPC listener
       - GRPC_PORT=50053
-      # Enable migrations on startup
-      - RUN_MIGRATIONS=true
       # Database paths (hardcoded for Docker, users configure host mount via JUNJO_HOST_DB_DATA_PATH)
       - JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
       - JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
@@ -52,7 +51,7 @@ services:
       - JUNJO_DF_SPILL_PATH=${JUNJO_DF_SPILL_PATH:-/tmp/junjo-datafusion-spill}
 
   junjo-ai-studio-ingestion:
-    image: mdrideout/junjo-ai-studio-ingestion:0.85.0
+    image: mdrideout/junjo-ai-studio-ingestion:0.86.0
     restart: unless-stopped
     volumes:
       # Database storage (required for all modes)
@@ -64,7 +63,7 @@ services:
     env_file:
       - .env
     environment:
-      - BACKEND_GRPC_HOST=junjo-ai-studio-backend
+      - BACKEND_GRPC_HOST=junjo-ai-studio-app
       - BACKEND_GRPC_PORT=50053
       - GRPC_PORT=26155
       - INTERNAL_GRPC_PORT=50052
@@ -75,12 +74,12 @@ services:
       - JUNJO_API_KEY_VALIDATION_TIMEOUT_MS=${JUNJO_API_KEY_VALIDATION_TIMEOUT_MS:-2000}
       # Arrow IPC WAL directory
       - WAL_DIR=/app/.dbdata/spans/wal
-      # Hot snapshot path (backend reads this file directly)
+      # Hot snapshot path (the app reads this file directly)
       - SNAPSHOT_PATH=/app/.dbdata/spans/hot_snapshot.parquet
-      # Parquet file output path (backend indexer watches this directory)
+      # Parquet file output path (the app's indexer watches this directory)
       - PARQUET_OUTPUT_DIR=/app/.dbdata/spans/parquet
     depends_on:
-      junjo-ai-studio-backend:
+      junjo-ai-studio-app:
         condition: service_started
     healthcheck:
       test: ["CMD", "/bin/grpc_health_probe", "-addr=localhost:50052"]
@@ -88,21 +87,6 @@ services:
       timeout: 3s
       retries: 5
       start_period: 30s
-
-  junjo-ai-studio-frontend:
-    image: mdrideout/junjo-ai-studio-frontend:0.85.0
-    restart: unless-stopped
-    ports:
-      - "${JUNJO_FRONTEND_HOST_PORT:-26153}:26153" # Production web UI
-    env_file:
-      - .env
-    environment:
-      - JUNJO_INTERNAL_GRPC_TOKEN=
-    networks:
-      - junjo-network
-    depends_on:
-      junjo-ai-studio-backend:
-        condition: service_started
 
 networks:
   junjo-network:

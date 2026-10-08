@@ -4,14 +4,12 @@ import { Modal, ModalFooter } from '../../components/overlays/modal'
 import { useAppDispatch } from '../../root-store/hooks'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { ApiKeysStateActions } from './slice'
-import { getApiHost } from '../../config'
 import {
   ApiKeyCreateResponseSchema,
   type ApiKeyCreateResponse,
 } from './response-schemas'
 
 interface ApiErrorResponse {
-  detail?: string | Array<{ msg?: string; message?: string }>
   message?: string
 }
 
@@ -45,8 +43,7 @@ export default function CreateApiKeyDialog() {
 
     // Perform setup
     try {
-      const apiHost = getApiHost()
-      const response = await fetch(`${apiHost}/api_keys`, {
+      const response = await fetch('/api/v1/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
@@ -59,18 +56,7 @@ export default function CreateApiKeyDialog() {
         const errorResponse = responseData as ApiErrorResponse
         console.log('Error response:', responseData)
 
-        // Try detail field (handles both Pydantic array and custom string)
-        if (errorResponse.detail) {
-          if (Array.isArray(errorResponse.detail)) {
-            // Pydantic validation errors (422)
-            const errors = errorResponse.detail.map((err) => err.msg || err.message).join('. ')
-            throw new Error(errors || 'Validation failed.')
-          }
-          // Custom error string (400, 409, etc.)
-          throw new Error(errorResponse.detail)
-        }
-
-        // Try message field (fallback)
+        // Error bodies are {code, message}; show the message
         if (errorResponse.message) {
           throw new Error(errorResponse.message)
         }

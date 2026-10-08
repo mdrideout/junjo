@@ -1,5 +1,4 @@
 interface ApiErrorResponse {
-  detail?: string | Array<{ msg?: string; message?: string }>
   message?: string
 }
 
@@ -16,16 +15,6 @@ export async function readApiError(
 
   if (data === null || typeof data !== 'object') {
     return `${fallback} (${response.status})`
-  }
-  if (Array.isArray(data.detail)) {
-    const details = data.detail
-      .map((error) => error.msg || error.message)
-      .filter(Boolean)
-      .join('. ')
-    return details || 'Validation failed.'
-  }
-  if (data.detail) {
-    return data.detail
   }
   if (data.message) {
     return data.message

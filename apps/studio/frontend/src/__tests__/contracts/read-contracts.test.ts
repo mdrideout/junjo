@@ -24,7 +24,7 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
   describe('UserRead Schema', () => {
     it('Zod schema can parse OpenAPI-generated user list mock', () => {
       // Generate mock from backend OpenAPI spec
-      const { mock } = generateMock('list_users_users_get')
+      const { mock } = generateMock('list_users')
 
       // Try to parse with frontend Zod schema
       // If this fails, frontend and backend schemas are out of sync!
@@ -46,7 +46,7 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
     })
 
     it('User timestamps have Z suffix and are valid ISO 8601', () => {
-      const { mock } = generateMock('list_users_users_get')
+      const { mock } = generateMock('list_users')
       const result = ListUsersResponseSchema.parse(mock)
 
       if (result.length > 0) {
@@ -68,7 +68,7 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
   describe('APIKeyRead Schema', () => {
     it('Zod schema can parse OpenAPI-generated API key list mock', () => {
       // Generate mock from backend OpenAPI spec
-      const { mock } = generateMock('list_api_keys_api_keys_get')
+      const { mock } = generateMock('list_api_keys')
 
       // Try to parse with frontend Zod schema
       const result = ListApiKeysResponseSchema.parse(mock)
@@ -88,7 +88,7 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
     })
 
     it('API key timestamps have Z suffix and are valid ISO 8601', () => {
-      const { mock } = generateMock('list_api_keys_api_keys_get')
+      const { mock } = generateMock('list_api_keys')
       const result = ListApiKeysResponseSchema.parse(mock)
 
       if (result.length > 0) {
@@ -106,7 +106,7 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
 
   describe('Mock Data Quality', () => {
     it('Generated user mocks contain realistic example data from Field()', () => {
-      const { mock } = generateMock('list_users_users_get')
+      const { mock } = generateMock('list_users')
       const users = ListUsersResponseSchema.parse(mock)
 
       if (users.length > 0) {
@@ -125,7 +125,7 @@ describe('API Contract: Frontend Zod Schemas Match Backend OpenAPI', () => {
     })
 
     it('Generated API key mocks contain realistic example data from Field()', () => {
-      const { mock } = generateMock('list_api_keys_api_keys_get')
+      const { mock } = generateMock('list_api_keys')
       const apiKeys = ListApiKeysResponseSchema.parse(mock)
 
       if (apiKeys.length > 0) {

@@ -18,7 +18,7 @@ description: Prepare, reset, provision, or validate the repository-local Junjo A
 
 - Create the local owner and credentials only through Studio's public setup,
   session, and management APIs.
-- Never edit SQLite, add migration or startup seeds, commit generated
+- Never edit SQLite, add schema or startup seeds, commit generated
   credentials, or copy local `.env` files into deployment artifacts.
 - Use persistent provisioned credentials for local human or coding-agent
   iteration. Keep automated validators isolated with disposable credentials

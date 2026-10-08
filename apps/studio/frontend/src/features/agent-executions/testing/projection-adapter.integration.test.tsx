@@ -12,7 +12,7 @@ const studioRoot = path.resolve(testDirectory, '../../../../..')
 const repositoryRoot = path.resolve(studioRoot, '../..')
 const projectionPath = path.join(
   studioRoot,
-  'backend/tests/generated/agent_semantic_projections.json',
+  'backend/evidence/tests/generated/agent_semantic_projections.json',
 )
 const agentFixtureRoot = path.join(
   repositoryRoot,

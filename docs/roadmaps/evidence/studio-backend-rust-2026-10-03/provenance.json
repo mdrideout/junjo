@@ -1,0 +1,85 @@
+{
+  "recorded": "2026-10-03",
+  "source": {
+    "repository_head": "1faadb580d6a7be7f2824bcbfa3394a4c3884a08",
+    "branch": "master",
+    "uncommitted_paths": [
+      "M apps/studio/.dockerignore",
+      " M apps/studio/.gitignore",
+      " M apps/studio/ingestion/benchmarks/README.md",
+      " M apps/studio/ingestion/benchmarks/auth_path_benchmark.py",
+      "?? apps/studio/backend-rs/",
+      "?? apps/studio/docs/adr/011-rust-backend-and-single-origin-studio.md",
+      "?? apps/studio/docs/adr/012-studio-authentication.md",
+      "?? docs/roadmaps/STUDIO_BACKEND_RUST_MIGRATION.md",
+      "?? docs/roadmaps/evidence/studio-backend-rust-2026-10-03/"
+    ],
+    "note": "The Python backend, ingestion, and frontend images were built from HEAD. The tracked changes are the benchmark harness setup-path setting, the Docker ignore entry for the Rust build output, and the Git ignore entries that keep the Rust lockfile tracked; the Rust slice is untracked work in apps/studio/backend-rs.",
+    "commit": "The runs measured an uncommitted measurement slice on top of repository_head. That work was first committed in pull request mdrideout/junjo#43, branch studio-rust-backend, after it had grown into the full backend; the slice itself has no commit."
+  },
+  "images": {
+    "junjo-rsmig-python-backend:local": {
+      "id": "sha256:f998367160cb31266b361891e5446ef8c0320407404219c373a446a3eaf1f503",
+      "size_bytes": 157904330
+    },
+    "junjo-rsmig-ingestion:local": {
+      "id": "sha256:484e5b6ead875a49e5f429911375870fc0165b261c67fe46e66e2b892a14a726",
+      "size_bytes": 42293663
+    },
+    "junjo-rsmig-rust-backend:system": {
+      "id": "sha256:f5848f3b6f74b4763d7a8831dddb2399695d337386063a694b55926420d42e43",
+      "size_bytes": 77114370
+    },
+    "junjo-rsmig-rust-backend:mimalloc": {
+      "id": "sha256:68a0e8da742ccaac9525cf68d00110b91e40d87e99dc0264a124b26d5a2fcf0a",
+      "size_bytes": 77165994
+    },
+    "junjo-rsmig-rust-backend:lto": {
+      "id": "sha256:177c7f970baaee45b1eb3e7c22db152b2544ba5006bf10833fc3e9c8d9b55445",
+      "size_bytes": 59329740
+    },
+    "junjo-rsmig-frontend:local": {
+      "id": "sha256:2a88c4b785f1b2199a5e185a823d56005d82836ad753146bf4209f0d68b94340",
+      "size_bytes": 27461247
+    }
+  },
+  "rust_backend_binary_bytes": {
+    "system": 163473768,
+    "mimalloc": 163548120,
+    "lto": 91486736
+  },
+  "rust_backend_build": {
+    "system": "default release profile, system allocator",
+    "mimalloc": "default release profile, --features mimalloc",
+    "lto": "CARGO_PROFILE_RELEASE_LTO=true, CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1, system allocator",
+    "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "cargo_lock_sha256": "74332a6cbc3d354a6b82f28fabf255aab1b286c2091ea0d8d5135f8e16b4a44b"
+  },
+  "host": {
+    "machine": "arm64",
+    "os": "15.7.7",
+    "docker": "29.4.0",
+    "docker_runtime": "OrbStack, 12 CPUs, 42060505088 bytes",
+    "other_containers_running": 15
+  },
+  "resource_profile": {
+    "backend": "0.5 CPU, 450 MiB, no swap",
+    "ingestion": "0.5 CPU, 350 MiB, no swap",
+    "mixed-proxy": "0.45 CPU each plus a 0.10 CPU counting proxy",
+    "single-cpu whole stack (variants ending in -shared)": "both services pinned to CPU 0 with no individual CPU quota; 450 MiB and 350 MiB, no swap"
+  },
+  "harness": {
+    "base": "apps/studio/ingestion/benchmarks/auth_path_benchmark.py at this working tree",
+    "diagnostic_patch_sha256": "0e8d56119c462941c74f0f6bccdac5ecdda2f1fe844d9c54c33a1a0f84e29d5d",
+    "observer_image": "junjo-rsmig-python-backend:local",
+    "note": "One call in the harness was re-wrapped by the formatter after the runs. The diagnostic patch still applies, and the patched file differs from the one that ran only in that line's layout."
+  },
+  "conditions": {
+    "wp1, wp2, diag": "no added host load",
+    "load": "a sibling container running four busy loops (--cpus 4) for the whole batch",
+    "load, variants ending in -shared": "the same load container, pinned to CPUs 4-7 so it cannot run on the measured CPU",
+    "repetition names starting with idle": "the period observed before ingestion, in seconds, when it is not the default 20"
+  },
+  "run_order": "Python and Rust runs were interleaved within every batch; recorded_at_utc in summary.json gives the order.",
+  "raw_results": "Not committed. The raw JSON and service logs of each run are kept locally in results/, which Git ignores."
+}

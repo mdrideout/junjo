@@ -1,0 +1,133 @@
+{
+  "recorded": "2026-10-04",
+  "source": {
+    "repository_head": "1faadb580d6a7be7f2824bcbfa3394a4c3884a08",
+    "upstream_revision": "1b5a79882124f1b854eb17720013ac35476d25d9",
+    "branch": "master",
+    "note": "The working tree holds upstream's files at the upstream revision (Studio 0.85.0) plus the uncommitted Rust backend migration. The Python backend image was built from an export of the upstream revision. The Rust application image and the ingestion image were built from the working tree; its ingestion sources equal upstream's apart from one comment in the build script.",
+    "commit": "Pull request mdrideout/junjo#43, branch studio-rust-backend, is the first commit of this work on top of 1b5a79882124f1b854eb17720013ac35476d25d9. It holds the tree that the last runs measured (image junjo-rsmig-app:adopted2), with the version set to 0.86.0 afterwards. Earlier runs measured earlier states of the same uncommitted tree; each run's image identity is in its summary and the images are described under images."
+  },
+  "images": {
+    "junjo-rsmig-python-backend:0.85.0": {
+      "id": "sha256:5c8ba3e6222ede0565a3be42cf5784d876862558a0b539321667053988190d75",
+      "size_bytes": 157904850,
+      "built_from": "upstream revision, apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:local": {
+      "id": "sha256:6bca672f626e221a89436bc93aa3cbe428f8a0dca0bc29edd9efe26c0c937fdb",
+      "size_bytes": 65143323,
+      "built_from": "working tree, apps/studio/backend/Dockerfile, target production; includes the built UI"
+    },
+    "junjo-rsmig-ingestion:0.85.0": {
+      "id": "sha256:9d7624ac2579322cae1cc21c6e4f4662a601cc6031ddd2083a476312ed27e565",
+      "size_bytes": 42294948,
+      "built_from": "working tree, apps/studio/ingestion/Dockerfile, target production"
+    },
+    "junjo-rsmig-frontend:local": {
+      "id": "sha256:2a88c4b785f1b2199a5e185a823d56005d82836ad753146bf4209f0d68b94340",
+      "size_bytes": 27461247,
+      "built_from": "revision 1faadb5, the nginx frontend image the application image replaces; not run in this evidence"
+    },
+    "junjo-rsmig-app:pushdown-default": {
+      "id": "sha256:835a4faeb4e7a5808bbf6a97af363b834b6f5a5f3602b82034b4208e6cb33efa",
+      "built_from": "working tree on 2026-10-04 after the filter pushdown decision, apps/studio/backend/Dockerfile, target production; pushdown on with no variable. Built before the fixes of the 2026-10-04 audit, none of which changes a query."
+    },
+    "junjo-rsmig-app:proto2": {
+      "id": "sha256:f8bd11ea18a0ef4d15b528a9c87eca72a54a2b9cda99f75889aedfec59319969",
+      "built_from": "a scratch copy of the working tree on 2026-10-04 with diagnostics/prototype.patch; with its switches off it is the tree before the two changes were adopted"
+    },
+    "junjo-rsmig-app:adopted": {
+      "id": "sha256:aba41723d0c3a63f4d14c3d047011e84edd7e9b0bbe467c409ccc0c0f7280778",
+      "built_from": "working tree on 2026-10-04 with the listing change and the snapshot rerun adopted, apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:proto3": {
+      "id": "sha256:ba575bccca046a06bdecbe6482360e9de74f4add56c473de00405c19e7fee3d8",
+      "built_from": "a scratch copy of that tree with the first variant of diagnostics/default-view-prototype.patch"
+    },
+    "junjo-rsmig-app:proto4": {
+      "id": "sha256:6d16cc3dc6a0a25fca3496ecc32c68d5169626f090a49d3708274e912732f946",
+      "built_from": "a scratch copy of that tree with both variants of diagnostics/default-view-prototype.patch"
+    },
+    "junjo-rsmig-app:adopted2": {
+      "id": "sha256:a7d68149ef934a2d3e3590edaf07e3b6651dbaece20d60cbc8b6b35a4a61528a",
+      "built_from": "working tree on 2026-10-04 with the second variant of the default Traces view change adopted as well, apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree4": {
+      "id": "sha256:e709c592750f90b2031802e49b246b287470f12d793f4a117ed1c8d41c7e2b46",
+      "built_from": "branch studio-rust-backend at 3c1dd7d, whose backend sources equal those of 613aa77; the build before the two changes (label history-before-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree5": {
+      "id": "sha256:9601893f583728be6883a08ef83f7c520e8539a60a83c6cafb7d1ff5868e432a",
+      "built_from": "bd440cc, the Agent listing a page at a time (history-agentpages-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree6": {
+      "id": "sha256:899e97abe264e450a722c007c0d0b4ffd2b112f6cb59f48b6a34faafd86704ef",
+      "built_from": "bd440cc plus the execution index of f7c5678 without the identity in the query; an intermediate state that was not committed (history-index-only-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree8": {
+      "id": "sha256:5f626f36c8633a0df8d701ddc5f56cf1ae151fbf3ba081bd62332d4b006f1d04",
+      "built_from": "d313606, the identity in the query without the index (history-identity-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-app:tree7": {
+      "id": "sha256:373aced250f4bcb4a2d2ad35770bd240157e716f295e25992ab903d39674b70a",
+      "built_from": "f7c5678, the identity in the query and the index (history-identity-index-*); apps/studio/backend/Dockerfile, target production"
+    },
+    "junjo-rsmig-ingestion:tree4": {
+      "id": "sha256:25b406dbe1b606c714abfba18b6bd173051fac114d067a91a83401c56d660e8e",
+      "built_from": "branch studio-rust-backend at 3c1dd7d, apps/studio/ingestion/Dockerfile, target production; ingestion is unchanged by the 2026-10-05 changes and every history run uses this image"
+    }
+  },
+  "rust_backend": {
+    "binary_bytes": 95531368,
+    "build": "release profile with link-time optimization and one codegen unit, system allocator",
+    "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "cargo_lock_sha256": "04cd57f85ab3ddba49385e63db6660bc436473340e0c0c5cb581bc60e74b2de3"
+  },
+  "host": {
+    "machine": "arm64",
+    "os": "15.7.7",
+    "docker": "29.4.0",
+    "docker_runtime": "OrbStack, 12 CPUs, 42060505088 bytes",
+    "other_containers_running": 15
+  },
+  "resource_profile": {
+    "backend": "0.5 CPU, 450 MiB, no swap",
+    "ingestion": "0.5 CPU, 350 MiB, no swap",
+    "single-cpu whole stack (variants ending in -shared)": "both services pinned to CPU 0 with no individual CPU quota; 450 MiB and 350 MiB, no swap"
+  },
+  "harness": {
+    "base": "apps/studio/ingestion/benchmarks/auth_path_benchmark.py at this working tree, run from its own Python project",
+    "diagnostic_patch": "diagnostics/benchmark.patch: the 2026-10-03 patch plus the filtered-query phase and, for the runs of decision_runs, the --hot-spans option",
+    "observer_image": "junjo-rsmig-python-backend:0.85.0"
+  },
+  "conditions": {
+    "load": "a sibling container running four busy loops (--cpus 4) for the whole batch",
+    "load, variants ending in -shared": "the same four busy loops pinned to CPUs 4-7, away from the measured CPU 0",
+    "builds and test suites": "none ran during the batch"
+  },
+  "decision_runs": {
+    "recorded": "2026-10-04",
+    "confirm": "results/confirm-*.json: nine interleaved filtered runs of the earlier image with the variable off (rust) and on (rust-pushdown) and of the new default image (rust-default). The first run of each earlier-image variant was disturbed and is not counted.",
+    "hot": "results/hot-*.json: the filtered-hot shape, two runs each of the new default image and of the Python 0.85.0 image.",
+    "harness": "diagnostics/benchmark.patch now also holds the --hot-spans option; diagnostics/run.py holds the filtered-hot shape; diagnostics/batch-confirm.sh and batch-hot.sh are the two batches.",
+    "live": "results/live-*.json: the live-trace and live-list shapes, the new default image and the Python 0.85.0 image. diagnostics/snapshot-sharing-experiment.rs and snapshot-sharing-harness.patch are the development-build reproduction against the real ingestion binary."
+  },
+  "adopted_build_runs": {
+    "recorded": "2026-10-04",
+    "earlier_harness": "results/rw-rust-adopted-realworld-1.json and -heavy-1.json: the adopted image on the harness and load of the prototype runs.",
+    "tool": "results/tool-*.json: 48 runs made with apps/studio/ingestion/benchmarks/real_world.py at this working tree. before is proto2 with its switches off, adopted the adopted image, viewfix proto3 with JUNJO_DIAGNOSTIC_LLM_RECENT_COLD, viewfix2 proto4 with that and JUNJO_DIAGNOSTIC_LLM_TIME_WINDOW, tree2 the adopted2 image.",
+    "batches": "First batch 15:43-16:04: before, adopted, viewfix, three standard runs each and one heavy. Second batch 16:18-16:39: adopted, viewfix, viewfix2, three standard runs each and one heavy. Third batch 17:14-17:35: adopted, viewfix2, tree2, three standard runs each and one heavy. Fourth batch 17:38-17:57: adopted and tree2 alternating, four standard runs each and two heavy.",
+    "conditions": "split quota profile; a sibling container running four busy loops (--cpus 4) for each batch; no build or test suite ran during a batch; 17 to 23 unrelated containers of the maintainer's were running.",
+    "disturbed": "Runs in which ingestion used 11 or more CPU seconds at the standard load, where it otherwise uses 8.6 to 10.5: tool-viewfix-standard-1 and -2, tool-adopted-standard-2, tool-before-standard-2 and -3, tool-viewfix2-standard-1, -2, -3 and -6, tool-tree2-standard-2 and -3, tool-adopted-standard-9. Kept.",
+    "harness": "diagnostics/real-world-tool/batch.sh and its overlays."
+  },
+  "raw_results": "Not committed. The raw JSON and service logs of each run are kept locally in results/, which Git ignores.",
+  "history_runs": {
+    "recorded": "2026-10-05",
+    "tool": "results/tool-history-*.json: 24 runs made with apps/studio/ingestion/benchmarks/real_world.py --history-pages at f03a0aa, whose load generator gives Workflow and Agent spans a runtime identity and whose browser driver loads the Agents page with and without a filter and resolves a real execution. Summaries are in summary-tool.json with a history_routes member for the two routes.",
+    "batches": "First batch 10:36-10:58 local: before, agentpages, index-only in the order A B C C B A, two runs each at the standard load and then at four times the load. Second batch 11:07-11:30: agentpages, identity, identity-index in the same order.",
+    "conditions": "split quota profile; a sibling container running four busy loops (--cpus 4) for each batch; no build or test suite ran during a batch; unrelated containers of the maintainer's were running.",
+    "disturbed": "tool-history-agentpages-standard-c1: the backend used 35.9 CPU seconds where the other runs used 40.4 to 44.9, and it completed 546 page loads. Kept.",
+    "index_size": "Measured apart from the runs, by writing the metadata schema's rows for 20 files of 2,500 traces each with Python's sqlite3 module: 0, 1, 3 and 6 executions to a trace gave 11.42, 13.08, 16.34 and 21.38 MB and 13, 17, 27 and 52 ms of write time for one file."
+  }
+}

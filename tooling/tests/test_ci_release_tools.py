@@ -233,7 +233,7 @@ class StudioReleasePolicyTests(unittest.TestCase):
             state=self.immutable_state(
                 observed={
                     ("backend", "version"): digest,
-                    ("frontend", "source_revision"): digest,
+                    ("ingestion", "source_revision"): digest,
                 }
             ),
         )
@@ -257,8 +257,11 @@ class StudioReleasePolicyTests(unittest.TestCase):
             [r"^[0-9]+\.[0-9]+\.[0-9]+$", r"^[0-9a-f]{40}$"],
         )
         self.assertEqual(
-            self.contract["images"]["backend"]["repository"],
-            "mdrideout/junjo-ai-studio-backend",
+            self.contract["images"],
+            {
+                "backend": {"repository": "mdrideout/junjo-ai-studio-app"},
+                "ingestion": {"repository": "mdrideout/junjo-ai-studio-ingestion"},
+            },
         )
         self.assertEqual(
             self.contract["distributions"]["minimal"],
@@ -267,6 +270,33 @@ class StudioReleasePolicyTests(unittest.TestCase):
                 "mirror_repository": "mdrideout/junjo-ai-studio-minimal-build",
                 "mirror_branch": "master",
             },
+        )
+
+    def test_release_workflows_cover_exactly_the_contract_services(self) -> None:
+        services = release_policy.EXPECTED_SERVICES
+        self.assertEqual(set(self.contract["images"]), set(services))
+        publish = (
+            REPOSITORY_ROOT / ".github/workflows/studio-docker-publish.yml"
+        ).read_text(encoding="utf-8")
+        validation = (
+            REPOSITORY_ROOT / ".github/workflows/studio-release-validation.yml"
+        ).read_text(encoding="utf-8")
+
+        # Each service is built once for amd64 and once for arm64.
+        for workflow in (publish, validation):
+            self.assertEqual(
+                sorted(re.findall(r"(?m)^          - service: (\S+)$", workflow)),
+                sorted([*services, *services]),
+            )
+
+        # Every publish step that walks the images walks the contract's services.
+        shell_loops = re.findall(r"for service in ([^;\n]+); do", publish)
+        self.assertTrue(shell_loops)
+        self.assertEqual(set(shell_loops), {" ".join(services)})
+        python_loops = re.findall(r"for service in (\([^)\n]*\)):", publish)
+        self.assertEqual(
+            python_loops,
+            ["(" + ", ".join(f'"{service}"' for service in services) + ")"],
         )
 
     def test_dockerhub_controls_require_exact_live_rules_for_every_image(self) -> None:
@@ -298,17 +328,17 @@ class StudioReleasePolicyTests(unittest.TestCase):
                 settings_directory=settings_directory,
             )
             self.assertEqual(evidence["schema_version"], 1)
-            self.assertEqual(len(evidence["repositories"]), 3)
+            self.assertEqual(len(evidence["repositories"]), 2)
 
-            frontend = json.loads(
-                (settings_directory / "frontend.json").read_text(encoding="utf-8")
+            ingestion = json.loads(
+                (settings_directory / "ingestion.json").read_text(encoding="utf-8")
             )
-            frontend["immutable_tags_settings"]["rules"] = [".*"]
-            (settings_directory / "frontend.json").write_text(
-                json.dumps(frontend), encoding="utf-8"
+            ingestion["immutable_tags_settings"]["rules"] = [".*"]
+            (settings_directory / "ingestion.json").write_text(
+                json.dumps(ingestion), encoding="utf-8"
             )
             with self.assertRaisesRegex(
-                RuntimeError, "frontend Docker Hub immutable rules"
+                RuntimeError, "ingestion Docker Hub immutable rules"
             ):
                 release_policy.validate_dockerhub_controls(
                     contract=self.contract,
@@ -349,7 +379,6 @@ class StudioReleasePolicyTests(unittest.TestCase):
             "python-ci.yml",
             "studio-backend-tests.yml",
             "studio-frontend-tests.yml",
-            "studio-proto-staleness-check.yml",
             "studio-rest-api-contract-validation.yml",
             "studio-version-sync-check.yml",
             "telemetry-contract.yml",
@@ -763,38 +792,68 @@ class MirrorPublicationTests(unittest.TestCase):
         self.assertLess(auth_indexes[0], clone_indexes[0])
         self.assertLess(auth_indexes[1], clone_indexes[2])
 
-class ProtoStalenessWorkflowTests(unittest.TestCase):
-    def test_proto_checks_include_untracked_generated_files(self) -> None:
+
+class StudioRustWorkflowTests(unittest.TestCase):
+    def test_exported_openapi_document_must_be_the_committed_one(self) -> None:
         workflow = (
-            REPOSITORY_ROOT / ".github/workflows/studio-proto-staleness-check.yml"
+            REPOSITORY_ROOT
+            / ".github/workflows/studio-rest-api-contract-validation.yml"
         ).read_text(encoding="utf-8")
         local_gate = (REPOSITORY_ROOT / "apps/studio/run-all-tests.sh").read_text(
             encoding="utf-8"
         )
-        pre_commit = (
-            REPOSITORY_ROOT / "apps/studio/scripts/pre-commit.sh"
-        ).read_text(encoding="utf-8")
-        for source in (workflow, local_gate, pre_commit):
-            self.assertIn("git status --porcelain --untracked-files=all", source)
+        export = workflow.index("run: ./scripts/validate_rest_api_contracts.sh")
+        committed_proof = workflow.index(
+            "run: git diff --exit-code -- apps/studio/frontend/backend/openapi.json"
+        )
+        sdk_proof = workflow.index(
+            "run: uv run pytest -q tests/test_studio_openapi_contract.py"
+        )
+        self.assertLess(export, committed_proof)
+        self.assertLess(committed_proof, sdk_proof)
+
+        # The local gate compares the export with the working copy's document
+        # before replacing it, so its result does not depend on commit state.
+        compared = local_gate.index(
+            "cmp -s ../frontend/backend/openapi.json.tmp "
+            "../frontend/backend/openapi.json"
+        )
+        replaced = local_gate.index(
+            "mv ../frontend/backend/openapi.json.tmp ../frontend/backend/openapi.json"
+        )
+        self.assertLess(compared, replaced)
+
+    def test_pre_commit_checks_backend_formatting_from_the_studio_root(self) -> None:
+        pre_commit = (REPOSITORY_ROOT / "apps/studio/scripts/pre-commit.sh").read_text(
+            encoding="utf-8"
+        )
         self.assertIn('cd "$STUDIO_ROOT/backend"', pre_commit)
         self.assertNotIn("REPO_ROOT", pre_commit)
+        self.assertIn("cargo fmt --check", pre_commit)
+        for retired in ("generate_proto", "proto_gen", "ruff", "uv run"):
+            self.assertNotIn(retired, pre_commit)
 
     def test_rust_ci_uses_checksum_pinned_protoc(self) -> None:
-        workflow = (
-            REPOSITORY_ROOT / ".github/workflows/studio-backend-tests.yml"
-        ).read_text(encoding="utf-8")
         checksum = "327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f"
-
-        self.assertNotIn("apt-get install -y protobuf-compiler", workflow)
-        self.assertEqual(workflow.count("PROTOC_VERSION=30.2"), 2)
-        self.assertEqual(workflow.count(checksum), 2)
-        self.assertEqual(workflow.count("sha256sum --check -"), 2)
-        self.assertEqual(
-            workflow.count(
-                'test "$(protoc --version)" = "libprotoc ${PROTOC_VERSION}"'
-            ),
-            2,
-        )
+        # Every job that compiles a Rust service's build script installs protoc.
+        for name, installs in (
+            ("studio-backend-tests.yml", 3),
+            ("studio-rest-api-contract-validation.yml", 1),
+        ):
+            with self.subTest(workflow=name):
+                workflow = (REPOSITORY_ROOT / ".github/workflows" / name).read_text(
+                    encoding="utf-8"
+                )
+                self.assertNotIn("apt-get install -y protobuf-compiler", workflow)
+                self.assertEqual(workflow.count("PROTOC_VERSION=30.2"), installs)
+                self.assertEqual(workflow.count(checksum), installs)
+                self.assertEqual(workflow.count("sha256sum --check -"), installs)
+                self.assertEqual(
+                    workflow.count(
+                        'test "$(protoc --version)" = "libprotoc ${PROTOC_VERSION}"'
+                    ),
+                    installs,
+                )
 
 
 class AiChatComposeSmokeContractTests(unittest.TestCase):

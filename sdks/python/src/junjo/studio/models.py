@@ -18,6 +18,7 @@ from pydantic import (
     ConfigDict,
     Field,
     JsonValue,
+    SecretStr,
     field_validator,
     model_validator,
 )
@@ -1062,3 +1063,99 @@ class AttemptEvidenceSpans(StudioDto):
     """Detailed evidence for the requested spans that were found, in request order."""
     missing_span_ids: tuple[SpanId, ...]
     """Requested span IDs absent from the recorded trace; do not infer their contents."""
+
+
+class TokenScope(StrEnum):
+    """Authority a developer access token can hold."""
+
+    EVALUATION_READ = "evaluation:read"
+    EVALUATION_WRITE = "evaluation:write"
+    EVIDENCE_READ = "evidence:read"
+
+
+class ErrorResponse(StudioDto):
+    """Body Studio sends with an error response."""
+
+    code: str
+    """Stable machine-readable code naming why the request was refused."""
+    message: str
+    """Human-readable explanation of the refusal."""
+
+
+class CliSignInStart(StudioDto):
+    """Request to start a CLI browser sign-in."""
+
+    client_name: NameText
+    """Name the terminal reports for itself; Studio shows it on the approval page and gives it to the minted token."""
+    scopes: tuple[TokenScope, ...] = Field(min_length=1, max_length=3)
+    """Distinct scopes the minted developer access token will hold."""
+
+    @field_validator("scopes")
+    @classmethod
+    def require_unique_scopes(cls, value: tuple[TokenScope, ...]) -> tuple[TokenScope, ...]:
+        """Reject a repeated scope before any network work."""
+
+        if len(value) != len(set(value)):
+            raise ValueError("scopes must not contain duplicates")
+        return value
+
+
+class CliSignInStarted(StudioDto):
+    """Pending CLI browser sign-in returned when Studio starts it."""
+
+    device_code: str = Field(repr=False)
+    """Secret kept by the terminal that started the sign-in; it collects the token and is never shown to a person."""
+    user_code: str = Field(min_length=9, max_length=9)
+    """Short code a person compares between the terminal and the approval page."""
+    verification_path: str
+    """Path of the Studio approval page; append it to the Studio origin and pass the user code as ``code``."""
+    expires_in: int = Field(ge=1)
+    """Seconds until the sign-in can no longer be approved or collected."""
+    interval: int = Field(ge=1)
+    """Seconds to wait between attempts to collect the token."""
+
+    @field_validator("verification_path")
+    @classmethod
+    def require_origin_relative_path(cls, value: str) -> str:
+        """Keep the approval page on the Studio origin the sign-in was started against."""
+
+        if not value.startswith("/"):
+            raise ValueError("verification_path must start with /")
+        return value
+
+
+class CliSignInTokenRequest(StudioDto):
+    """Request to collect the token of a CLI browser sign-in."""
+
+    device_code: str = Field(pattern=r"^jdev_[A-Za-z0-9_-]{64}$", repr=False)
+    """Device code Studio returned when the sign-in was started."""
+
+
+class CliSignInToken(StudioDto):
+    """Developer access token minted by an approved CLI browser sign-in; Studio returns it once."""
+
+    access_token: SecretStr
+    """Token value, held as a secret so representations and serialized output never contain it."""
+    token_type: Literal["bearer"]
+    """How the token is presented to Studio: always as a Bearer credential."""
+    token_id: RecordId
+    """Studio identifier of the minted token, as listed on the Developer Access Tokens page."""
+    scopes: tuple[TokenScope, ...]
+    """Scopes the minted token holds."""
+    expires_at: datetime | None
+    """When the token stops working; None means it works until it is deleted."""
+
+
+class CurrentTokenRead(StudioDto):
+    """What Studio tells a developer access token about itself; the token value is not repeated."""
+
+    id: RecordId
+    """Studio identifier of the token, as listed on the Developer Access Tokens page."""
+    name: NameText
+    """Human-readable name retained with this record."""
+    scopes: tuple[TokenScope, ...]
+    """Scopes the token holds."""
+    expires_at: datetime | None
+    """When the token stops working; None means it works until it is deleted."""
+    created_at: datetime
+    """Creation timestamp recorded by Studio."""

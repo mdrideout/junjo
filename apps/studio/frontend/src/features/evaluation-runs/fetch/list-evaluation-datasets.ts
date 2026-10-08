@@ -1,4 +1,3 @@
-import { getApiHost } from '../../../config'
 import {
   EvaluationDatasetListPageSchema,
   type EvaluationDatasetListPage,
@@ -6,7 +5,7 @@ import {
 
 export async function listEvaluationDatasets(): Promise<EvaluationDatasetListPage> {
   const response = await fetch(
-    `${getApiHost()}/api/v1/evaluation/datasets?limit=100`,
+    '/api/v1/evaluation/datasets?limit=100',
     { credentials: 'include' },
   )
   if (!response.ok) {

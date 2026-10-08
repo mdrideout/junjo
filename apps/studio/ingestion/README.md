@@ -41,4 +41,4 @@ cd ingestion
 cargo test
 ```
 
-Some backend integration tests also start the ingestion binary; see `backend/tests/conftest.py`.
+The backend's cross-service tests also build this service's release binary and start it; see `backend/server/src/cross_service_tests/`.

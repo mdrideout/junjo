@@ -11,42 +11,43 @@
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
 
-// Base URL for API requests (matches the compose-published backend port)
-export const API_BASE = 'http://localhost:26154'
+// Base URL for API requests: the app calls the API with relative URLs, which
+// resolve against the origin of the test page
+export const API_BASE = window.location.origin
 
 /**
  * Default request handlers for common API endpoints.
  * Tests can override these using server.use() for custom scenarios.
  */
 export const handlers = [
-  // Mock /api_keys endpoint - auto-generated from OpenAPI spec
+  // Mock /api/v1/api-keys endpoint - auto-generated from OpenAPI spec
   // Returns empty array by default, but tests can override to return generated mocks
-  http.get(`${API_BASE}/api_keys`, () => {
+  http.get(`${API_BASE}/api/v1/api-keys`, () => {
     // Default: empty array (no API keys)
-    // Tests can override with: generateMock('list_api_keys_api_keys_get')
+    // Tests can override with: generateMock('list_api_keys')
     return HttpResponse.json([])
   }),
 
-  // Mock /users/create-first-user endpoint - successful user creation
-  http.post(`${API_BASE}/users/create-first-user`, () => {
+  // Mock /api/v1/users/create-first-user endpoint - successful user creation
+  http.post(`${API_BASE}/api/v1/users/create-first-user`, () => {
     return HttpResponse.json(
       { message: 'First user created successfully' },
       { status: 200 }
     )
   }),
 
-  // Mock /sign-in endpoint - successful sign-in
-  http.post(`${API_BASE}/sign-in`, () => {
+  // Mock /api/v1/sign-in endpoint - successful sign-in
+  http.post(`${API_BASE}/api/v1/sign-in`, () => {
     return HttpResponse.json({ message: 'signed in' }, { status: 200 })
   }),
 
-  // Mock /auth-test endpoint - user is authenticated
-  http.get(`${API_BASE}/auth-test`, () => {
+  // Mock /api/v1/auth-test endpoint - user is authenticated
+  http.get(`${API_BASE}/api/v1/auth-test`, () => {
     return HttpResponse.json({ user_email: 'test@example.com' }, { status: 200 })
   }),
 
-  // Mock /users/db-has-users endpoint - database has users after creation
-  http.get(`${API_BASE}/users/db-has-users`, () => {
+  // Mock /api/v1/users/db-has-users endpoint - database has users after creation
+  http.get(`${API_BASE}/api/v1/users/db-has-users`, () => {
     return HttpResponse.json({ users_exist: true }, { status: 200 })
   }),
 ]

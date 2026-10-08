@@ -1,4 +1,3 @@
-import { getApiHost } from '../../../config'
 import {
   EvaluationRunListPageSchema,
   type EvaluationRunListPage,
@@ -25,7 +24,7 @@ export async function listEvaluationRuns(
   if (validated.cursor !== undefined) parameters.set('cursor', validated.cursor)
 
   const response = await fetch(
-    `${getApiHost()}/api/v1/evaluation/runs?${parameters.toString()}`,
+    `/api/v1/evaluation/runs?${parameters.toString()}`,
     { credentials: 'include' },
   )
   if (!response.ok) {

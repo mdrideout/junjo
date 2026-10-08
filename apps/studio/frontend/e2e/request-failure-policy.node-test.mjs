@@ -16,7 +16,7 @@ test('reports only actionable first-party browser request failures', () => {
   )
   assert.equal(
     describeActionableRequestFailure({
-      requestUrl: 'http://127.0.0.1:3001/auth-test',
+      requestUrl: 'http://127.0.0.1:3001/api/v1/auth-test',
       errorText: 'net::ERR_ABORTED',
       firstPartyOrigins,
     }),

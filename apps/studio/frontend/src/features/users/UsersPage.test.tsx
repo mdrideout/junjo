@@ -10,7 +10,7 @@ import { UsersStateActions } from './slice'
 describe('UsersPage', () => {
   it('uses the shared administration page and table layout', async () => {
     server.use(
-      http.get(`${API_BASE}/users`, () =>
+      http.get(`${API_BASE}/api/v1/users`, () =>
         HttpResponse.json([
           {
             id: 'user-1',

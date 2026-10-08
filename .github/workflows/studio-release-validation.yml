@@ -136,11 +136,6 @@ jobs:
     needs: prepare
     uses: ./.github/workflows/studio-frontend-tests.yml
 
-  studio_proto:
-    name: Studio protobufs
-    needs: prepare
-    uses: ./.github/workflows/studio-proto-staleness-check.yml
-
   studio_rest:
     name: Studio REST contract
     needs: prepare
@@ -169,7 +164,6 @@ jobs:
       - prepare
       - studio_backend
       - studio_frontend
-      - studio_proto
       - studio_rest
       - studio_version
       - telemetry
@@ -184,14 +178,6 @@ jobs:
             arch: amd64
             runs-on: ubuntu-latest
           - service: backend
-            platform: linux/arm64
-            arch: arm64
-            runs-on: ubuntu-24.04-arm
-          - service: frontend
-            platform: linux/amd64
-            arch: amd64
-            runs-on: ubuntu-latest
-          - service: frontend
             platform: linux/arm64
             arch: arm64
             runs-on: ubuntu-24.04-arm

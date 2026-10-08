@@ -14,7 +14,9 @@ from urllib.parse import parse_qs, urlsplit
 
 import grpc
 
-from app.proto_gen import auth_pb2, auth_pb2_grpc
+# Generated from proto/auth.proto when Dockerfile builds the proxy image.
+import auth_pb2
+import auth_pb2_grpc
 
 
 @dataclass
@@ -54,7 +56,9 @@ class ProxyState:
             else:
                 self.stats.invalid += 1
             self.stats.latency_micros_total += elapsed_micros
-            self.stats.latency_micros_max = max(self.stats.latency_micros_max, elapsed_micros)
+            self.stats.latency_micros_max = max(
+                self.stats.latency_micros_max, elapsed_micros
+            )
 
     async def snapshot(self) -> dict[str, Any]:
         async with self.lock:
@@ -109,7 +113,9 @@ class AuthProxy(auth_pb2_grpc.InternalAuthServiceServicer):
                     "benchmark auth proxy forced unavailable",
                 )
 
-            supplied_token = dict(context.invocation_metadata()).get("x-junjo-internal-token", "")
+            supplied_token = dict(context.invocation_metadata()).get(
+                "x-junjo-internal-token", ""
+            )
             try:
                 response = await self.stub.ValidateApiKey(
                     request,
@@ -190,7 +196,9 @@ async def handle_control(
 async def main() -> None:
     grpc_port = int(os.environ.get("JUNJO_BENCHMARK_PROXY_GRPC_PORT", "50054"))
     control_port = int(os.environ.get("JUNJO_BENCHMARK_PROXY_CONTROL_PORT", "50055"))
-    backend_target = os.environ.get("JUNJO_BENCHMARK_PROXY_BACKEND_TARGET", "backend:50053")
+    backend_target = os.environ.get(
+        "JUNJO_BENCHMARK_PROXY_BACKEND_TARGET", "backend:50053"
+    )
 
     state = ProxyState()
     proxy = AuthProxy(state, backend_target)

@@ -1,10 +1,12 @@
 import { Link, useParams } from 'react-router'
+import ApiKeyFilter from './ApiKeyFilter'
 import TracesList from './TracesList'
 import { useState } from 'react'
 
 export default function TracesListPage() {
   const { serviceName } = useParams()
   const [filterLLM, setFilterLLM] = useState(true)
+  const [apiKeyId, setApiKeyId] = useState('')
 
   // Human readable start ingest time
   const date = new Date()
@@ -23,7 +25,7 @@ export default function TracesListPage() {
           <div>Traces</div>
         </div>
         <div className={'text-zinc-400 text-xs'}>{readableDate}</div>
-        <div className="pt-2">
+        <div className="pt-2 flex items-center gap-x-6">
           <label className="inline-flex items-center">
             <input
               type="checkbox"
@@ -33,11 +35,12 @@ export default function TracesListPage() {
             />
             <span className="ml-2 text-sm">Has LLM Spans</span>
           </label>
+          <ApiKeyFilter apiKeyId={apiKeyId} onChange={setApiKeyId} />
         </div>
       </div>
       <hr />
       <div className={'grow overflow-scroll pt-2'}>
-        <TracesList filterLLM={filterLLM} />
+        <TracesList filterLLM={filterLLM} apiKeyId={apiKeyId} />
       </div>
     </div>
   )

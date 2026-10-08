@@ -17,7 +17,7 @@ description: Use when changing or reviewing Junjo AI Studio OTLP ingestion, the 
 
 ## Do Not Use This Skill When
 
-- The task is ordinary FastAPI feature or CRUD work.
+- The task is ordinary backend feature or CRUD work.
 - The task is frontend UI or state-management work.
 - The task is primarily an authentication review with no ingestion-path
   changes.
@@ -35,8 +35,9 @@ description: Use when changing or reviewing Junjo AI Studio OTLP ingestion, the 
      involved
 4. Treat `apps/studio/ingestion/src/config.rs` and active backend code as the
    source of truth for runtime defaults and behavior.
-5. Update owning proto sources and regenerate outputs through repository
-   commands; never edit generated files manually.
+5. Update owning proto sources in `apps/studio/proto/`. Both services compile
+   them at build time and no generated code is checked in, so a proto change
+   is a change to the backend and ingestion together.
 
 ## Performance-sensitive reviews and changes
 
@@ -54,6 +55,11 @@ the owning ADR's history when it records a rejected design or earlier tuning.
   unpaced ingestion, sparse and full batches, serial and concurrent exporters,
   and cold rollover where affected. Retain batching and allocator settings
   unless those are the explicit subject of the experiment.
+- Run the real-world test in that README for the unchanged and the candidate
+  build: the real frontend and the real SDK while the exporters send spans.
+  Understand the path from an exported span to the screen before proposing a
+  change to it. The hot snapshot of unflushed spans is the normal state of a
+  live deployment, not a corner case.
 - Keep measurement rounds separate from builds, validation suites, and other
   benchmark workloads. Retain overlapping runs as diagnostics and repeat the
   affected comparisons without that interference.
@@ -72,8 +78,8 @@ the owning ADR's history when it records a rejected design or earlier tuning.
 ## Validation
 
 - Run `cargo test --locked` from `apps/studio/ingestion` for ingestion work.
-- Run relevant backend tests when query behavior or proto contracts change.
-- Use `./run-all-proto-gen.sh` from `apps/studio` when Python proto generation
-  is required.
+- Run `cargo test --locked` from `apps/studio/backend` when query behavior or
+  proto contracts change. Its cross-service tests build and start the real
+  ingestion binary.
 - Verify that documentation describes durable decisions rather than a runtime
   implementation snapshot.

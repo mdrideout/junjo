@@ -1,108 +1,165 @@
-# Stage 1: Base - Install dependencies using uv
-FROM python:3.13-slim-trixie AS base
+# Junjo AI Studio application image: the backend binary and the built UI.
+#
+# Build context: apps/studio (the same context ingestion uses), so the shared
+# proto directory, the frontend, and the license inventories are available.
 
-# Install build dependencies and tools using apt-get
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    libffi-dev \
-    curl \
-    unzip \
+# ============================================================
+# UI build stage
+# ============================================================
+FROM node:22-bookworm-slim AS ui
+
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm ci
+
+COPY frontend/ .
+RUN npm run build
+
+# Compress each text file once. The backend sends a compressed sibling to a
+# browser that accepts it and never compresses per request.
+RUN node scripts/precompress.mjs dist
+
+# ============================================================
+# Backend build stage
+# ============================================================
+FROM rust:1.99-slim-bookworm AS builder
+
+# Install the contract-locked protobuf compiler for proto compilation.
+RUN apt-get update && apt-get install -y \
+    curl unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install protoc v30.2 for consistency (Python uses grpcio-tools but scripts may need protoc)
 ARG TARGETARCH
 RUN PROTOC_VERSION=30.2 && \
-    case ${TARGETARCH} in \
-        "amd64") PROTOC_ARCH="x86_64" ;; \
-        "arm64") PROTOC_ARCH="aarch_64" ;; \
-        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    case "${TARGETARCH}" in \
+      amd64) PROTOC_ARCH=x86_64; PROTOC_SHA256=327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f ;; \
+      arm64) PROTOC_ARCH=aarch_64; PROTOC_SHA256=a3173ea338ef91b1605b88c4f8120d6c8ccf36f744d9081991d595d0d4352996 ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
     esac && \
-    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local bin/protoc && \
-    unzip -o protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip -d /usr/local 'include/*' && \
-    rm protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip
+    PROTOC_ZIP="protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip" && \
+    curl -fsSLO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ZIP}" && \
+    echo "${PROTOC_SHA256}  ${PROTOC_ZIP}" | sha256sum -c - && \
+    unzip -q "${PROTOC_ZIP}" -d /usr/local bin/protoc 'include/*' && \
+    rm "${PROTOC_ZIP}" && \
+    test "$(protoc --version)" = "libprotoc 30.2"
 
-# Install the same immutable uv release used by repository and hosting builds.
-COPY --from=ghcr.io/astral-sh/uv:0.11.7@sha256:240fb85ab0f263ef12f492d8476aa3a2e4e1e333f7d67fbdd923d00a506a516a /uv /uvx /bin/
+WORKDIR /app/backend
 
-# Set working directory
-WORKDIR /app
+# Shared proto directory (server/build.rs uses ../../proto).
+COPY proto/ /app/proto/
 
-# Copy shared proto files (needed for code generation)
-COPY proto/ ../proto/
+# Manifests and schema first, for dependency caching.
+COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY backend/evidence/Cargo.toml evidence/
+COPY backend/server/Cargo.toml backend/server/build.rs server/
+COPY backend/schema/ schema/
 
-# Copy dependency files
-COPY backend/pyproject.toml backend/uv.lock* ./
+# Build dependencies against placeholder sources.
+RUN mkdir -p evidence/src server/src && \
+    touch evidence/src/lib.rs && \
+    echo "fn main() {}" > server/src/main.rs && \
+    cargo build --release --locked --package junjo-backend && \
+    rm -rf evidence/src server/src
 
-# Install dependencies into virtual environment
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project --no-dev
+COPY backend/evidence/src/ evidence/src/
+COPY backend/server/src/ server/src/
 
-# Stage 2: Production - Final image
-FROM python:3.13-slim-trixie AS production
+RUN touch evidence/src/lib.rs server/src/main.rs && \
+    cargo build --release --locked --package junjo-backend
+
+# ============================================================
+# Development stage (cargo-watch for hot reloading)
+# ============================================================
+# The API only. In development the Vite server serves the UI and proxies API
+# requests here.
+FROM rust:1.99-slim-bookworm AS development
+
+RUN apt-get update && apt-get install -y \
+    curl unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG TARGETARCH
+RUN PROTOC_VERSION=30.2 && \
+    case "${TARGETARCH}" in \
+      amd64) PROTOC_ARCH=x86_64; PROTOC_SHA256=327e9397c6fb3ea2a542513a3221334c6f76f7aa524a7d2561142b67b312a01f ;; \
+      arm64) PROTOC_ARCH=aarch_64; PROTOC_SHA256=a3173ea338ef91b1605b88c4f8120d6c8ccf36f744d9081991d595d0d4352996 ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    PROTOC_ZIP="protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip" && \
+    curl -fsSLO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ZIP}" && \
+    echo "${PROTOC_SHA256}  ${PROTOC_ZIP}" | sha256sum -c - && \
+    unzip -q "${PROTOC_ZIP}" -d /usr/local bin/protoc 'include/*' && \
+    rm "${PROTOC_ZIP}" && \
+    test "$(protoc --version)" = "libprotoc 30.2"
+
+# Install cargo-watch for hot reloading
+RUN cargo install cargo-watch --locked
+
+WORKDIR /app/backend
+
+# Shared proto directory (server/build.rs uses ../../proto). Compose mounts
+# the working copy over it.
+COPY proto/ /app/proto/
+
+# Manifests, schema, and sources. Compose mounts the working copies over them.
+COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY backend/evidence/ evidence/
+COPY backend/server/ server/
+COPY backend/schema/ schema/
+
+# Fetch dependencies only. Compiling here would cache generated proto code in
+# the image layer, which goes stale when the target volume is recreated.
+RUN cargo fetch --locked
+
+COPY backend/dev-entrypoint.sh /usr/local/bin/backend-dev
+RUN chmod +x /usr/local/bin/backend-dev
+
+RUN mkdir -p /app/.dbdata
+
+# Container defaults for local Compose paths.
+ENV JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+ENV JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+ENV JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
+ENV JUNJO_LOG_LEVEL=debug
+ENV RUST_BACKTRACE=1
+
+# HTTP API
+EXPOSE 26154
+# Internal gRPC for API key validation (internal Docker network only)
+EXPOSE 50053
+
+# Use cargo-watch for hot reloading in development. The entrypoint owns
+# signal forwarding so the backend process can finish its shutdown.
+CMD ["/usr/local/bin/backend-dev"]
+
+# ============================================================
+# Production stage (minimal runtime image)
+# ============================================================
+FROM debian:bookworm-slim AS production
 
 LABEL org.opencontainers.image.source="https://github.com/mdrideout/junjo" \
       org.opencontainers.image.licenses="Apache-2.0"
 
 COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/licenses/junjo-ai-studio/
-COPY backend/uv.lock /usr/share/licenses/junjo-ai-studio/backend-production.lock
+COPY licenses/backend-production.json /usr/share/licenses/junjo-ai-studio/
+COPY licenses/frontend-production.json /usr/share/licenses/junjo-ai-studio/
 
-# Install tini and libstdc++6 using apt-get
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    tini \
-    libstdc++6 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
 WORKDIR /app
 
-# Copy virtual environment from base stage
-COPY --from=base /app/.venv ./.venv
+COPY --from=builder /app/backend/target/release/junjo-backend /app/junjo-backend
+COPY --from=ui /app/dist /app/ui
 
-# Set PATH to use virtual environment
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONPATH=/app
+RUN mkdir -p /app/.dbdata
 
-# Copy application code first
-COPY backend/app ./app
+# Container defaults for local Compose paths.
+ENV JUNJO_UI_DIR=/app/ui
+ENV JUNJO_SQLITE_PATH=/app/.dbdata/sqlite/junjo.db
+ENV JUNJO_METADATA_DB_PATH=/app/.dbdata/sqlite/metadata.db
+ENV JUNJO_PARQUET_STORAGE_PATH=/app/.dbdata/spans/parquet
 
-# Copy proto generation script and shared proto files
-COPY backend/scripts/generate_proto.sh /tmp/generate_proto.sh
-COPY proto/ ../proto/
-
-# Generate proto files using unified script
-RUN chmod +x /tmp/generate_proto.sh && \
-    /tmp/generate_proto.sh /app/app/proto_gen /app/../proto && \
-    rm /tmp/generate_proto.sh
-
-# Copy Alembic configuration and migrations
-COPY backend/alembic.ini ./alembic.ini
-COPY backend/migrations ./migrations
-
-# Copy entrypoint script
-COPY backend/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Create data directory
-RUN mkdir -p ./.dbdata
-
-# Expose ports
-# HTTP API (published by compose)
+# Studio UI and HTTP API (published by Compose)
 EXPOSE 26154
-# Internal gRPC for API key validation (NOT mapped to host - internal Docker network only)
+# Internal gRPC for API key validation (internal Docker network only)
 EXPOSE 50053
 
-# Use tini with entrypoint script for proper signal handling and migrations
-ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
-
-# Run uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "26154"]
-
-# Stage 3: Development - Add dev dependencies and hot reload
-FROM production AS development
-
-# Override CMD for hot reload
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "26154", "--reload", "--reload-dir", "/app/app"]
+CMD ["/app/junjo-backend"]

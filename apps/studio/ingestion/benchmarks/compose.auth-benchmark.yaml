@@ -11,10 +11,8 @@ services:
       - "${JUNJO_BENCHMARK_BACKEND_PORT:-27154}:26154"
     environment:
       JUNJO_ENV: development
-      JUNJO_SESSION_SECRET: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-      JUNJO_SECURE_COOKIE_KEY: AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=
       JUNJO_INTERNAL_GRPC_TOKEN: benchmark-internal-grpc-token-32-bytes-long
-      JUNJO_LOG_LEVEL: warning
+      JUNJO_LOG_LEVEL: warn
       JUNJO_LOG_FORMAT: json
 
   ingestion:
@@ -35,15 +33,10 @@ services:
     profiles: ["auth-proxy"]
     build:
       context: .
-      dockerfile: backend/Dockerfile
-      target: production
-    entrypoint: ["/usr/bin/tini", "--"]
-    command: ["python", "/benchmark/auth_backend_proxy.py"]
+      dockerfile: ingestion/benchmarks/Dockerfile
     cpus: 0.10
     mem_limit: 64m
     memswap_limit: 64m
-    volumes:
-      - ./ingestion/benchmarks:/benchmark:ro
     ports:
       - "${JUNJO_BENCHMARK_PROXY_PORT:-27156}:50055"
     networks:

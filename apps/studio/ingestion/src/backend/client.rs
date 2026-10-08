@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use tonic::transport::Channel;
@@ -33,8 +34,9 @@ impl BackendClient {
         })
     }
 
-    /// Validate an API key with the backend.
-    pub async fn validate_api_key(&self, api_key: &str) -> anyhow::Result<bool> {
+    /// Validate an API key with the backend. Returns the identifier of a
+    /// valid key, and nothing for a key that is not valid.
+    pub async fn validate_api_key(&self, api_key: &str) -> anyhow::Result<Option<Arc<str>>> {
         // Tonic Channel clones share one multiplexed connection and reconnect
         // automatically after the backend becomes reachable again.
         let mut client = InternalAuthServiceClient::new(self.channel.clone());
@@ -46,12 +48,21 @@ impl BackendClient {
             .metadata_mut()
             .insert("x-junjo-internal-token", self.internal_grpc_token.parse()?);
 
-        let response = client.validate_api_key(request).await?;
-        let is_valid = response.into_inner().is_valid;
+        let response = client.validate_api_key(request).await?.into_inner();
+        let is_valid = response.is_valid;
 
         debug!(addr = %self.addr, is_valid, "API key validation result");
 
-        Ok(is_valid)
+        if !is_valid {
+            return Ok(None);
+        }
+        // Every stored span carries this identifier, so a valid key without
+        // one is a backend that does not speak this contract.
+        anyhow::ensure!(
+            !response.api_key_id.is_empty(),
+            "the backend validated an API key without naming it"
+        );
+        Ok(Some(Arc::from(response.api_key_id)))
     }
 }
 
@@ -88,8 +99,10 @@ mod tests {
             if supplied_token != Some(INTERNAL_TOKEN) {
                 return Err(Status::unauthenticated("invalid workload token"));
             }
+            let is_valid = request.into_inner().api_key == "valid-key";
             Ok(Response::new(ValidateApiKeyResponse {
-                is_valid: request.into_inner().api_key == "valid-key",
+                is_valid,
+                api_key_id: if is_valid { "key-1" } else { "" }.to_string(),
             }))
         }
     }
@@ -127,8 +140,10 @@ mod tests {
         )
         .unwrap();
 
-        assert!(client.validate_api_key("valid-key").await.unwrap());
-        assert!(!client.validate_api_key("invalid-key").await.unwrap());
+        let valid = client.validate_api_key("valid-key").await.unwrap();
+        assert_eq!(valid.as_deref(), Some("key-1"));
+        let invalid = client.validate_api_key("invalid-key").await.unwrap();
+        assert_eq!(invalid, None);
 
         shutdown.send(()).unwrap();
         server.await.unwrap().unwrap();
@@ -137,7 +152,7 @@ mod tests {
         let (_addr, restart_shutdown, restarted_server) = start_server(Some(addr)).await;
         let mut reconnected = false;
         for _ in 0..30 {
-            if matches!(client.validate_api_key("valid-key").await, Ok(true)) {
+            if matches!(client.validate_api_key("valid-key").await, Ok(Some(_))) {
                 reconnected = true;
                 break;
             }

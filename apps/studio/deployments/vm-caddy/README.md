@@ -10,7 +10,7 @@
 
 This is a production deployment example of Junjo AI Studio, a Junjo python SDK powered app, and Caddy reverse proxy to a fresh virtual machine.
 
-This deployment pins Junjo AI Studio `0.85.0` and Junjo `0.69.0` as a compatible release pair.
+This deployment pins Junjo AI Studio `0.86.0` and Junjo `0.69.0` as a compatible release pair.
 
 > **Breaking upgrade policy:** Studio 0.85.0 (telemetry contract 3)
 > requires wiping Studio application data and starting fresh with the matching
@@ -18,6 +18,11 @@ This deployment pins Junjo AI Studio `0.85.0` and Junjo `0.69.0` as a compatible
 > are not migrated. Follow the
 > [canonical reset procedure](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md).
 > `docker compose down --volumes` does not clear the host-mounted application data.
+>
+> Upgrading from Studio 0.85.0 or earlier to a later release needs the same
+> reset and also changes the deployment: two containers instead of three, one
+> Studio hostname, and six removed settings. Follow
+> [Upgrading from Studio 0.85.0 or earlier](https://github.com/mdrideout/junjo/blob/master/apps/studio/deployments/RESET.md#upgrading-from-studio-0850-or-earlier).
 
 Learn how to go from a fresh virtual machine to a production deployment that supports an unlimited number of users and junjo apps. 
 
@@ -55,13 +60,12 @@ Deploy Junjo AI Studio as a centralized observability backend for your AI applic
 - **Debugging interface**: Web UI for exploring and debugging workflow executions and state changes
 - **Production-ready**: Includes reverse proxy with automatic SSL, authentication and user management, and scalable ingestion
 
-This deployment includes a demo Python application (`junjo-app`) that shows you exactly how to integrate Junjo AI Studio into your own projects.
-The three Junjo AI Studio core services use pinned pre-built Docker images, while `caddy` and `junjo-app` are built from this repository.
+This deployment includes a demo Python application (`example-app`) that shows you exactly how to integrate Junjo AI Studio into your own projects.
+The two Junjo AI Studio core services use pinned pre-built Docker images, while `caddy` and `example-app` are built from this repository.
 
 ### Core Services
-- **Junjo AI Studio Backend**: HTTP API, authentication, and query orchestration (SQLite metadata + Parquet queries + hot snapshot merge)
+- **Junjo AI Studio App**: Web-based debugging and workflow visualization interface, HTTP API, authentication, and query orchestration (SQLite metadata + Parquet queries + hot snapshot merge)
 - **Junjo AI Studio Ingestion**: High-throughput OpenTelemetry gRPC endpoint (Arrow IPC WAL + Parquet flush)
-- **Junjo AI Studio Frontend**: Web-based debugging and workflow visualization interface
 
 ### Infrastructure
 - **Caddy Reverse Proxy**: Automatic HTTPS with Let's Encrypt, subdomain routing
@@ -94,7 +98,7 @@ Choose a setup path:
    ./scripts/junjo setup
    ```
 
-   The setup script can generate secrets, derive production URLs, and set `CLOUDFLARE_API_TOKEN` for production mode. It does not edit `caddy/Caddyfile`.
+   The setup script can generate the internal gRPC token, set the production ingestion URL, and set `CLOUDFLARE_API_TOKEN` for production mode. It does not edit `caddy/Caddyfile`.
 
 #### **Option 2: Manual setup**
 
@@ -102,30 +106,19 @@ Choose a setup path:
    cp .env.example .env
    ```
 
-Generate and set three required security keys:
+Generate and set the required internal gRPC token:
 
-`JUNJO_SESSION_SECRET`, `JUNJO_SECURE_COOKIE_KEY`, and `JUNJO_INTERNAL_GRPC_TOKEN` must be set for the backend and ingestion service to function properly.
+`JUNJO_INTERNAL_GRPC_TOKEN` must be set for the app and ingestion service to function properly.
 
-1. Generate the first key:
+1. Generate the token:
    ```bash
    openssl rand -base64 32
    ```
 
-2. Open `.env` in your editor and replace `your_base64_secret_here` in `JUNJO_SESSION_SECRET` with the generated key
-
-3. Generate the second key:
-   ```bash
-   openssl rand -base64 32
-   ```
-
-4. Replace `your_base64_key_here` in `JUNJO_SECURE_COOKIE_KEY` with this second generated key
-
-5. Generate a third key and replace `your_internal_grpc_token_here` in `JUNJO_INTERNAL_GRPC_TOKEN` with it
+2. Open `.env` in your editor and replace `your_internal_grpc_token_here` in `JUNJO_INTERNAL_GRPC_TOKEN` with the generated token
 
 For production deployments, also set these values in `.env`:
 - `JUNJO_ENV=production`
-- `JUNJO_PROD_FRONTEND_URL=https://junjo.example.com`
-- `JUNJO_PROD_BACKEND_URL=https://api.junjo.example.com`
 - `JUNJO_PROD_INGESTION_URL=https://ingestion.junjo.example.com`
 - `CLOUDFLARE_API_TOKEN=<your_token>` (required for Caddy DNS challenge / automatic SSL for this deployment example.)
 
@@ -143,11 +136,11 @@ Docker Compose creates a project-scoped network automatically for this stack. Do
 
 Once all the services are running, you can access them in your browser:
 
-*   **Junjo AI Studio UI**: [http://localhost:26153](http://localhost:26153)
+*   **Junjo AI Studio UI**: [http://localhost:26154](http://localhost:26154)
 
 #### 🚨 Demo App Requires Initial Setup
 
-The **demo application (`junjo-app`) automatically starts**. When configured with an API key, it will continuously execute a simple workflow in a loop, sending telemetry to Junjo AI Studio. 
+The **demo application (`example-app`) automatically starts**. When configured with an API key, it will continuously execute a simple workflow in a loop, sending telemetry to Junjo AI Studio. 
 
 1. Create its API key
 2. Set the `.env` variable
@@ -156,12 +149,12 @@ The **demo application (`junjo-app`) automatically starts**. When configured wit
 
 #### 🔑 App API Key Setup Steps:
 
-1.  Navigate to [http://localhost:26153](http://localhost:26153) and create your user account, then sign in.
-2.  Create an [Application Telemetry API key](http://localhost:26153/api-keys) from **API Keys** in the Junjo AI Studio UI.
+1.  Navigate to [http://localhost:26154](http://localhost:26154) and create your user account, then sign in.
+2.  Create an [Application Telemetry API key](http://localhost:26154/api-keys) from **API Keys** in the Junjo AI Studio UI.
 3.  Set this key as the `JUNJO_AI_STUDIO_API_KEY` environment variable in your `.env` file.
-4.  Recreate the `junjo-app` container to apply the new API key in the .env file:
+4.  Recreate the `example-app` container to apply the new API key in the .env file:
     ```bash
-    docker compose up --force-recreate --no-deps junjo-app -d
+    docker compose up --force-recreate --no-deps example-app -d
     ```
 
 > **Troubleshooting:** If you see a "failed to get session" error in the logs or have trouble logging in, try clearing your browser's cookies for `localhost` and restarting the services. This can happen if you have multiple Junjo AI Studio projects running on `localhost` and an old session cookie is interfering.
@@ -212,9 +205,8 @@ This will allow us to point a domain to this VM and complete the following SSL s
 
 Your production domain configuration is manually set in the `caddy/Caddyfile`. This gives you full control over:
 
-1. **Frontend Access**: The web UI domain for viewing workflows
-2. **Session Cookies**: Domain-wide authentication (covers all subdomains)
-3. **API & Ingestion Endpoints**: Subdomain routing for backend services
+1. **Studio Access**: The domain for the web UI and its HTTP API
+2. **Ingestion Endpoint**: Subdomain routing for the ingestion service
 
 **Requirements:**
 - A registered domain with DNS access
@@ -231,7 +223,7 @@ Configure your DNS provider with A records pointing to your server's IP address.
 | A | `*.junjo.example.com` | `your-server-ip` | 300 |
 | A | `junjo.example.com` | `your-server-ip` | 300 |
 
-> Replace `junjo.example.com` with your actual subdomain and `your-server-ip` with your VM's public IP address. The wildcard record (`*`) ensures all sub-subdomains (api, ingestion) route to your server.
+> Replace `junjo.example.com` with your actual subdomain and `your-server-ip` with your VM's public IP address. The wildcard record (`*`) ensures all sub-subdomains (ingestion) route to your server.
 
 #### Service Endpoints
 
@@ -239,8 +231,7 @@ Using `junjo.example.com` as an example, your deployment will be accessible at:
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| **Web UI** | `https://junjo.example.com` | View and debug AI workflow executions |
-| **API** | `https://api.junjo.example.com` | Backend HTTP API |
+| **Studio** | `https://junjo.example.com` | Web UI and HTTP API: view and debug AI workflow executions |
 | **Ingestion** | `ingestion.junjo.example.com:443` | **Your AI applications send traces here** |
 
 #### Connecting Your AI Applications
@@ -346,19 +337,13 @@ cd <project-folder-name>
 # Copy the example environment file
 cp .env.example .env
 
-# Generate three security keys and use different values
-openssl rand -base64 32  # JUNJO_SESSION_SECRET
-openssl rand -base64 32  # JUNJO_SECURE_COOKIE_KEY
+# Generate the internal gRPC token
 openssl rand -base64 32  # JUNJO_INTERNAL_GRPC_TOKEN
 
 # Edit .env and set production values:
 # - JUNJO_ENV=production
-# - JUNJO_PROD_FRONTEND_URL=https://junjo.example.com
-# - JUNJO_PROD_BACKEND_URL=https://api.junjo.example.com
 # - JUNJO_PROD_INGESTION_URL=https://ingestion.junjo.example.com
-# - JUNJO_SESSION_SECRET=<generated_key_1>
-# - JUNJO_SECURE_COOKIE_KEY=<generated_key_2>
-# - JUNJO_INTERNAL_GRPC_TOKEN=<generated_key_3>
+# - JUNJO_INTERNAL_GRPC_TOKEN=<generated_token>
 # - CLOUDFLARE_API_TOKEN=<required_for_caddy_dns_challenge>
 vi .env
 ```
@@ -408,7 +393,7 @@ docker compose logs -f caddy
 
 #### Create API Key
 
-1. Access the frontend at your production domain (e.g., `https://junjo.example.com`)
+1. Access Studio at your production domain (e.g., `https://junjo.example.com`)
 2. Create a user account and sign in
 3. Create the API Key
 4. Update `.env` and set `JUNJO_AI_STUDIO_API_KEY` with your API key:
@@ -417,11 +402,11 @@ docker compose logs -f caddy
    ```
 5. Restart the demo app to apply the key:
    ```bash
-   docker compose up --force-recreate --no-deps junjo-app -d
+   docker compose up --force-recreate --no-deps example-app -d
    ```
-6. View the logs of the sample junjo-app executing:
+6. View the logs of the sample app (`example-app`) executing:
    ```bash
-   docker compose logs -f junjo-app
+   docker compose logs -f example-app
    ```
 
 #### Verify Deployment
@@ -431,7 +416,7 @@ docker compose logs -f caddy
 docker compose ps
 
 # Watch application logs
-docker compose logs -f junjo-app
+docker compose logs -f example-app
 ```
 
 Your Junjo AI Studio is now live! Visit the Web UI to see workflow runs from the demo application.
@@ -492,20 +477,15 @@ This deployment includes several interconnected services. The **core Junjo AI St
 ### Core Junjo AI Studio Services
 
 #### `junjo-ai-studio-ingestion`
-*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.85.0`
+*   **Image**: `mdrideout/junjo-ai-studio-ingestion:0.86.0`
 *   **Purpose**: High-throughput OpenTelemetry trace ingestion
 *   **Details**: Rust service that receives trace telemetry via OTLP gRPC (port 26155), writes spans to Arrow IPC WAL segments, and flushes spans to Parquet for durable cold storage. It also prepares a hot snapshot parquet file for low-latency recent queries.
 *   **Health Check**: Docker health check verifies the internal gRPC port (`50052`) is listening.
 
-#### `junjo-ai-studio-backend`
-*   **Image**: `mdrideout/junjo-ai-studio-backend:0.85.0`
-*   **Purpose**: API server, authentication, and data processing
-*   **Details**: Python FastAPI application that handles HTTP API requests (port 26154), user authentication, and business logic. Uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
-
-#### `junjo-ai-studio-frontend`
-*   **Image**: `mdrideout/junjo-ai-studio-frontend:0.85.0`
-*   **Purpose**: Web-based debugging interface
-*   **Details**: React application providing the UI for viewing workflow runs, exploring traces, and analyzing AI agent behavior. Served on port 26153, proxied through Caddy.
+#### `junjo-ai-studio-app`
+*   **Image**: `mdrideout/junjo-ai-studio-app:0.86.0`
+*   **Purpose**: Web-based debugging interface, API server, authentication, and data processing
+*   **Details**: Rust service that serves the React web UI and the HTTP API on one origin (port 26154, proxied through Caddy). The UI is for viewing workflow runs, exploring traces, and analyzing AI agent behavior. The API handles user authentication and business logic, uses SQLite for users/sessions plus metadata indexing, and queries parquet-backed span data with hot+cold merge logic.
 
 ### Infrastructure Services
 
@@ -516,7 +496,7 @@ This deployment includes several interconnected services. The **core Junjo AI St
 
 ### Demo Application (Reference Implementation)
 
-#### `junjo-app`
+#### `example-app`
 *   **Source**: [`junjo_app/`](junjo_app/)
 *   **Purpose**: Example showing how to integrate Junjo AI Studio into your Python applications
 *   **Details**: Runs a simple 3-node Junjo workflow (StartNode → IncrementNode → EndNode) in a continuous loop, executing **every 5 seconds**. Each execution generates a complete OpenTelemetry trace showing state changes, node timing, and workflow decision flow. This continuous telemetry stream demonstrates real-time ingestion and visualization.
@@ -526,7 +506,7 @@ This deployment includes several interconnected services. The **core Junjo AI St
 - Sends complete trace data to `junjo-ai-studio-ingestion` via gRPC
 - Creates visible workflow runs in the Junjo AI Studio UI every 5 seconds
 - Shows how to configure standard OTLP trace export in your own applications
-- Watch it running: `docker compose logs -f junjo-app`
+- Watch it running: `docker compose logs -f example-app`
 
 **For Production:**
 Use `junjo_app/` as a reference implementation. **Remove this service** from `docker-compose.yml` if you don't need the demo running continuously.
@@ -558,11 +538,6 @@ To test your setup without browser warnings, add the staging certificate to your
 1. Download the staging certificates (provide your domain as argument):
    ```bash
    bash download_staging_certs.sh junjo.example.com
-   ```
-
-   Or if you have `JUNJO_PROD_FRONTEND_URL` set in `.env`, the script will extract the domain automatically:
-   ```bash
-   bash download_staging_certs.sh
    ```
 
 2. Open the `.certs` folder in Finder and double-click the `.pem` files to add them to Keychain Access

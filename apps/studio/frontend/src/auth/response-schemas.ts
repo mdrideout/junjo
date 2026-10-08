@@ -4,14 +4,15 @@ import { z } from 'zod'
  * Response schema for user mutation operations.
  *
  * Used by:
- * - POST /users/create-first-user
- * - POST /sign-in
- * - POST /sign-out
- * - POST /users (create user)
- * - DELETE /users/{user_id}
+ * - POST /api/v1/users/create-first-user
+ * - POST /api/v1/sign-in
+ * - POST /api/v1/sign-out
+ * - POST /api/v1/users (create user)
+ * - DELETE /api/v1/users/{user_id}
+ * - POST /api/v1/cli-sign-ins/{user_code}/deny
  *
- * Matches backend Pydantic schema:
- * backend/app/db_sqlite/users/schemas.py (UserResponse)
+ * Matches the backend response type:
+ * backend/server/src/features/auth/mod.rs (UserResponse)
  */
 export const UserResponseSchema = z.object({
   message: z.string(),

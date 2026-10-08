@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react-swc'
 import viteJunjoPlugin from './vite-junjo-plugin'
 import { analyzer } from 'vite-bundle-analyzer'
 
+// The backend the dev server proxies API requests to
+const devBackendUrl = process.env.JUNJO_DEV_BACKEND_URL || 'http://localhost:26154'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -19,6 +22,11 @@ export default defineConfig({
     strictPort: true,
     watch: {
       usePolling: true,
+    },
+    // Keys match by prefix: '/api/' keeps the '/api-keys' page with the app
+    proxy: {
+      '/api/': devBackendUrl,
+      '/health': devBackendUrl,
     },
   },
   build: {

@@ -7,7 +7,7 @@ import { FlushWALResponseSchema } from '../../features/settings/schemas'
 describe('API Contract: Mutation Operations Response Schemas', () => {
   describe('Authentication', () => {
     it('UserResponse schema matches create-first-user endpoint', () => {
-      const { mock } = generateMock('create_first_user_users_create_first_user_post')
+      const { mock } = generateMock('create_first_user')
       const result = UserResponseSchema.parse(mock)
 
       expect(result.message).toBeDefined()
@@ -16,7 +16,7 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
     })
 
     it('UserResponse schema matches sign-in endpoint', () => {
-      const { mock } = generateMock('sign_in_sign_in_post')
+      const { mock } = generateMock('sign_in')
       const result = UserResponseSchema.parse(mock)
 
       expect(result.message).toBeDefined()
@@ -24,7 +24,7 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
     })
 
     it('UserResponse schema matches sign-out endpoint', () => {
-      const { mock } = generateMock('sign_out_sign_out_post')
+      const { mock } = generateMock('sign_out')
       const result = UserResponseSchema.parse(mock)
 
       expect(result.message).toBeDefined()
@@ -34,7 +34,7 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
 
   describe('User Management', () => {
     it('UserResponse schema matches create user endpoint', () => {
-      const { mock } = generateMock('create_user_users_post')
+      const { mock } = generateMock('create_user')
       const result = UserResponseSchema.parse(mock)
 
       expect(result.message).toBeDefined()
@@ -42,7 +42,7 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
     })
 
     it('UserResponse schema matches delete user endpoint', () => {
-      const { mock } = generateMock('delete_user_users__user_id__delete')
+      const { mock } = generateMock('delete_user')
       const result = UserResponseSchema.parse(mock)
 
       expect(result.message).toBeDefined()
@@ -52,7 +52,7 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
 
   describe('API Keys', () => {
     it('ApiKeyCreateResponse schema matches create API key endpoint', () => {
-      const { mock } = generateMock('create_api_key_api_keys_post')
+      const { mock } = generateMock('create_api_key')
       const result = ApiKeyCreateResponseSchema.parse(mock)
 
       // Validate structure
@@ -74,7 +74,7 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
 
   describe('Admin Operations', () => {
     it('FlushWALResponse schema matches flush-wal endpoint', () => {
-      const { mock } = generateMock('flush_wal_api_admin_flush_wal_post')
+      const { mock } = generateMock('flush_wal')
       const result = FlushWALResponseSchema.parse(mock)
 
       expect(result.success).toBeDefined()
@@ -85,8 +85,8 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
   })
 
   describe('Path Parameter Types', () => {
-    it('DELETE /users/{user_id} parameter is defined as string', () => {
-      const operation = api.getOperation('delete_user_users__user_id__delete')
+    it('DELETE /api/v1/users/{user_id} parameter is defined as string', () => {
+      const operation = api.getOperation('delete_user')
       const userIdParam = operation?.parameters?.find((p) => 'name' in p && p.name === 'user_id')
 
       expect(userIdParam).toBeDefined()
@@ -96,8 +96,8 @@ describe('API Contract: Mutation Operations Response Schemas', () => {
       )
     })
 
-    it('DELETE /api_keys/{id} parameter is defined as string', () => {
-      const operation = api.getOperation('delete_api_key_api_keys__id__delete')
+    it('DELETE /api/v1/api-keys/{id} parameter is defined as string', () => {
+      const operation = api.getOperation('delete_api_key')
       const idParam = operation?.parameters?.find((p) => 'name' in p && p.name === 'id')
 
       expect(idParam).toBeDefined()

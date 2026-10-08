@@ -23,10 +23,9 @@ from typing import Any
 DEFAULT_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RELEASE_CONTRACT = DEFAULT_REPOSITORY_ROOT / "tooling/studio_release_contract.json"
 
-BACKEND = "junjo-ai-studio-backend"
+APP = "junjo-ai-studio-app"
 INGESTION = "junjo-ai-studio-ingestion"
-FRONTEND = "junjo-ai-studio-frontend"
-CORE_SERVICES = frozenset({BACKEND, INGESTION, FRONTEND})
+CORE_SERVICES = frozenset({APP, INGESTION})
 
 
 @dataclass(frozen=True)
@@ -47,15 +46,13 @@ DISTRIBUTIONS = (
     Distribution(
         name="vm-caddy",
         relative_path=Path("apps/studio/deployments/vm-caddy"),
-        expected_services=CORE_SERVICES | {"junjo-app", "caddy"},
+        expected_services=CORE_SERVICES | {"example-app", "caddy"},
     ),
 )
 
 SAFE_ENVIRONMENT = """\
 JUNJO_ENV=development
 JUNJO_HOST_DB_DATA_PATH=./.dbdata
-JUNJO_SESSION_SECRET=validation-only-session-secret
-JUNJO_SECURE_COOKIE_KEY=validation-only-cookie-key
 JUNJO_INTERNAL_GRPC_TOKEN=validation-internal-grpc-token-32-bytes
 CLOUDFLARE_API_TOKEN=validation-only-cloudflare-token
 """
@@ -84,11 +81,11 @@ def load_image_repositories(contract_path: Path) -> dict[str, str]:
     images = contract.get("images")
     require(isinstance(images, dict), "Studio release contract images must be an object")
     require(
-        set(images) == {"backend", "frontend", "ingestion"},
-        "Studio release contract must define exactly backend, frontend, and ingestion images",
+        set(images) == {"backend", "ingestion"},
+        "Studio release contract must define exactly backend and ingestion images",
     )
     repositories: dict[str, str] = {}
-    for service in ("backend", "frontend", "ingestion"):
+    for service in ("backend", "ingestion"):
         image = images[service]
         require(isinstance(image, dict), f"release image {service} must be an object")
         repository = image.get("repository")
@@ -275,10 +272,8 @@ def require_network(service: dict[str, Any], service_name: str) -> None:
     )
 
 
-def require_shared_data_mount(
-    backend: dict[str, Any], ingestion: dict[str, Any]
-) -> None:
-    """Validate the backend and ingestion shared persistent data mount."""
+def require_shared_data_mount(app: dict[str, Any], ingestion: dict[str, Any]) -> None:
+    """Validate the app and ingestion shared persistent data mount."""
 
     def data_source(service: dict[str, Any], service_name: str) -> str:
         volumes = service.get("volumes", [])
@@ -293,8 +288,8 @@ def require_shared_data_mount(
         raise RuntimeError(f"{service_name} must mount /app/.dbdata")
 
     require(
-        data_source(backend, BACKEND) == data_source(ingestion, INGESTION),
-        "backend and ingestion must share the same /app/.dbdata source",
+        data_source(app, APP) == data_source(ingestion, INGESTION),
+        "app and ingestion must share the same /app/.dbdata source",
     )
 
 
@@ -317,9 +312,8 @@ def validate_rendered_compose(
     )
 
     expected_images = {
-        BACKEND: f"{IMAGE_REPOSITORIES['backend']}:{studio_version}",
+        APP: f"{IMAGE_REPOSITORIES['backend']}:{studio_version}",
         INGESTION: f"{IMAGE_REPOSITORIES['ingestion']}:{studio_version}",
-        FRONTEND: f"{IMAGE_REPOSITORIES['frontend']}:{studio_version}",
     }
     studio_images: dict[str, str] = {}
     for service_name, service in services.items():
@@ -343,26 +337,24 @@ def validate_rendered_compose(
         f"found {studio_images}",
     )
 
-    backend = services[BACKEND]
+    app = services[APP]
     ingestion = services[INGESTION]
-    frontend = services[FRONTEND]
 
-    require_exact_ports(backend, BACKEND, {(26154, "26154", "tcp")})
+    require_exact_ports(app, APP, {(26154, "26154", "tcp")})
     require_exact_ports(ingestion, INGESTION, {(26155, "26155", "tcp")})
-    require_exact_ports(frontend, FRONTEND, {(26153, "26153", "tcp")})
     for service_name in CORE_SERVICES:
         require(
             "build" not in services[service_name],
             f"{service_name} must use only its pinned image",
         )
     require_environment(
-        backend,
-        BACKEND,
+        app,
+        APP,
         {
             "INGESTION_HOST": INGESTION,
             "INGESTION_PORT": "50052",
+            "PORT": "26154",
             "GRPC_PORT": "50053",
-            "RUN_MIGRATIONS": "true",
             "JUNJO_SQLITE_PATH": "/app/.dbdata/sqlite/junjo.db",
             "JUNJO_METADATA_DB_PATH": "/app/.dbdata/sqlite/metadata.db",
             "JUNJO_PARQUET_STORAGE_PATH": "/app/.dbdata/spans/parquet",
@@ -372,7 +364,7 @@ def validate_rendered_compose(
         ingestion,
         INGESTION,
         {
-            "BACKEND_GRPC_HOST": BACKEND,
+            "BACKEND_GRPC_HOST": APP,
             "BACKEND_GRPC_PORT": "50053",
             "GRPC_PORT": "26155",
             "INTERNAL_GRPC_PORT": "50052",
@@ -386,8 +378,7 @@ def validate_rendered_compose(
             "PARQUET_OUTPUT_DIR": "/app/.dbdata/spans/parquet",
         },
     )
-    require_dependency(ingestion, INGESTION, BACKEND)
-    require_dependency(frontend, FRONTEND, BACKEND)
+    require_dependency(ingestion, INGESTION, APP)
     for service_name in CORE_SERVICES:
         require_network(services[service_name], service_name)
     networks = rendered.get("networks", {})
@@ -404,7 +395,7 @@ def validate_rendered_compose(
         f"{distribution.name}: junjo-network must render as the project-scoped "
         f"{expected_network_name} bridge",
     )
-    require_shared_data_mount(backend, ingestion)
+    require_shared_data_mount(app, ingestion)
 
     healthcheck = ingestion.get("healthcheck", {})
     expected_healthcheck = {
@@ -426,7 +417,7 @@ def validate_rendered_compose(
         )
     elif distribution.name == "vm-caddy":
         expected_build_contexts = {
-            "junjo-app": str((project_root / "junjo_app").resolve()),
+            "example-app": str((project_root / "junjo_app").resolve()),
             "caddy": str((project_root / "caddy").resolve()),
         }
         for service_name, expected_context in expected_build_contexts.items():
@@ -444,12 +435,11 @@ def validate_rendered_compose(
                 "image" not in services[service_name],
                 f"vm-caddy: {service_name} must not use a remote image",
             )
-        require_dependency(services["junjo-app"], "junjo-app", INGESTION)
-        require_dependency(services["caddy"], "caddy", BACKEND)
-        require_dependency(services["caddy"], "caddy", FRONTEND)
-        require_network(services["junjo-app"], "junjo-app")
+        require_dependency(services["example-app"], "example-app", INGESTION)
+        require_dependency(services["caddy"], "caddy", APP)
+        require_network(services["example-app"], "example-app")
         require_network(services["caddy"], "caddy")
-        require_exact_ports(services["junjo-app"], "junjo-app", set())
+        require_exact_ports(services["example-app"], "example-app", set())
         require_exact_ports(
             services["caddy"],
             "caddy",

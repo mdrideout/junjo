@@ -1,0 +1,11 @@
+services:
+  backend:
+    image: junjo-rsmig-app:adopted
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  ingestion:
+    image: junjo-rsmig-ingestion:0.85.0
+    volumes: !override
+      - ${JUNJO_HOST_DB_DATA_PATH}:/app/.dbdata
+  auth-proxy:
+    image: junjo-rsmig-auth-proxy:local

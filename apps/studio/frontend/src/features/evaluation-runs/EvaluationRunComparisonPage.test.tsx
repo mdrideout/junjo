@@ -38,7 +38,7 @@ describe('EvaluationRunComparisonPage', () => {
       http.get(`${API_BASE}/api/v1/evaluation/runs/:runId`, ({ params }) => {
         if (params.runId === baseline.run.id) return HttpResponse.json(baseline)
         if (params.runId === candidate.run.id) return HttpResponse.json(candidate)
-        return HttpResponse.json({ detail: 'not found' }, { status: 404 })
+        return HttpResponse.json({ code: 'not_found', message: 'not found' }, { status: 404 })
       }),
     )
 

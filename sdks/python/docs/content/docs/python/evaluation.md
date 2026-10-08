@@ -80,21 +80,111 @@ declare the harness, and install the matching coding-agent skill.
 
 ## Credentials stay separate
 
-Sign in to Studio, open **Access Tokens**, choose the required scopes and
-expiration, and create a developer access token. Copy it to the environment:
+The CLI and SDK authenticate to Studio with a developer access token. The
+access token has explicit `evaluation:read`, `evaluation:write`, and
+`evidence:read` scopes. It cannot deliver OTLP telemetry. The existing
+`JUNJO_AI_STUDIO_API_KEY`, created from **API Keys**, remains an
+application-telemetry-only credential and cannot query or mutate datasets.
+
+There are two ways to provide the access token. A person at a terminal signs
+in through the browser. Automation, CI, and coding agents set an environment
+variable, which always takes precedence.
+
+Remote Studio origins must use HTTPS. Explicit loopback development may use
+HTTP.
+
+### Sign in from a terminal
+
+```bash
+junjo auth login
+```
+
+The command prints a short code and the address of Studio's approval page,
+opens that page in your browser, and waits:
+
+```text
+Sign-in code: WZRP-JWSQ
+Approval page: http://localhost:26154/cli-sign-in?code=WZRP-JWSQ
+The approval page was opened in your browser.
+Approve the sign-in only if the page shows the same code.
+Waiting for approval. The code expires in 900 seconds.
+```
+
+Sign in to Studio if the browser asks you to, check that the page shows the
+code from your terminal, and approve. Approving creates an ordinary developer
+access token named `junjo CLI on <hostname>`. The command collects it, stores
+it for that Studio, and reports where. It never prints the token. The result
+is written as one line; it is formatted here for reading:
+
+```json
+{
+  "command": "auth.login",
+  "data": {
+    "credentials_path": "/home/you/.config/junjo/credentials.json",
+    "environment_token_set": false,
+    "message": "Signed in to http://localhost:26154. The developer access token is stored in /home/you/.config/junjo/credentials.json.",
+    "origin": "http://localhost:26154",
+    "scopes": ["evaluation:read", "evaluation:write", "evidence:read"],
+    "token_id": "example-token-id"
+  },
+  "ok": true,
+  "schema_version": 1
+}
+```
+
+From then on, every `junjo eval` command uses the stored token for that Studio
+unless `JUNJO_AI_STUDIO_CLI_TOKEN` is set. Check the credential, or sign out,
+at any time:
+
+```bash
+junjo auth status
+junjo auth logout
+```
+
+`junjo auth status` reports the Studio origin, whether the token comes from the
+`environment`, the `stored` credential, or `none`, and whether Studio accepts
+it, with the token's name, scopes, and expiry. It exits `0` only when Studio
+accepts the credential, `3` when there is no credential or Studio rejects it,
+and `8` when Studio cannot be reached.
+
+`junjo auth logout` revokes the stored token in Studio and deletes the stored
+copy. The stored copy is deleted even when Studio already rejects the token or
+cannot be reached. If Studio cannot be reached, the command exits `8` and names
+the token to delete under **Access Tokens**.
+
+- On a remote machine or in a container, add `--no-browser` and open the
+  printed address in any browser where you can sign in to Studio.
+- Ask for fewer scopes with `--scope`, repeated for each scope, and choose the
+  token's name with `--name`.
+- Select the Studio instance exactly as for `junjo eval`: with
+  `JUNJO_AI_STUDIO_BACKEND_BASE_URL`, or with
+  `junjo auth --studio-backend-base-url https://studio.example.com login`.
+  Tokens are stored per Studio origin, so several instances can be signed in
+  at once.
+- The token is listed under **Access Tokens** in Studio like any other and can
+  be deleted there. Signing in again stores a new token in place of the old
+  one without revoking it, so run `junjo auth logout` first when you want the
+  old token revoked.
+
+The stored credential is one file that only your user can read:
+`~/.config/junjo/credentials.json`, under `$XDG_CONFIG_HOME` instead when that
+is set, or `%APPDATA%\junjo\credentials.json` on Windows. The CLI never asks
+for your Studio password.
+
+### Automation and coding agents
+
+For CI, scripts, and coding agents, sign in to Studio, open **Access Tokens**,
+choose the required scopes and expiration, and create a developer access token.
+Copy it to the environment:
 
 ```dotenv
 JUNJO_AI_STUDIO_BACKEND_BASE_URL=http://localhost:26154
 JUNJO_AI_STUDIO_CLI_TOKEN=jcli_...
 ```
 
-The access token has explicit `evaluation:read`, `evaluation:write`, and
-`evidence:read` scopes. It cannot deliver OTLP telemetry. The existing
-`JUNJO_AI_STUDIO_API_KEY`, created from **API Keys**, remains an
-application-telemetry-only credential and cannot query or mutate datasets.
-
-Remote Studio origins must use HTTPS. Explicit loopback development may use
-HTTP.
+`JUNJO_AI_STUDIO_CLI_TOKEN` always takes precedence. When it is set, commands
+use it and do not read the stored credential, so `junjo auth login` and
+`junjo auth logout` never change which token automation uses.
 
 ## Give a coding agent the runbook
 

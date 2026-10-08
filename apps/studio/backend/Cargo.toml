@@ -1,0 +1,23 @@
+[workspace]
+members = ["evidence", "server"]
+resolver = "3"
+
+[workspace.package]
+version = "0.86.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+
+# Release builds use link-time optimization. It was measured to lower
+# resident memory and binary size; see Studio ADR-011.
+[profile.release]
+lto = true
+codegen-units = 1
+
+# Password hashing is deliberately slow. Optimize it in development builds so
+# tests that create users stay fast.
+[profile.dev.package.bcrypt]
+opt-level = 3
+
+[profile.dev.package.blowfish]
+opt-level = 3

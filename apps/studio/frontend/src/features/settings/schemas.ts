@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 /**
  * Schema for WAL flush response.
- * Matches backend Pydantic model: app/features/admin/router.py:FlushWALResponse
+ * Matches the backend response type: backend/server/src/features/admin.rs (FlushWALResponse)
  */
 export const FlushWALResponseSchema = z.object({
   success: z.boolean(),

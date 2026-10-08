@@ -1,5 +1,17 @@
 # ADR-009: Bounded ingestion API-key validation
 
+Amended 2026-10-05 by [ADR-013](013-api-key-attribution-of-spans.md). The
+key check also answers with the valid key's identifier, which ingestion
+caches with the validation and stores on each span. The validation decision
+below is unchanged.
+
+Amended 2026-10-03 by
+[ADR-011](011-rust-backend-and-single-origin-studio.md). The Studio backend
+that answers each validation is now a Rust service, so the wording and source
+paths that named the Python backend are updated. The decision, the selected
+defaults, and the failure semantics are unchanged. The acceptance evidence
+below was measured against the Python backend.
+
 ## Status
 
 Accepted
@@ -209,7 +221,7 @@ the historical 600-second behavior requires a new ADR.
 
 This was the interim security remediation and remains the comparison baseline.
 It provides next-export revocation, but makes backend availability and
-per-export Python, SQLite, gRPC, and scheduling work part of every successful
+per-export backend, SQLite, gRPC, and scheduling work part of every successful
 ingestion request.
 
 ### Historical 600-second positive cache
@@ -331,8 +343,8 @@ Active behavior lives in:
 - `ingestion/src/backend/client.rs`
 - `ingestion/src/server/trace_service.rs`
 - `ingestion/src/config.rs`
-- `backend/app/features/internal_auth/grpc_service.py`
-- `backend/app/db_sqlite/api_keys/`
+- `backend/server/src/features/internal_auth.rs`
+- `backend/server/src/features/api_keys/`
 
 ## Related
 

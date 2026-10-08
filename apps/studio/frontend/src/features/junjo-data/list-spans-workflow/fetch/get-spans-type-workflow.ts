@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { getApiHost } from '../../../../config'
 import { observabilityServicePath } from '../../../../util/telemetry-paths'
 import { OtelSpan, OtelSpanSchema } from '../../../traces/schemas/schemas'
 
@@ -10,11 +9,10 @@ import { OtelSpan, OtelSpanSchema } from '../../../traces/schemas/schemas'
  * @returns
  */
 export async function getSpansTypeWorkflow(serviceName: string): Promise<OtelSpan[]> {
-  // Use Python backend endpoint
+  // Use the backend's Workflow span endpoint
   const endpoint = observabilityServicePath(serviceName, 'workflows')
-  const apiHost = getApiHost()
 
-  const response = await fetch(`${apiHost}${endpoint}`, {
+  const response = await fetch(endpoint, {
     credentials: 'include',
   })
 
